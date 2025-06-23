@@ -1,17 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import ThemeRegistry from "@/components/ThemeRegistry/ThemeRegistry";
 
 export const metadata: Metadata = {
   title: "Gestión de Personal",
@@ -25,10 +15,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Providers>{children}</Providers>
+      <body>
+        <ThemeRegistry>
+          <Providers>{children}</Providers>
+        </ThemeRegistry>
       </body>
     </html>
   );
