@@ -27,6 +27,9 @@ export class UsersService {
         created: true,
         modified: true,
       },
+      relations: {
+        permisos: true,
+      },
       order: {
         id: 'ASC',
       },

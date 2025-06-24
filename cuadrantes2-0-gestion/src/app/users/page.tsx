@@ -79,16 +79,12 @@ export default function UsersListPage() {
               <TableCell>Username</TableCell>
               <TableCell>Email</TableCell>
               <TableCell align="center">Estado</TableCell>
-              <TableCell>Último Login</TableCell>
+              <TableCell>Permisos</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {users?.map((user) => (
-              <TableRow
-                key={user.id}
-                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-                hover
-              >
+              <TableRow key={user.id} hover>
                 <TableCell component="th" scope="row">
                   {user.id}
                 </TableCell>
@@ -104,8 +100,18 @@ export default function UsersListPage() {
                   )}
                 </TableCell>
                 <TableCell>
-                  {new Date(user.last_login).toLocaleString("es-ES")}
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                    {user.permisos.map((permiso) => (
+                      <Chip
+                        key={permiso.id}
+                        label={permiso.tipo}
+                        size="small"
+                        variant="outlined"
+                      />
+                    ))}
+                  </Box>
                 </TableCell>
+                {/* --- FIN DE LA NUEVA CELDA --- */}
               </TableRow>
             ))}
           </TableBody>

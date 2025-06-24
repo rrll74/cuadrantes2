@@ -1,9 +1,12 @@
+import { Permiso } from '@/permisos/entities/permiso.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   //   CreateDateColumn,
   UpdateDateColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 
 @Entity({ name: 'users' }) // Mapea a la tabla 'users'
@@ -47,4 +50,21 @@ export class User {
 
   @UpdateDateColumn() // Gestiona automáticamente la columna `modified`
   modified: Date;
+
+  // Definición de la relación Muchos a Muchos
+  @ManyToMany(() => Permiso, { eager: false }) // eager: false es mejor para el rendimiento, los cargaremos cuando los necesitemos
+  @JoinTable({
+    name: 'permisos_users', // El nombre de tu tabla intermedia
+    joinColumn: {
+      // Configuración de la clave foránea que apunta a esta entidad (User)
+      name: 'usuario_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      // Configuración de la clave foránea que apunta a la otra entidad (Permiso)
+      name: 'permiso_id',
+      referencedColumnName: 'id',
+    },
+  })
+  permisos: Permiso[];
 }
