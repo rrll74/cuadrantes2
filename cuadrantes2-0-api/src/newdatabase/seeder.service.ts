@@ -39,6 +39,10 @@ export class SeederService implements OnModuleInit {
     if (existingAdmin) return;
 
     const allPermisos = await this.permisoRepository.find();
+    console.log(
+      'Permisos para el admin:',
+      allPermisos.map((p) => p.tipo).join(', '),
+    );
 
     const admin = this.userRepository.create({
       username: 'admin',
