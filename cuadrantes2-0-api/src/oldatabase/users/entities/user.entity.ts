@@ -1,4 +1,4 @@
-import { Permiso } from '@/permisos/entities/permiso.entity';
+import { Permiso } from '@/oldatabase/permisos/entities/permiso.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
