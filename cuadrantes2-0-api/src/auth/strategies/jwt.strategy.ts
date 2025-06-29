@@ -2,6 +2,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AuthModel, UserPayload } from '../auth.model';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -9,12 +10,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET'),
+      secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
     });
   }
 
   // Passport verifica el token y si es válido, llama a este método con el payload decodificado
-  async validate(payload: any) {
+  validate(payload: AuthModel): UserPayload {
     // Lo que retornemos aquí se adjuntará a request.user
     return {
       userId: payload.sub,

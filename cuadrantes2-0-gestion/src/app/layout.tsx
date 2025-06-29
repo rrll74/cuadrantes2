@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "./providers";
 import ThemeRegistry from "@/components/ThemeRegistry/ThemeRegistry";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "Gestión de Personal",
@@ -16,9 +17,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ThemeRegistry>
-          <Providers>{children}</Providers>
-        </ThemeRegistry>
+        <AuthProvider>
+          <ThemeRegistry>
+            <Providers>{children}</Providers>
+          </ThemeRegistry>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
+import Button from "@mui/material/Button";
 
 // Función que obtendrá los datos de la API
 const getHelloMessage = async (): Promise<string> => {
@@ -31,6 +32,11 @@ export default function Home() {
           )}
         </div>
       </div>
+      <footer className="flex items-center justify-center w-full h-24 border-t">
+        <Button href="/login" variant="contained" color="primary">
+          Login
+        </Button>
+      </footer>
     </main>
   );
 }

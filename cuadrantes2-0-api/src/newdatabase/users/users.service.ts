@@ -9,4 +9,8 @@ export class UsersService {
     @InjectRepository(User, 'new')
     private usersRepository: Repository<User>,
   ) {}
+
+  async findOneByUsername(username: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { username } });
+  }
 }
