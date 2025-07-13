@@ -1,9 +1,19 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // Elimina propiedades que no están en el DTO
+      forbidNonWhitelisted: true, // Lanza un error si se envían propiedades no permitidas
+      transform: true, // Transforma los payloads a instancias de DTO
+    }),
+  );
+
   // CORS config to let petitions from frontend
   app.enableCors({
     origin: true,
