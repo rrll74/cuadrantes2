@@ -21,7 +21,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: unknown) => {
     setError(null);
     setIsLoading(true);
     try {

@@ -22,19 +22,19 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @HasPermissions('users.read')
+  @HasPermissions('users:read')
   findAllUsers() {
     return this.usersService.findAll();
   }
 
   @Post()
-  @HasPermissions('users.create')
+  @HasPermissions('users:create')
   createUser(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Patch(':id')
-  @HasPermissions('users.update')
+  @HasPermissions('users:update')
   updateUser(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
@@ -43,7 +43,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @HasPermissions('users.delete')
+  @HasPermissions('users:delete')
   deleteUser(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);
   }

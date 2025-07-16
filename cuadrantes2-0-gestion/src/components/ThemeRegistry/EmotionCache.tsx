@@ -4,6 +4,7 @@ import createCache from "@emotion/cache";
 import { useServerInsertedHTML } from "next/navigation";
 import { CacheProvider as EmotionCacheProvider } from "@emotion/react";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function NextAppDirEmotionCacheProvider(props: any) {
   const { options, CacheProvider = EmotionCacheProvider, children } = props;
 
