@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
 import { OldUser } from '@/oldatabase/users/entities/olduser.entity';
 
-@Entity({ name: 'permisos' })
+@Entity({ name: 'permisos' }) // Mapea la table 'permisos'
 export class OldPermiso {
   @PrimaryGeneratedColumn()
   id: number;

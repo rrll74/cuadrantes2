@@ -15,13 +15,22 @@ import { PermissionsGuard } from '@/auth/guards/permissions.guard';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { User } from './entities/user.entity';
 
+@ApiTags('Users')
 @Controller('users')
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
+  @ApiOperation({ summary: 'Obtener una lista de todos los usuarios' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de usuarios recuperada con éxito.',
+    type: [User],
+  })
   @HasPermissions('users:read')
   findAllUsers() {
     return this.usersService.findAll();

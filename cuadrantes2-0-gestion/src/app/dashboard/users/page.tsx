@@ -129,7 +129,7 @@ export default function UsersListPage() {
             {users?.map((user) => (
               <TableRow key={user.id} hover>
                 <UserRow
-                  canDelete={canDelete}
+                  canDelete={canDelete && user.username !== "admin"}
                   canUpdate={canUpdate}
                   user={user}
                   onEdit={handleOpenEditForm}
@@ -140,6 +140,7 @@ export default function UsersListPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
       <Dialog open={isFormOpen} onClose={handleCloseForm}>
         <DialogTitle>
           {editingUser ? "Editar Usuario" : "Crear Usuario"}

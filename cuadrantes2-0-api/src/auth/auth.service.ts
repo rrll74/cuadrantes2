@@ -16,6 +16,7 @@ export class AuthService {
     pass: string,
   ): Promise<LoginModel | null> {
     const user = await this.usersService.findOneByUsername(username);
+    console.log(user);
     if (user && (await user.validatePassword(pass))) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;

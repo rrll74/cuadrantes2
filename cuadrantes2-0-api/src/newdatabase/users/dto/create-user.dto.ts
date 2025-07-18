@@ -21,5 +21,5 @@ export class CreateUserDto {
 
   @IsArray()
   @IsInt({ each: true }) // Valida que cada elemento del array sea un entero
-  permisoIds: number[] | undefined;
+  permisos: number[] | undefined;
 }

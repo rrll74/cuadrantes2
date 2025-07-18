@@ -20,10 +20,10 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column()
+  @Column({ select: false })
   password: string;
 
-  @ManyToMany(() => Permiso, { eager: true }) // eager: true para que siempre cargue los permisos
+  @ManyToMany(() => Permiso, (permiso) => permiso.users, { eager: true }) // eager: true para que siempre cargue los permisos
   @JoinTable({
     name: 'permisos_users', // El nombre de tu tabla intermedia
     joinColumn: {

@@ -26,11 +26,11 @@ interface UserFormData {
   username: string;
   email: string;
   password?: string;
-  permisoIds: number[];
+  permisos: number[];
 }
 
 interface UserFormProps {
-  onSubmit: (data: Partial<UserFormData>) => void;
+  onSubmit: (data: Partial<UserFormData>, id?: number) => void;
   initialData?: User | null;
   isSubmitting: boolean;
 }
@@ -49,14 +49,16 @@ const UserForm = ({ onSubmit, initialData, isSubmitting }: UserFormProps) => {
   } = useForm<UserFormData>({
     defaultValues: initialData
       ? {
-          ...initialData,
-          permisoIds: initialData.permisos.map((p) => p.id),
+          username: initialData.username,
+          email: initialData.email,
+          permisos: initialData.permisos.map((p) => p.id),
+          password: "", // Aseguramos que la contraseña siempre esté vacía al inicio
         }
       : {
           username: "",
           email: "",
           password: "",
-          permisoIds: [],
+          permisos: [],
         },
   });
 
@@ -75,7 +77,7 @@ const UserForm = ({ onSubmit, initialData, isSubmitting }: UserFormProps) => {
     if (!dataToSubmit.password?.trim()) {
       delete dataToSubmit.password;
     }
-    onSubmit(dataToSubmit);
+    onSubmit(dataToSubmit, initialData?.id);
   };
 
   const permissionsMap =
@@ -140,10 +142,10 @@ const UserForm = ({ onSubmit, initialData, isSubmitting }: UserFormProps) => {
       ) : isErrorPermissions ? (
         <Alert severity="error">Error al cargar los permisos.</Alert>
       ) : (
-        <FormControl fullWidth margin="normal" error={!!errors.permisoIds}>
+        <FormControl fullWidth margin="normal" error={!!errors.permisos}>
           <InputLabel id="permisos-select-label">Permisos</InputLabel>
           <Controller
-            name="permisoIds"
+            name="permisos"
             control={control}
             render={({ field }) => (
               <Select
@@ -167,8 +169,8 @@ const UserForm = ({ onSubmit, initialData, isSubmitting }: UserFormProps) => {
               </Select>
             )}
           />
-          {errors.permisoIds && (
-            <FormHelperText>{errors.permisoIds.message}</FormHelperText>
+          {errors.permisos && (
+            <FormHelperText>{errors.permisos.message}</FormHelperText>
           )}
         </FormControl>
       )}

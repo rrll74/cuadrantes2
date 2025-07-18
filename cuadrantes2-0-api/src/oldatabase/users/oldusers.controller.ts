@@ -1,10 +1,13 @@
-import { Controller, Get } from '@nestjs/common';
-import { OldUsersService } from './oldusers.service';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { OldUsersService } from './oldusers.service';
 import { OldUser } from './entities/olduser.entity';
+import { PermissionsGuard } from '@/auth/guards/permissions.guard';
 
 @ApiTags('OldUsers') // Agrupa los endpoints en Swagger bajo la etiqueta 'OldUsers'
 @Controller('oldusers')
+@UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class OldUsersController {
   constructor(private readonly usersService: OldUsersService) {}
 

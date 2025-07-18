@@ -7,7 +7,7 @@ import { OldUser } from './entities/olduser.entity';
 export class OldUsersService {
   constructor(
     @InjectRepository(OldUser, 'old')
-    private usersRepository: Repository<OldUser>,
+    private oldUsersRepository: Repository<OldUser>,
   ) {}
 
   /**
@@ -16,7 +16,7 @@ export class OldUsersService {
   async findAll(): Promise<OldUser[]> {
     // Usamos la opción 'select' para explícitamente pedir los campos que queremos.
     // Es una capa extra de seguridad para NUNCA devolver hashes de contraseñas.
-    return this.usersRepository.find({
+    return this.oldUsersRepository.find({
       select: {
         id: true,
         username: true,

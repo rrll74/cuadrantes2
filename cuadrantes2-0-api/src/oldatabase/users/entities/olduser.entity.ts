@@ -52,7 +52,7 @@ export class OldUser {
   modified: Date;
 
   // Definición de la relación Muchos a Muchos
-  @ManyToMany(() => OldPermiso, { eager: false }) // eager: false es mejor para el rendimiento, los cargaremos cuando los necesitemos
+  @ManyToMany(() => OldPermiso, (permiso) => permiso.users, { eager: false }) // eager: false es mejor para el rendimiento, los cargaremos cuando los necesitemos
   @JoinTable({
     name: 'permisos_users', // El nombre de tu tabla intermedia
     joinColumn: {

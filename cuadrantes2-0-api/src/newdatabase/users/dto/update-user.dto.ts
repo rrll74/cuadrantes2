@@ -5,9 +5,13 @@ import {
   MinLength,
   IsArray,
   IsInt,
+  IsNumber,
 } from 'class-validator';
 
 export class UpdateUserDto {
+  @IsNumber()
+  id: number;
+
   @IsOptional()
   @IsString()
   username?: string;
@@ -24,5 +28,5 @@ export class UpdateUserDto {
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
-  permisoIds?: number[];
+  permisos?: number[];
 }

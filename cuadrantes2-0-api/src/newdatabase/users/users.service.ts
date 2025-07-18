@@ -17,7 +17,14 @@ export class UsersService {
   ) {}
 
   async findOneByUsername(username: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { username } });
+    // Usamos QueryBuilder para seleccionar explícitamente la contraseña,
+    // que por defecto no se incluye debido a { select: false } en la entidad.
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.permisos', 'permiso') // Unimos y seleccionamos la relación de permisos
+      .addSelect('user.password')
+      .where('user.username = :username', { username })
+      .getOne();
   }
 
   async findAll(): Promise<User[]> {
@@ -25,32 +32,32 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const { permisoIds, ...userData } = createUserDto;
-    let permisos: Permiso[] = [];
-    if (permisoIds && permisoIds.length === 0) {
-      permisos = await this.permisosRepository.findBy({
-        id: In(permisoIds),
+    const { permisos, ...userData } = createUserDto;
+    let permissions: Permiso[] = [];
+    if (permisos && permisos.length > 0) {
+      permissions = await this.permisosRepository.findBy({
+        id: In(permisos),
       });
     }
 
     const newUser = this.usersRepository.create({
       ...userData,
-      permisos,
+      permisos: permissions,
     });
 
     return this.usersRepository.save(newUser);
   }
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
-    const { permisoIds, ...userData } = updateUserDto;
+    const { permisos, ...userData } = updateUserDto;
     const user = await this.usersRepository.findOneBy({ id });
     if (!user) {
       throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
     }
 
-    if (permisoIds) {
+    if (permisos) {
       user.permisos = await this.permisosRepository.findBy({
-        id: In(permisoIds),
+        id: In(permisos),
       });
     }
 
