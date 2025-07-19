@@ -1,4 +1,4 @@
-import { TableCell, Chip, Box, IconButton } from "@mui/material";
+import { TableCell, Chip, Box, IconButton, Tooltip } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { User } from "@/types/user";
@@ -33,6 +33,19 @@ export const UserRow: React.FC<UserRowProps> = ({
         ) : (
           <Chip label="Inactivo" color="warning" size="small" />
         )}
+      </TableCell>
+      <TableCell align="center">
+        <Tooltip title={user.isConnected ? "Online" : "Offline"}>
+          <Box
+            sx={{
+              width: 12,
+              height: 12,
+              borderRadius: "50%",
+              backgroundColor: user.isConnected ? "success.main" : "grey.400",
+              display: "inline-block",
+            }}
+          />
+        </Tooltip>
       </TableCell>
       <TableCell>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>

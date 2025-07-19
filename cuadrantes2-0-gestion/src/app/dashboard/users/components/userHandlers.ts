@@ -18,8 +18,8 @@ export const useUserHandlers = () => {
         : api.post("/users", userData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      setIsFormOpen(false);
-      setEditingUser(null);
+      // No cerramos el formulario aquí para poder mostrar el mensaje de éxito.
+      // El usuario lo cerrará manualmente desde el propio formulario.
     },
   });
 
@@ -52,6 +52,7 @@ export const useUserHandlers = () => {
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setEditingUser(null);
+    userMutation.reset(); // Resetea el estado de la mutación al cerrar
   };
 
   const handleCloseConfirm = () => {

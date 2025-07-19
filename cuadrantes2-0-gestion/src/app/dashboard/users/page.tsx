@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 // Importaciones de Material-UI
 import {
   Container,
@@ -20,6 +21,8 @@ import {
   DialogTitle,
   DialogContent,
 } from "@mui/material";
+import { io, Socket } from "socket.io-client";
+import { useAuth } from "@/context/AuthContext";
 import AddIcon from "@mui/icons-material/Add";
 import api from "@/lib/api";
 import { User } from "@/types/user";
@@ -36,6 +39,8 @@ const fetchUsers = async (): Promise<User[]> => {
 };
 
 export default function UsersListPage() {
+  const { token } = useAuth();
+  const queryClient = useQueryClient();
   const {
     isFormOpen,
     editingUser,
@@ -67,6 +72,57 @@ export default function UsersListPage() {
     queryFn: fetchUsers,
     enabled: canRead,
   });
+
+  useEffect(() => {
+    // Solo intentamos conectar si tenemos un token
+    if (!token) return;
+
+    // La URL de tu API. Es buena práctica usar una variable de entorno.
+    const socketURL =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
+    const socket: Socket = io(socketURL, {
+      auth: {
+        token: token, // Enviamos el token para la autenticación en el backend
+      },
+    });
+
+    socket.on("connect", () => {
+      console.log("Conectado al servidor de WebSockets con ID:", socket.id);
+    });
+
+    // Función genérica para actualizar el estado de conexión en el caché de React Query
+    const handleStatusUpdate = (
+      event: "user:connected" | "user:disconnected",
+      data: { userId: number }
+    ) => {
+      queryClient.setQueryData(["users"], (oldData: User[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map((user) =>
+          user.id === data.userId
+            ? { ...user, isConnected: event === "user:connected" }
+            : user
+        );
+      });
+    };
+
+    // Escuchamos los eventos del backend
+    socket.on("user:connected", (data: { userId: number }) =>
+      handleStatusUpdate("user:connected", data)
+    );
+
+    socket.on("user:disconnected", (data: { userId: number }) =>
+      handleStatusUpdate("user:disconnected", data)
+    );
+
+    // Limpieza: nos aseguramos de desconectar el socket cuando el componente se desmonte
+    return () => {
+      socket.off("connect");
+      socket.off("user:connected");
+      socket.off("user:disconnected");
+      socket.disconnect();
+    };
+  }, [token, queryClient]); // El efecto se re-ejecutará si el token o el queryClient cambian
 
   if (!canRead)
     return (
@@ -121,6 +177,7 @@ export default function UsersListPage() {
               <TableCell>Username</TableCell>
               <TableCell>Email</TableCell>
               <TableCell align="center">Estado</TableCell>
+              <TableCell align="center">Conexión</TableCell>
               <TableCell>Permisos</TableCell>
               <TableCell align="center">Acciones</TableCell>
             </TableRow>
@@ -150,6 +207,9 @@ export default function UsersListPage() {
             onSubmit={handleFormSubmit}
             initialData={editingUser}
             isSubmitting={userMutation.isPending}
+            isSuccess={userMutation.isSuccess}
+            isEdit={!!editingUser}
+            onClose={handleCloseForm}
           />
         </DialogContent>
       </Dialog>

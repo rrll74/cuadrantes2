@@ -17,6 +17,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { User } from './entities/user.entity';
+import { UserResponseDto } from './dto/user-response.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -32,7 +33,7 @@ export class UsersController {
     type: [User],
   })
   @HasPermissions('users:read')
-  findAllUsers() {
+  findAllUsers(): Promise<UserResponseDto[]> {
     return this.usersService.findAll();
   }
 

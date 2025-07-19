@@ -9,6 +9,7 @@ import { UsersModule } from '@/newdatabase/users/users.module';
 import { PermisosModule } from '@/newdatabase/permisos/permisos.module';
 import { SeederModule } from '@/newdatabase/seeder.module';
 import { AuthModule } from './auth/auth.module';
+import { StatusModule } from './status/status.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { AuthModule } from './auth/auth.module';
     PermisosModule,
     SeederModule,
     AuthModule,
+    StatusModule,
   ],
   controllers: [AppController],
   providers: [AppService],

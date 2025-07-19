@@ -5,13 +5,9 @@ import {
   MinLength,
   IsArray,
   IsInt,
-  IsNumber,
 } from 'class-validator';
 
 export class UpdateUserDto {
-  @IsNumber()
-  id: number;
-
   @IsOptional()
   @IsString()
   username?: string;

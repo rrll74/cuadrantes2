@@ -3,14 +3,15 @@ import { AuthController } from './auth.controller';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
-import { UsersModule } from '@/newdatabase/users/users.module';
+import { User } from '@/newdatabase/users/entities/user.entity';
 
 @Module({
   imports: [
-    UsersModule,
+    TypeOrmModule.forFeature([User], 'new'),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

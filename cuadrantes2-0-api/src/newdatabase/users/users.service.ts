@@ -6,12 +6,15 @@ import { User } from './entities/user.entity';
 import { Permiso } from '@/newdatabase/permisos/entities/permiso.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ConnectionStatusService } from '@/status/connection-status.service';
+import { UserResponseDto } from './dto/user-response.dto';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User, 'new')
     private usersRepository: Repository<User>,
+    private readonly connectionStatusService: ConnectionStatusService,
     @InjectRepository(Permiso, 'new')
     private permisosRepository: Repository<Permiso>,
   ) {}
@@ -27,9 +30,30 @@ export class UsersService {
       .getOne();
   }
 
-  async findAll(): Promise<User[]> {
-    return this.usersRepository.find();
+  async findAll(): Promise<UserResponseDto[]> {
+    const users = await this.usersRepository.find({
+      relations: ['permisos'],
+      order: { id: 'ASC' },
+    });
+
+    // Mapeamos cada usuario para añadir el estado de conexión y quitar la contraseña
+    return users.map((user: User) => {
+      // Creamos explícitamente el DTO para asegurar que todas las propiedades se incluyan.
+      // Esto evita problemas de inferencia de tipos con la desestructuración.
+      const userResponse: UserResponseDto = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        permisos: user.permisos,
+        isConnected: this.connectionStatusService.isUserConnected(user.id),
+      };
+      return userResponse;
+    });
   }
+
+  // async findAll(): Promise<User[]> {
+  //   return this.usersRepository.find();
+  // }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const { permisos, ...userData } = createUserDto;

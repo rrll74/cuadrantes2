@@ -21,6 +21,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import PeopleIcon from "@mui/icons-material/People";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const drawerWidth = 240;
 
@@ -31,6 +32,7 @@ export default function DashboardLayout({
 }) {
   const { isAuthenticated, isLoading, logout } = useAuth();
   const router = useRouter();
+  const canReadUsers = usePermissions("users:read");
 
   useEffect(() => {
     // Si no está cargando y el usuario no está autenticado, lo echamos al login.
@@ -102,15 +104,16 @@ export default function DashboardLayout({
           <Toolbar />
           <Box sx={{ overflow: "auto" }}>
             <List>
-              {/* Enlace a la gestión de usuarios */}
-              <ListItem disablePadding>
-                <ListItemButton component={Link} href="/dashboard/users">
-                  <ListItemIcon>
-                    <PeopleIcon />
-                  </ListItemIcon>
-                  <ListItemText primary="Gestión de Usuarios" />
-                </ListItemButton>
-              </ListItem>
+              {canReadUsers && (
+                <ListItem disablePadding>
+                  <ListItemButton component={Link} href="/dashboard/users">
+                    <ListItemIcon>
+                      <PeopleIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Gestión de Usuarios" />
+                  </ListItemButton>
+                </ListItem>
+              )}
               {/* Aquí puedes añadir más enlaces a otras secciones */}
             </List>
           </Box>

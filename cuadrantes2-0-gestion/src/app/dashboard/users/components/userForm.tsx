@@ -33,6 +33,9 @@ interface UserFormProps {
   onSubmit: (data: Partial<UserFormData>, id?: number) => void;
   initialData?: User | null;
   isSubmitting: boolean;
+  isSuccess: boolean;
+  isEdit: boolean;
+  onClose: () => void;
 }
 
 const fetchPermissions = async (): Promise<Permiso[]> => {
@@ -40,7 +43,14 @@ const fetchPermissions = async (): Promise<Permiso[]> => {
   return data;
 };
 
-const UserForm = ({ onSubmit, initialData, isSubmitting }: UserFormProps) => {
+const UserForm = ({
+  onSubmit,
+  initialData,
+  isSubmitting,
+  isSuccess,
+  isEdit,
+  onClose,
+}: UserFormProps) => {
   const {
     register,
     handleSubmit,
@@ -88,101 +98,120 @@ const UserForm = ({ onSubmit, initialData, isSubmitting }: UserFormProps) => {
 
   return (
     <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} noValidate>
-      <TextField
-        label="Username"
-        {...register("username", {
-          required: "El nombre de usuario es requerido",
-        })}
-        fullWidth
-        margin="normal"
-        error={!!errors.username}
-        helperText={errors.username?.message}
-        disabled={isSubmitting}
-      />
-      <TextField
-        label="Email"
-        type="email"
-        {...register("email", {
-          required: "El email es requerido",
-          pattern: {
-            value: /^\S+@\S+$/i,
-            message: "Formato de email inválido",
-          },
-        })}
-        fullWidth
-        margin="normal"
-        error={!!errors.email}
-        helperText={errors.email?.message}
-        disabled={isSubmitting}
-      />
-      <TextField
-        label="Contraseña"
-        placeholder={initialData ? "Dejar en blanco para no cambiar" : ""}
-        type="password"
-        {...register("password", {
-          required: {
-            value: !initialData, // Required only on creation
-            message: "La contraseña es requerida",
-          },
-          minLength: {
-            value: 6,
-            message: "La contraseña debe tener al menos 6 caracteres",
-          },
-        })}
-        fullWidth
-        margin="normal"
-        error={!!errors.password}
-        helperText={errors.password?.message}
-        disabled={isSubmitting}
-        autoComplete="new-password"
-      />
-
-      {isLoadingPermissions ? (
-        <CircularProgress />
-      ) : isErrorPermissions ? (
-        <Alert severity="error">Error al cargar los permisos.</Alert>
-      ) : (
-        <FormControl fullWidth margin="normal" error={!!errors.permisos}>
-          <InputLabel id="permisos-select-label">Permisos</InputLabel>
-          <Controller
-            name="permisos"
-            control={control}
-            render={({ field }) => (
-              <Select
-                {...field}
-                labelId="permisos-select-label"
-                multiple
-                input={<OutlinedInput label="Permisos" />}
-                renderValue={(selected) => (
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                    {(selected as number[]).map((id) => (
-                      <Chip key={id} label={permissionsMap[id] || id} />
-                    ))}
-                  </Box>
-                )}
-              >
-                {allPermissions?.map((permiso) => (
-                  <MenuItem key={permiso.id} value={permiso.id}>
-                    {permiso.tipo}
-                  </MenuItem>
-                ))}
-              </Select>
-            )}
-          />
-          {errors.permisos && (
-            <FormHelperText>{errors.permisos.message}</FormHelperText>
+      {isSuccess ? (
+        <Box>
+          <Alert severity="success">
+            Usuario {isEdit ? "actualizado" : "creado"} con éxito.
+          </Alert>
+          {isEdit && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              Cerrar sesión del usuario y abrirla nuevamente para que los
+              permisos tengan efecto.
+            </Alert>
           )}
-        </FormControl>
-      )}
+          <Button onClick={onClose} variant="contained" sx={{ mt: 2 }}>
+            Cerrar
+          </Button>
+        </Box>
+      ) : (
+        <>
+          <TextField
+            label="Username"
+            {...register("username", {
+              required: "El nombre de usuario es requerido",
+            })}
+            fullWidth
+            margin="normal"
+            error={!!errors.username}
+            helperText={errors.username?.message}
+            disabled={isSubmitting}
+          />
+          <TextField
+            label="Email"
+            type="email"
+            {...register("email", {
+              required: "El email es requerido",
+              pattern: {
+                value: /^\S+@\S+$/i,
+                message: "Formato de email inválido",
+              },
+            })}
+            fullWidth
+            margin="normal"
+            error={!!errors.email}
+            helperText={errors.email?.message}
+            disabled={isSubmitting}
+          />
+          <TextField
+            label="Contraseña"
+            placeholder={initialData ? "Dejar en blanco para no cambiar" : ""}
+            type="password"
+            {...register("password", {
+              required: {
+                value: !initialData, // Required only on creation
+                message: "La contraseña es requerida",
+              },
+              minLength: {
+                value: 6,
+                message: "La contraseña debe tener al menos 6 caracteres",
+              },
+            })}
+            fullWidth
+            margin="normal"
+            error={!!errors.password}
+            helperText={errors.password?.message}
+            disabled={isSubmitting}
+            autoComplete="new-password"
+          />
 
-      <Button
-        type="submit"
-        disabled={isSubmitting}
-        variant="contained"
-        sx={{ mt: 2 }}
-      >
-        {isSubmitting ? <CircularProgress size={24} /> : "Guardar"}
-      </Button>
+          {isLoadingPermissions ? (
+            <CircularProgress />
+          ) : isErrorPermissions ? (
+            <Alert severity="error">Error al cargar los permisos.</Alert>
+          ) : (
+            <FormControl fullWidth margin="normal" error={!!errors.permisos}>
+              <InputLabel id="permisos-select-label">Permisos</InputLabel>
+              <Controller
+                name="permisos"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    labelId="permisos-select-label"
+                    multiple
+                    input={<OutlinedInput label="Permisos" />}
+                    renderValue={(selected) => (
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                        {(selected as number[]).map((id) => (
+                          <Chip key={id} label={permissionsMap[id] || id} />
+                        ))}
+                      </Box>
+                    )}
+                  >
+                    {allPermissions?.map((permiso) => (
+                      <MenuItem key={permiso.id} value={permiso.id}>
+                        {permiso.tipo}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                )}
+              />
+              {errors.permisos && (
+                <FormHelperText>{errors.permisos.message}</FormHelperText>
+              )}
+            </FormControl>
+          )}
+
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            variant="contained"
+            sx={{ mt: 2 }}
+          >
+            {isSubmitting ? <CircularProgress size={24} /> : "Guardar"}
+          </Button>
+        </>
+      )}
     </Box>
   );
 };

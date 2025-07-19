@@ -21,6 +21,7 @@ interface AuthUser {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: AuthUser | null;
+  token: string | null;
   login: (token: string) => void;
   logout: () => void;
   isLoading: boolean;
@@ -30,17 +31,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Al cargar la app, intenta leer el token de las cookies
-    const token = Cookies.get("token");
-    if (token) {
+    const cookieToken = Cookies.get("token");
+    if (cookieToken) {
       try {
-        const decodedUser: AuthUser = jwtDecode(token);
+        const decodedUser: AuthUser = jwtDecode(cookieToken);
         setUser(decodedUser);
+        setToken(cookieToken);
         // Configura axios para que siempre envíe el token
-        api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        api.defaults.headers.common["Authorization"] = `Bearer ${cookieToken}`;
       } catch (error) {
         console.error("Token inválido", error);
         logout();
@@ -49,19 +52,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const login = (token: string) => {
-    const decodedUser: AuthUser = jwtDecode(token);
+  const login = (newToken: string) => {
+    const decodedUser: AuthUser = jwtDecode(newToken);
     setUser(decodedUser);
+    setToken(newToken);
     // Almacena el token en una cookie segura
-    Cookies.set("token", token, {
+    Cookies.set("token", newToken, {
       expires: 1,
       secure: process.env.NODE_ENV === "production",
     });
-    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
   };
 
   const logout = () => {
     setUser(null);
+    setToken(null);
     Cookies.remove("token");
     delete api.defaults.headers.common["Authorization"];
   };
@@ -69,6 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     isAuthenticated: !!user,
     user,
+    token,
     login,
     logout,
     isLoading,

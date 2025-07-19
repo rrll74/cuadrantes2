@@ -10,4 +10,5 @@ export interface User {
   created: string;
   modified: string;
   permisos: Permiso[];
+  isConnected: boolean;
 }
