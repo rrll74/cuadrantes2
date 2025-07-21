@@ -16,7 +16,7 @@ async function bootstrap() {
 
   // CORS config to let petitions from frontend
   app.enableCors({
-    origin: true,
+    origin: 'http://localhost:3002', // Especificar el origen del frontend explícitamente
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });

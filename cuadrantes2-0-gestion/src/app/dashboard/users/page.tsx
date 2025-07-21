@@ -21,8 +21,6 @@ import {
   DialogTitle,
   DialogContent,
 } from "@mui/material";
-import { io, Socket } from "socket.io-client";
-import { useAuth } from "@/context/AuthContext";
 import AddIcon from "@mui/icons-material/Add";
 import api from "@/lib/api";
 import { User } from "@/types/user";
@@ -31,6 +29,7 @@ import ConfirmationDialog from "@/components/ConfirmationDialog";
 import UserForm from "@/app/dashboard/users/components/userForm";
 import { UserRow } from "@/app/dashboard/users/components/UserRow";
 import { useUserHandlers } from "./components/userHandlers";
+import { useSocket } from "@/context/SocketContext";
 
 // Función para obtener los datos (sin cambios)
 const fetchUsers = async (): Promise<User[]> => {
@@ -39,7 +38,7 @@ const fetchUsers = async (): Promise<User[]> => {
 };
 
 export default function UsersListPage() {
-  const { token } = useAuth();
+  const socket = useSocket();
   const queryClient = useQueryClient();
   const {
     isFormOpen,
@@ -59,7 +58,7 @@ export default function UsersListPage() {
   // Permisos
   const canRead = usePermissions("users:read");
   const canCreate = usePermissions("users:create");
-  const canUpdate = usePermissions("users:update");
+  const canUpdate = usePermissions("users:update"); // Usaremos este permiso también para desconectar
   const canDelete = usePermissions("users:delete");
 
   const {
@@ -73,29 +72,28 @@ export default function UsersListPage() {
     enabled: canRead,
   });
 
+  const handleDisconnectUser = (userId: number) => {
+    if (!socket) {
+      console.error(
+        "Socket no está conectado. No se puede desconectar al usuario."
+      );
+      return;
+    }
+    console.log(
+      `Enviando petición para forzar desconexión del usuario: ${userId}`
+    );
+    socket.emit("admin:disconnect_user", { userId });
+  };
+
   useEffect(() => {
-    // Solo intentamos conectar si tenemos un token
-    if (!token) return;
-
-    // La URL de tu API. Es buena práctica usar una variable de entorno.
-    const socketURL =
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
-    const socket: Socket = io(socketURL, {
-      auth: {
-        token: token, // Enviamos el token para la autenticación en el backend
-      },
-    });
-
-    socket.on("connect", () => {
-      console.log("Conectado al servidor de WebSockets con ID:", socket.id);
-    });
+    if (!socket) return;
 
     // Función genérica para actualizar el estado de conexión en el caché de React Query
     const handleStatusUpdate = (
       event: "user:connected" | "user:disconnected",
       data: { userId: number }
     ) => {
+      console.log(`Evento recibido: ${event}`, data);
       queryClient.setQueryData(["users"], (oldData: User[] | undefined) => {
         if (!oldData) return oldData;
         return oldData.map((user) =>
@@ -106,11 +104,14 @@ export default function UsersListPage() {
       });
     };
 
+    socket.on("connect", () => {
+      console.log("Conectado al servidor de WebSockets con ID:", socket.id);
+    });
+
     // Escuchamos los eventos del backend
     socket.on("user:connected", (data: { userId: number }) =>
       handleStatusUpdate("user:connected", data)
     );
-
     socket.on("user:disconnected", (data: { userId: number }) =>
       handleStatusUpdate("user:disconnected", data)
     );
@@ -120,9 +121,8 @@ export default function UsersListPage() {
       socket.off("connect");
       socket.off("user:connected");
       socket.off("user:disconnected");
-      socket.disconnect();
     };
-  }, [token, queryClient]); // El efecto se re-ejecutará si el token o el queryClient cambian
+  }, [socket, queryClient]); // El efecto se re-ejecutará si el socket cambia
 
   if (!canRead)
     return (
@@ -191,6 +191,8 @@ export default function UsersListPage() {
                   user={user}
                   onEdit={handleOpenEditForm}
                   onDelete={handleOpenDeleteConfirm}
+                  canDisconnect={canUpdate}
+                  onDisconnect={handleDisconnectUser}
                 />
               </TableRow>
             ))}

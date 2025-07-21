@@ -30,6 +30,10 @@ export class UsersService {
       .getOne();
   }
 
+  async findOneById(id: number): Promise<User | null> {
+    return this.usersRepository.findOneBy({ id });
+  }
+
   async findAll(): Promise<UserResponseDto[]> {
     const users = await this.usersRepository.find({
       relations: ['permisos'],

@@ -1,23 +1,31 @@
+"use client";
+
 import { TableCell, Chip, Box, IconButton, Tooltip } from "@mui/material";
+import React from "react";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import LinkOffIcon from "@mui/icons-material/LinkOff";
 import { User } from "@/types/user";
 
 interface UserRowProps {
   user: User;
   canUpdate: boolean;
   canDelete: boolean;
+  canDisconnect: boolean;
   onEdit: (user: User) => void;
   onDelete: (id: number) => void;
+  onDisconnect: (id: number) => void;
 }
 
 export const UserRow: React.FC<UserRowProps> = ({
   user,
   canUpdate,
   canDelete,
+  canDisconnect,
   onEdit,
   onDelete,
-}) => {
+  onDisconnect,
+}: UserRowProps) => {
   return (
     <>
       <TableCell component="th" scope="row">
@@ -70,6 +78,17 @@ export const UserRow: React.FC<UserRowProps> = ({
           <IconButton onClick={() => onDelete(user.id)}>
             <DeleteIcon />
           </IconButton>
+        )}
+        {canDisconnect && user.isConnected && (
+          <Tooltip title="Forzar Desconexión">
+            <IconButton
+              onClick={() => onDisconnect(user.id)}
+              size="small"
+              color="warning"
+            >
+              <LinkOffIcon />
+            </IconButton>
+          </Tooltip>
         )}
       </TableCell>
     </>

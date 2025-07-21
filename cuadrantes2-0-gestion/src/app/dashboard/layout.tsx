@@ -22,6 +22,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { usePermissions } from "@/hooks/usePermissions";
+import { SocketProvider } from "@/context/SocketContext";
 
 const drawerWidth = 240;
 
@@ -65,65 +66,67 @@ export default function DashboardLayout({
   return (
     <Box sx={{ display: "flex" }}>
       <ProtectedRoute>
-        {/* Barra de Navegación Superior */}
-        <AppBar
-          position="fixed"
-          sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
-        >
-          <Toolbar>
-            <Typography
-              variant="h6"
-              noWrap
-              component="div"
-              sx={{ flexGrow: 1 }}
-            >
-              Panel de Gestión
-            </Typography>
-            <Button color="inherit" component={Link} href="/dashboard">
-              <HomeIcon />
-              Inicio
-            </Button>
-            <Button color="inherit" onClick={handleLogout}>
-              Cerrar Sesión
-            </Button>
-          </Toolbar>
-        </AppBar>
+        <SocketProvider>
+          {/* Barra de Navegación Superior */}
+          <AppBar
+            position="fixed"
+            sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+          >
+            <Toolbar>
+              <Typography
+                variant="h6"
+                noWrap
+                component="div"
+                sx={{ flexGrow: 1 }}
+              >
+                Panel de Gestión
+              </Typography>
+              <Button color="inherit" component={Link} href="/dashboard">
+                <HomeIcon />
+                Inicio
+              </Button>
+              <Button color="inherit" onClick={handleLogout}>
+                Cerrar Sesión
+              </Button>
+            </Toolbar>
+          </AppBar>
 
-        {/* Menú Lateral Persistente */}
-        <Drawer
-          variant="permanent"
-          sx={{
-            width: drawerWidth,
-            flexShrink: 0,
-            [`& .MuiDrawer-paper`]: {
+          {/* Menú Lateral Persistente */}
+          <Drawer
+            variant="permanent"
+            sx={{
               width: drawerWidth,
-              boxSizing: "border-box",
-            },
-          }}
-        >
-          <Toolbar />
-          <Box sx={{ overflow: "auto" }}>
-            <List>
-              {canReadUsers && (
-                <ListItem disablePadding>
-                  <ListItemButton component={Link} href="/dashboard/users">
-                    <ListItemIcon>
-                      <PeopleIcon />
-                    </ListItemIcon>
-                    <ListItemText primary="Gestión de Usuarios" />
-                  </ListItemButton>
-                </ListItem>
-              )}
-              {/* Aquí puedes añadir más enlaces a otras secciones */}
-            </List>
-          </Box>
-        </Drawer>
+              flexShrink: 0,
+              [`& .MuiDrawer-paper`]: {
+                width: drawerWidth,
+                boxSizing: "border-box",
+              },
+            }}
+          >
+            <Toolbar />
+            <Box sx={{ overflow: "auto" }}>
+              <List>
+                {canReadUsers && (
+                  <ListItem disablePadding>
+                    <ListItemButton component={Link} href="/dashboard/users">
+                      <ListItemIcon>
+                        <PeopleIcon />
+                      </ListItemIcon>
+                      <ListItemText primary="Gestión de Usuarios" />
+                    </ListItemButton>
+                  </ListItem>
+                )}
+                {/* Aquí puedes añadir más enlaces a otras secciones */}
+              </List>
+            </Box>
+          </Drawer>
 
-        {/* Contenido Principal de la Página */}
-        <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-          <Toolbar />
-          {children}
-        </Box>
+          {/* Contenido Principal de la Página */}
+          <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+            <Toolbar />
+            {children}
+          </Box>
+        </SocketProvider>
       </ProtectedRoute>
     </Box>
   );

@@ -1,17 +1,19 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
-import { User } from '@/newdatabase/users/entities/user.entity';
+import { UsersModule } from '@/newdatabase/users/users.module';
+import { TokenDenylistService } from './token-denylist.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User], 'new'),
+    // Usamos forwardRef para romper la dependencia circular:
+    // AuthModule -> UsersModule -> StatusModule -> AuthModule
+    forwardRef(() => UsersModule),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -23,6 +25,7 @@ import { User } from '@/newdatabase/users/entities/user.entity';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy], // Registramos las estrategias
+  providers: [AuthService, LocalStrategy, JwtStrategy, TokenDenylistService], // Registramos las estrategias y el nuevo servicio
+  exports: [JwtModule, TokenDenylistService], // Exportamos el servicio para que otros módulos lo usen
 })
 export class AuthModule {}
