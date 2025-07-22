@@ -16,11 +16,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
+      passReqToCallback: true, // Habilitamos el paso del objeto Request al validador
     });
   }
 
   // Passport verifica el token y si es válido, llama a este método con el payload decodificado
-  validate(req: Request, payload: AuthModel): UserPayload {
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async validate(req: Request, payload: AuthModel): Promise<UserPayload> {
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
 
     if (!token || this.tokenDenylistService.isDenied(token)) {

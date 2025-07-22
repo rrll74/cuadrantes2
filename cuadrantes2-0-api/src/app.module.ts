@@ -32,6 +32,7 @@ import { StatusModule } from './status/status.module';
         synchronize: true, // true en desarrollo para que TypeORM cree las tablas automáticamente
       }),
     }),
+    // TODO: Intentar que siga funcionando la aplicación aunque no se produzca la conexión con el servidor antiguo
     TypeOrmModule.forRootAsync({
       name: 'old',
       imports: [ConfigModule],
