@@ -8,12 +8,15 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { UsersModule } from '@/newdatabase/users/users.module';
 import { TokenDenylistService } from './token-denylist.service';
+import { AuthLockdownService } from './auth-lockdown.service';
+import { StatusModule } from '@/status/status.module';
 
 @Module({
   imports: [
     // Usamos forwardRef para romper la dependencia circular:
     // AuthModule -> UsersModule -> StatusModule -> AuthModule
     forwardRef(() => UsersModule),
+    forwardRef(() => StatusModule),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -25,7 +28,14 @@ import { TokenDenylistService } from './token-denylist.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy, TokenDenylistService], // Registramos las estrategias y el nuevo servicio
-  exports: [JwtModule, TokenDenylistService], // Exportamos el servicio para que otros módulos lo usen
+  providers: [
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    TokenDenylistService,
+    AuthLockdownService, // Registramos el nuevo servicio
+  ],
+  // Exportamos los servicios para que otros módulos los usen
+  exports: [JwtModule, TokenDenylistService, AuthLockdownService],
 })
 export class AuthModule {}

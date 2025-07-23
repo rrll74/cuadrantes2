@@ -34,6 +34,11 @@ export default function DashboardLayout({
   const { isAuthenticated, isLoading, logout } = useAuth();
   const router = useRouter();
   const canReadUsers = usePermissions("users:read");
+  const canCreateUsers = usePermissions("users:create");
+  const canUpdateUsers = usePermissions("users:update");
+  const canDeleteUsers = usePermissions("users:delete");
+  const canCRUD =
+    canReadUsers || canCreateUsers || canUpdateUsers || canDeleteUsers;
 
   useEffect(() => {
     // Si no está cargando y el usuario no está autenticado, lo echamos al login.
@@ -106,7 +111,7 @@ export default function DashboardLayout({
             <Toolbar />
             <Box sx={{ overflow: "auto" }}>
               <List>
-                {canReadUsers && (
+                {canCRUD && (
                   <ListItem disablePadding>
                     <ListItemButton component={Link} href="/dashboard/users">
                       <ListItemIcon>

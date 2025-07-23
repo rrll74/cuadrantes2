@@ -1,22 +1,55 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '@/newdatabase/users/users.service';
 import { User } from '@/newdatabase/users/entities/user.entity';
 import { AuthModel, LoginModel } from './auth.model';
+import { AuthLockdownService } from './auth-lockdown.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private lockdownService: AuthLockdownService, // Inyectamos el servicio de bloqueo
   ) {}
 
   async validateUser(
     username: string,
     pass: string,
   ): Promise<LoginModel | null> {
+    // 1. Buscamos al usuario primero para poder acceder a sus permisos.
     const user = await this.usersService.findOneByUsername(username);
-    if (user && (await user.validatePassword(pass))) {
+
+    // Si el usuario no existe, no hay nada más que hacer.
+    if (!user) {
+      return null;
+    }
+
+    // 2. Comprobamos si el usuario tiene el permiso de bypass.
+    const hasBypassPermission = user.permisos.some(
+      (p) => p.tipo === 'users:update',
+    );
+
+    // 3. Aplicamos la lógica de bloqueo mejorada.
+    if (this.lockdownService.isLoginLocked() && !hasBypassPermission) {
+      // El bloqueo está activo y el usuario NO tiene el permiso, se rechaza.
+      throw new ServiceUnavailableException(
+        'El inicio de sesión está deshabilitado temporalmente.',
+      );
+    } else if (this.lockdownService.isLoginLocked() && hasBypassPermission) {
+      // El bloqueo está activo, pero este usuario tiene permiso para saltárselo.
+      this.logger.warn(
+        `El usuario '${username}' ha iniciado sesión durante el bloqueo del sistema (Permiso: users:update).`,
+      );
+    }
+
+    // 4. Si pasamos el bloqueo, validamos la contraseña.
+    if (await user.validatePassword(pass)) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
       return result;

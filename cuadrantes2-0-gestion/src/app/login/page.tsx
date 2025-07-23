@@ -30,9 +30,16 @@ export default function LoginPage() {
       login(access_token);
       router.push("/dashboard"); // Redirige al dashboard después del login
     } catch (err) {
-      setError(
-        "Usuario o contraseña incorrectos. Por favor, inténtelo de nuevo."
-      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((err as any).response?.status === 503) {
+        setError(
+          "El inicio de sesión está deshabilitado temporalmente por un administrador."
+        );
+      } else if (err instanceof Error && "response" in err) {
+        setError(
+          "Usuario o contraseña incorrectos. Por favor, inténtelo de nuevo."
+        );
+      }
       console.error("Fallo en el login", err);
     } finally {
       setIsLoading(false);

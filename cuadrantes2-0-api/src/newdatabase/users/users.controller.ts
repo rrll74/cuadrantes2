@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { HasPermissions } from '@/auth/decorators/permissions.decorator';
+import { HasAnyPermission } from '@/auth/decorators/any-permissions.decorator';
 import { PermissionsGuard } from '@/auth/guards/permissions.guard';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -32,7 +33,12 @@ export class UsersController {
     description: 'Lista de usuarios recuperada con éxito.',
     type: [User],
   })
-  @HasPermissions('users:read')
+  @HasAnyPermission(
+    'users:read',
+    'users:create',
+    'users:update',
+    'users:delete',
+  )
   findAllUsers(): Promise<UserResponseDto[]> {
     return this.usersService.findAll();
   }

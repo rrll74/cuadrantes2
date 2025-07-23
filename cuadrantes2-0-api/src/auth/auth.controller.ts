@@ -4,10 +4,16 @@ import { AuthService } from './auth.service';
 import { LoginModel, UserPayload } from './auth.model';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { HasPermissions } from './decorators/permissions.decorator';
+import { AuthLockdownService } from './auth-lockdown.service';
+import { StatusGateway } from '@/status/status.gateway';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private lockdownService: AuthLockdownService,
+    private statusGateway: StatusGateway,
+  ) {}
 
   // La petición a POST /auth/login primero pasa por el Guard 'local'
   @UseGuards(AuthGuard('local'))
@@ -33,5 +39,24 @@ export class AuthController {
     return {
       message: `Bienvenido al área de administración, ${req.user.username}!`,
     };
+  }
+
+  @Get('lockdown-status')
+  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
+  @HasPermissions('users:update') // Solo usuarios con este permiso pueden ver el estado
+  getLockdownStatus() {
+    return this.lockdownService.getStatus();
+  }
+
+  @Post('toggle-lockdown')
+  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
+  @HasPermissions('users:update') // Solo usuarios con este permiso pueden cambiar el estado
+  toggleLockdown() {
+    const isLocked = this.lockdownService.toggleLockdown();
+
+    // Notificamos a todos los clientes conectados a través del WebSocket
+    this.statusGateway.broadcastLockdownStatusChange({ isLocked });
+
+    return { isLocked };
   }
 }

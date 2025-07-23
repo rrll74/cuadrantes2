@@ -18,7 +18,18 @@ import { ConnectionStatusService } from './connection-status.service';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '@/newdatabase/users/users.service';
 import { TokenDenylistService } from '@/auth/token-denylist.service';
+import { AuthModel } from '@/auth/auth.model';
 
+/**
+ * Define la estructura del objeto de error emitido por Engine.IO
+ * para el evento 'connection_error'. Esto proporciona seguridad de tipos
+ * y autocompletado en el editor.
+ */
+interface EngineIoError {
+  code: number;
+  message: string;
+  context?: any;
+}
 @WebSocketGateway({
   cors: {
     origin: 'http://localhost:3002', // El origen de tu frontend
@@ -47,7 +58,7 @@ export class StatusGateway
     // Diagnóstico: Escuchar errores de bajo nivel en el motor de Engine.IO
     // Esto nos dirá exactamente por qué el servidor responde con '400 Bad Request'.
     const engine = server.engine;
-    engine.on('connection_error', (err) => {
+    engine.on('connection_error', (err: EngineIoError) => {
       this.logger.error(`Engine.IO Connection Error:
         Code: ${err.code}
         Message: ${err.message}
@@ -56,18 +67,24 @@ export class StatusGateway
     });
   }
 
-  async handleConnection(client: Socket, ...args: any[]) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async handleConnection(client: Socket, ...args: unknown[]) {
     try {
-      const token = client.handshake.auth.token;
-      if (!token) {
+      // 1. Asignar a 'unknown' para forzar la comprobación de tipo.
+      const token: unknown = client.handshake.auth.token;
+
+      // 2. Usar un type guard para verificar que el token es una cadena no vacía.
+      if (typeof token !== 'string' || token.length === 0) {
         throw new UnauthorizedException(
-          'No se proporcionó token de autenticación',
+          'No se proporcionó un token de autenticación válido.',
         );
       }
 
-      const payload = await this.jwtService.verifyAsync(token);
+      // A partir de aquí, TypeScript sabe que 'token' es de tipo 'string'.
+      const payload: AuthModel = await this.jwtService.verifyAsync(token);
       const userId = payload.sub;
 
+      // The 'token' is already validated and typed as string, so it's safe to pass.
       this.connectionStatusService.addUser(userId, client.id, token);
       this.logger.log(
         `Cliente autenticado y conectado: ${client.id}, UserID: ${userId}`,
@@ -77,7 +94,7 @@ export class StatusGateway
       this.broadcast('user:connected', { userId });
     } catch (error) {
       this.logger.error(
-        `Autenticación fallida para cliente ${client.id}: ${error.message}`,
+        `Autenticación fallida para cliente ${client.id}: ${String(error)}`,
       );
       client.disconnect();
     }
@@ -95,6 +112,14 @@ export class StatusGateway
   // Método para emitir un evento a todos los clientes conectados
   broadcast(event: string, data: any) {
     this.server.emit(event, data);
+  }
+
+  /**
+   * Emite un evento a todos los clientes para notificar un cambio
+   * en el estado de bloqueo de inicio de sesión.
+   */
+  public broadcastLockdownStatusChange(status: { isLocked: boolean }) {
+    this.server.emit('auth:lockdown_status_changed', status);
   }
 
   @SubscribeMessage('admin:disconnect_user')
@@ -141,6 +166,7 @@ export class StatusGateway
       const tokenToDeny =
         this.connectionStatusService.getTokenByUserId(targetUserId);
       if (tokenToDeny) {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         const decodedToken = this.jwtService.decode(tokenToDeny) as {
           exp: number;
         };
@@ -160,9 +186,13 @@ export class StatusGateway
         `Admin ${adminUserId} forzó el cierre de sesión y desconexión para el usuario ${targetUserId}`,
       );
     } catch (error) {
-      this.logger.error(`Error en admin:disconnect_user: ${error.message}`);
-      // Opcional: emitir un error de vuelta al admin
-      client.emit('admin:action_error', { message: error.message });
+      this.logger.error(
+        `Error en admin:disconnect_user: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      // Opcional: emitir un error de vuelta al admin, asegurando que 'error' tenga una propiedad 'message'
+      client.emit('admin:action_error', { message: String(error) });
     }
   }
 }

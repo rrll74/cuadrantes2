@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 // Importaciones de Material-UI
 import {
   Container,
@@ -20,6 +20,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  FormControlLabel,
+  Switch,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import api from "@/lib/api";
@@ -34,6 +36,11 @@ import { useSocket } from "@/context/SocketContext";
 // Función para obtener los datos (sin cambios)
 const fetchUsers = async (): Promise<User[]> => {
   const { data } = await api.get("/users");
+  return data;
+};
+
+const fetchLockdownStatus = async (): Promise<{ isLocked: boolean }> => {
+  const { data } = await api.get("/auth/lockdown-status");
   return data;
 };
 
@@ -70,6 +77,20 @@ export default function UsersListPage() {
     queryKey: ["users"],
     queryFn: fetchUsers,
     enabled: canRead,
+  });
+
+  const { data: lockdownStatus } = useQuery<{ isLocked: boolean }>({
+    queryKey: ["lockdownStatus"],
+    queryFn: fetchLockdownStatus,
+    enabled: canUpdate, // Solo los admins necesitan saber esto
+  });
+
+  const toggleLockdownMutation = useMutation({
+    mutationFn: () => api.post("/auth/toggle-lockdown"),
+    onSuccess: () => {
+      // Refresca el estado del interruptor después de cambiarlo
+      queryClient.invalidateQueries({ queryKey: ["lockdownStatus"] });
+    },
   });
 
   const handleDisconnectUser = (userId: number) => {
@@ -124,7 +145,7 @@ export default function UsersListPage() {
     };
   }, [socket, queryClient]); // El efecto se re-ejecutará si el socket cambia
 
-  if (!canRead)
+  if (!canRead && !canCreate && !canUpdate && !canDelete)
     return (
       <Alert severity="error">No tienes permiso para ver esta página.</Alert>
     );
@@ -167,6 +188,18 @@ export default function UsersListPage() {
           <Button startIcon={<AddIcon />} onClick={handleOpenCreateForm}>
             Crear Usuario
           </Button>
+        )}
+        {canUpdate && (
+          <FormControlLabel
+            control={
+              <Switch
+                checked={lockdownStatus?.isLocked ?? false}
+                onChange={() => toggleLockdownMutation.mutate()}
+                color="warning"
+              />
+            }
+            label="Bloquear nuevos inicios de sesión"
+          />
         )}
       </Box>
       <TableContainer component={Paper}>
