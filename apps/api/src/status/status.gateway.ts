@@ -32,7 +32,7 @@ interface EngineIoError {
 }
 @WebSocketGateway({
   cors: {
-    origin: 'http://localhost:3002', // El origen de tu frontend
+    origin: `http://localhost:${process.env.GESTION_PORT ?? 3002}`, // El origen de tu frontend
     methods: ['GET', 'POST'],
     credentials: true,
   },

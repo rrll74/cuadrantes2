@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { StatusGateway } from './status.gateway';
 import { ConnectionStatusService } from './connection-status.service';
 import { AuthModule } from '@/auth/auth.module';
+import { DatabaseStatusService } from './database-status.service';
 import { UsersModule } from '@/newdatabase/users/users.module';
 
 @Module({
@@ -11,7 +12,7 @@ import { UsersModule } from '@/newdatabase/users/users.module';
     forwardRef(() => AuthModule),
     forwardRef(() => UsersModule), // Importamos UsersModule para la comprobación de permisos
   ],
-  providers: [StatusGateway, ConnectionStatusService],
-  exports: [StatusGateway, ConnectionStatusService],
+  providers: [StatusGateway, ConnectionStatusService, DatabaseStatusService],
+  exports: [StatusGateway, ConnectionStatusService, DatabaseStatusService],
 })
 export class StatusModule {}
