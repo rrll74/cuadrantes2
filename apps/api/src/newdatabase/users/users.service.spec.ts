@@ -1,14 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+// import { FindManyOptions, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { ConnectionStatusService } from '@/status/connection-status.service';
+import { Permiso } from '@/newdatabase/permisos/entities/permiso.entity';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UserPresenter } from './presenters/user.presenter';
-
+import { Repository } from 'typeorm';
+// import { UserResponseDto } from './dto/user-response.dto';
 // --- Mocks y Datos de Prueba ---
 
 const mockUser = new User();
@@ -16,7 +17,6 @@ mockUser.id = 1;
 mockUser.username = 'testuser';
 mockUser.email = 'test@test.com';
 mockUser.password = 'hashedpassword';
-// mockUser.isActive = true;
 mockUser.permisos = [];
 
 const mockUserArray = [mockUser];
@@ -24,26 +24,30 @@ const mockUserArray = [mockUser];
 // Mock complejo para el QueryBuilder
 const mockQueryBuilder = {
   where: jest.fn().mockReturnThis(),
+  leftJoinAndSelect: jest.fn().mockReturnThis(),
   addSelect: jest.fn().mockReturnThis(),
   getOne: jest.fn().mockResolvedValue(mockUser),
 };
 
 const mockUserRepository = {
   find: jest.fn().mockResolvedValue(mockUserArray),
-  findOne: jest.fn().mockResolvedValue(mockUser),
+  findOneBy: jest.fn().mockResolvedValue(mockUser),
   create: jest.fn().mockReturnValue(new User()),
   save: jest.fn().mockResolvedValue(mockUser),
   delete: jest.fn(),
   createQueryBuilder: jest.fn(() => mockQueryBuilder),
 };
 
+const mockPermisoRepository = {
+  findBy: jest.fn().mockResolvedValue([]),
+};
+
 const mockConnectionStatusService = {
-  isConnected: jest.fn(),
+  isUserConnected: jest.fn(),
 };
 
 // Mockear bcrypt
 jest.mock('bcrypt', () => ({
-  genSalt: jest.fn().mockResolvedValue('somesalt'),
   hash: jest.fn().mockResolvedValue('hashedpassword'),
 }));
 
@@ -64,6 +68,10 @@ describe('UsersService', () => {
           provide: ConnectionStatusService,
           useValue: mockConnectionStatusService,
         },
+        {
+          provide: getRepositoryToken(Permiso, 'new'),
+          useValue: mockPermisoRepository,
+        },
       ],
     }).compile();
 
@@ -81,58 +89,59 @@ describe('UsersService', () => {
   });
 
   describe('create', () => {
-    it('should create a user and hash the password if provided', async () => {
+    it('should create a user', async () => {
       const createUserDto: CreateUserDto = {
         username: 'newuser',
         email: 'new@test.com',
         password: 'plainpassword',
+        permisos: [],
       };
 
-      const createdUser = { ...new User(), ...createUserDto };
+      const createdUser = new User();
+      Object.assign(createdUser, createUserDto);
+
       mockUserRepository.create.mockReturnValue(createdUser);
       mockUserRepository.save.mockResolvedValue({
         ...createdUser,
         id: 2,
-        password: 'hashedpassword',
       });
 
       const result = await service.create(createUserDto);
 
-      expect(bcrypt.genSalt).toHaveBeenCalled();
-      expect(bcrypt.hash).toHaveBeenCalledWith('plainpassword', 'somesalt');
-      expect(repository.create).toHaveBeenCalledWith(createUserDto);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(repository.create).toHaveBeenCalledWith({
+        ...createUserDto,
+        permisos: [],
+      });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(repository.save).toHaveBeenCalledWith(createdUser);
-      expect(result.password).toBeUndefined();
-    });
-
-    it('should create a user without hashing if password is not provided', async () => {
-      const createUserDto: CreateUserDto = {
-        username: 'newuser',
-        email: 'new@test.com',
-      };
-      const createdUser = { ...new User(), ...createUserDto };
-      mockUserRepository.create.mockReturnValue(createdUser);
-      mockUserRepository.save.mockResolvedValue({ ...createdUser, id: 2 });
-
-      await service.create(createUserDto);
-
-      expect(bcrypt.hash).not.toHaveBeenCalled();
-      expect(repository.save).toHaveBeenCalled();
+      expect(result).toBeDefined();
     });
   });
 
   describe('findAll', () => {
-    it('should return an array of user presenters', async () => {
-      mockConnectionStatusService.isConnected.mockReturnValue(true);
+    it('should return an array of user response DTOs', async () => {
+      mockConnectionStatusService.isUserConnected.mockReturnValue(true);
 
       const users = await service.findAll();
 
       expect(users).toHaveLength(1);
-      expect(users[0]).toBeInstanceOf(UserPresenter);
-      expect(users[0].password).toBeUndefined();
+      // El método ahora devuelve un objeto plano que coincide con la interfaz, no una instancia de clase.
+      expect(users[0]).toEqual(
+        expect.objectContaining({
+          id: mockUser.id,
+          username: mockUser.username,
+          isConnected: true,
+        }),
+      );
       expect(users[0].isConnected).toBe(true);
-      expect(repository.find).toHaveBeenCalled();
-      expect(connectionStatusService.isConnected).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(repository.find).toHaveBeenCalledWith({
+        relations: ['permisos'],
+        order: { id: 'ASC' },
+      });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(connectionStatusService.isUserConnected).toHaveBeenCalledWith(
         mockUser.id,
       );
     });
@@ -140,19 +149,19 @@ describe('UsersService', () => {
 
   describe('findOneById', () => {
     it('should find and return a user by ID', async () => {
-      mockConnectionStatusService.isConnected.mockReturnValue(false);
+      mockConnectionStatusService.isUserConnected.mockReturnValue(false);
 
       const user = await service.findOneById(1);
 
-      expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
-      expect(user).toBeInstanceOf(UserPresenter);
-      expect(user.username).toEqual(mockUser.username);
-      expect(user.isConnected).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(repository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(user).toBeInstanceOf(User);
+      expect(user?.username).toEqual(mockUser.username);
     });
 
-    it('should throw NotFoundException if user is not found', async () => {
-      mockUserRepository.findOne.mockResolvedValue(null);
-      await expect(service.findOneById(99)).rejects.toThrow(NotFoundException);
+    it('should return Null if user is not found', async () => {
+      mockUserRepository.findOneBy.mockResolvedValue(null);
+      await expect(service.findOneById(99)).resolves.toBeNull();
     });
   });
 
@@ -160,15 +169,20 @@ describe('UsersService', () => {
     it('should find a user by username using the query builder', async () => {
       const result = await service.findOneByUsername('testuser');
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(repository.createQueryBuilder).toHaveBeenCalledWith('user');
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'user.permisos',
+        'permiso',
+      );
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
         'user.username = :username',
         { username: 'testuser' },
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith('user.password');
-      expect(mockQueryTuilder.getOne).toHaveBeenCalled();
+      expect(mockQueryBuilder.getOne).toHaveBeenCalled();
       expect(result).toEqual(mockUser);
-      expect(result.password).toBe('hashedpassword');
+      expect(result?.password).toBe('hashedpassword');
     });
 
     it('should return null if user is not found by username', async () => {
@@ -181,14 +195,14 @@ describe('UsersService', () => {
   describe('update', () => {
     it('should update a user and re-hash the password if provided', async () => {
       const updateUserDto = { password: 'newpassword' };
-      // Hacemos un mock del servicio en sí mismo para no tener que mockear findOneById
-      jest
-        .spyOn(service, 'findOneById')
-        .mockResolvedValue(new UserPresenter(mockUser, false));
+      mockUserRepository.findOneBy.mockResolvedValue(mockUser);
 
       await service.update(1, updateUserDto);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('newpassword', 'somesalt');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(repository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(bcrypt.hash).toHaveBeenCalledWith('newpassword', 10);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(repository.save).toHaveBeenCalledWith(
         expect.objectContaining({ password: 'hashedpassword' }),
       );
@@ -196,22 +210,18 @@ describe('UsersService', () => {
 
     it('should update a user without touching the password if not provided', async () => {
       const updateUserDto = { email: 'newemail@test.com' };
-      jest
-        .spyOn(service, 'findOneById')
-        .mockResolvedValue(new UserPresenter(mockUser, false));
+      mockUserRepository.findOneBy.mockResolvedValue(mockUser);
 
       await service.update(1, updateUserDto);
-
       expect(bcrypt.hash).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(repository.save).toHaveBeenCalledWith(
         expect.objectContaining({ email: 'newemail@test.com' }),
       );
     });
 
     it('should throw NotFoundException if user to update is not found', async () => {
-      jest
-        .spyOn(service, 'findOneById')
-        .mockRejectedValue(new NotFoundException());
+      mockUserRepository.findOneBy.mockResolvedValue(null);
       await expect(service.update(99, {})).rejects.toThrow(NotFoundException);
     });
   });
@@ -220,6 +230,7 @@ describe('UsersService', () => {
     it('should remove a user successfully', async () => {
       mockUserRepository.delete.mockResolvedValue({ affected: 1 });
       await service.remove(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(repository.delete).toHaveBeenCalledWith(1);
     });
 

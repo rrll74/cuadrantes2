@@ -81,6 +81,7 @@ describe('AuthService', () => {
       const { password, ...expectedUser } = mockUserWithoutBypass;
       expect(result).toEqual(expectedUser);
       expect(usersService.findOneByUsername).toHaveBeenCalledWith('user');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockUserWithoutBypass.validatePassword).toHaveBeenCalledWith(
         'password',
       );
