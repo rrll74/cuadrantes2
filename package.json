@@ -15,7 +15,9 @@
     "build:shared": "npm run -w @cuadrantes/shared-dto build",
     "watch:shared": "npm run -w @cuadrantes/shared-dto watch",
     "dev:api": "npm run -w apps/api start:dev",
-    "dev:gestion": "npm run -w apps/gestion dev"
+    "dev:gestion": "npm run -w apps/gestion dev",
+    "test:api": "jest --config ./apps/api/jest.config.js",
+    "test:gestion": "jest --config ./apps/gestion/jest.config.js"
   },
   "keywords": [],
   "author": "",

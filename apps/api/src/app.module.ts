@@ -27,6 +27,16 @@ import { StatusModule } from './status/status.module';
         configService: ConfigService,
         dbStatusService: DatabaseStatusService,
       ): Promise<DataSourceOptions> => {
+        // Si estamos en entorno de test, usamos la BD de test SQLite
+        if (process.env.NODE_ENV === 'test') {
+          return {
+            name: 'new',
+            type: 'sqlite',
+            database: './test.sqlite',
+            entities: [__dirname + '/newdatabase/**/*.entity{.ts,.js}'],
+            synchronize: false, // El setup global ya se encarga de esto
+          };
+        }
         const realOptions: DataSourceOptions = {
           type: 'mariadb',
           host: configService.get<string>('DB_NEW_HOST'),

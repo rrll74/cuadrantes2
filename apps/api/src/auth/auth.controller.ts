@@ -3,9 +3,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { LoginModel, UserPayload } from './auth.model';
 import { PermissionsGuard } from './guards/permissions.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { HasPermissions } from './decorators/permissions.decorator';
 import { AuthLockdownService } from './auth-lockdown.service';
 import { StatusGateway } from '@/status/status.gateway';
+import { AuthModel } from './auth.model';
 
 @Controller('auth')
 export class AuthController {
@@ -58,5 +60,14 @@ export class AuthController {
     this.statusGateway.broadcastLockdownStatusChange({ isLocked });
 
     return { isLocked };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('refresh')
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async refreshToken(@Request() req: { user: AuthModel }) {
+    // El JwtAuthGuard ya ha validado el token y ha adjuntado el payload a req.user.
+    // Simplemente se lo pasamos al servicio para que firme un nuevo token.
+    return this.authService.refresh(req.user);
   }
 }

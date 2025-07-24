@@ -68,6 +68,19 @@ export class AuthService {
     };
   }
 
+  refresh(user: AuthModel) {
+    // El objeto 'user' es el payload del JWT ya validado por el JwtAuthGuard.
+    // Simplemente necesitamos firmar un nuevo token con el mismo payload.
+    const payload: AuthModel = {
+      sub: user.sub,
+      username: user.username,
+      permisos: user.permisos,
+    };
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
+  }
+
   async findOneByUsername(username: string): Promise<User | null> {
     return this.usersService.findOneByUsername(username);
   }
