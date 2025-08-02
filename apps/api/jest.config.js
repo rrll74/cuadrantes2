@@ -1,9 +1,9 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { pathsToModuleNameMapper } = require('ts-jest');
 // Leemos el tsconfig.json para obtener los mapeos de rutas.
 // Asegúrate de que la ruta al tsconfig.json sea la correcta.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports
 const { compilerOptions } = require('./tsconfig.json');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { pathsToModuleNameMapper } = require('ts-jest');
 
 module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
@@ -21,6 +21,7 @@ module.exports = {
   // ¡Esta es la parte importante!
   // Convierte los "paths" de tsconfig.json a un formato que Jest entiende.
   // El prefijo '<rootDir>/' le dice a Jest que las rutas son relativas al directorio raíz.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
     prefix: '<rootDir>/',
   }),

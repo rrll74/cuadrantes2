@@ -11,14 +11,16 @@ export class TokenDenylistService {
    * @param token The JWT to deny.
    * @param expiresInMs The number of milliseconds until the token expires.
    */
-  deny(token: string, expiresInMs: number) {
+  deny(token: string, expiresInMs: number): void {
+    if (expiresInMs <= 0) return;
+
     this.denylist.add(token);
     this.logger.log(
-      `Token added to denylist. It will be removed in ${expiresInMs}ms.`,
+      `Token añadido a la denylist. Expirará en ${expiresInMs}ms..`,
     );
     setTimeout(() => {
       this.denylist.delete(token);
-      this.logger.log('Expired token removed from denylist.');
+      this.logger.log('Token eliminado de la denylist por expiración.');
     }, expiresInMs);
   }
 

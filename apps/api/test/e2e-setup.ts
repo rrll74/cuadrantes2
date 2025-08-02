@@ -1,14 +1,44 @@
-import { DataSource, DataSourceOptions } from 'typeorm';
-import { User } from '../src/newdatabase/users/entities/user.entity';
-import { Permiso } from '../src/newdatabase/permisos/entities/permiso.entity';
-import * as bcrypt from 'bcrypt';
+import { register } from 'tsconfig-paths';
+// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports
+const tsconfig = require('../tsconfig.json');
+import { resolve } from 'path';
 
-const testDbOptions: DataSourceOptions = {
+// --- REGISTRO MANUAL DE ALIAS DE TSCONFIG ---
+// Esto debe hacerse ANTES de cualquier import que use un alias.
+// Le decimos a Node.js cómo resolver las rutas como '@/...'.
+const tsConfigBasePath = resolve(__dirname, '..'); // Resuelve a la carpeta 'apps/api'
+register({
+  baseUrl: tsConfigBasePath,
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  paths: tsconfig.compilerOptions.paths,
+});
+
+import { DataSource, DataSourceOptions } from 'typeorm';
+import { User } from '@/newdatabase/users/entities/user.entity';
+import { Permiso } from '@/newdatabase/permisos/entities/permiso.entity';
+import * as bcrypt from 'bcrypt';
+import { config } from 'dotenv';
+
+// 1. Cargar variables de entorno desde .env.test.local
+// Esto asegura que el setup no dependa de que Jest cargue las variables.
+config({ path: resolve(__dirname, '../.env.test.local') });
+
+// 2. Definir constantes para los permisos (idealmente, esto viviría en un fichero compartido)
+const PERMISSIONS = {
+  ADMIN: { tipo: 'admin', descripcion: 'admin' },
+  USERS_READ: { tipo: 'users:read', descripcion: 'Usuarios: Leer' },
+  USERS_CREATE: { tipo: 'users:create', descripcion: 'Usuarios: Crear' },
+  USERS_UPDATE: { tipo: 'users:update', descripcion: 'Usuarios: Actualizar' },
+  USERS_DELETE: { tipo: 'users:delete', descripcion: 'Usuarios: Eliminar' },
+} as const;
+
+// 3. Centralizar la configuración de la base de datos de prueba
+const getTestDbOptions = (): DataSourceOptions => ({
   type: 'sqlite',
-  database: './test.sqlite', // Usamos un archivo para que persista entre el setup y la ejecución de tests
+  database: process.env.E2E_DB_PATH || './test.sqlite', // Lee del .env con un fallback
   entities: [User, Permiso],
-  synchronize: true, // true para crear el schema automáticamente
-};
+  synchronize: true, // `true` es necesario para que el schema se cree en el setup
+});
 
 const seedDatabase = async (dataSource: DataSource) => {
   const permisoRepository = dataSource.getRepository(Permiso);
@@ -16,27 +46,45 @@ const seedDatabase = async (dataSource: DataSource) => {
 
   console.log('🌱 Seeding database...');
 
-  // 1. Crear Permisos
-  const pAdmin = await permisoRepository.save({ tipo: 'admin' });
-  const pUsersRead = await permisoRepository.save({ tipo: 'users:read' });
-  const pUsersCreate = await permisoRepository.save({ tipo: 'users:create' });
-  const pUsersUpdate = await permisoRepository.save({ tipo: 'users:update' });
-  const pUsersDelete = await permisoRepository.save({ tipo: 'users:delete' });
+  // 4. Crear Permisos en paralelo usando constantes
+  const [pAdmin, pUsersRead, pUsersCreate, pUsersUpdate, pUsersDelete] =
+    await Promise.all([
+      permisoRepository.save({
+        tipo: PERMISSIONS.ADMIN.tipo,
+        descripcion: PERMISSIONS.ADMIN.descripcion,
+      }),
+      permisoRepository.save({
+        tipo: PERMISSIONS.USERS_READ.tipo,
+        descripcion: PERMISSIONS.USERS_READ.descripcion,
+      }),
+      permisoRepository.save({
+        tipo: PERMISSIONS.USERS_CREATE.tipo,
+        descripcion: PERMISSIONS.USERS_CREATE.descripcion,
+      }),
+      permisoRepository.save({
+        tipo: PERMISSIONS.USERS_UPDATE.tipo,
+        descripcion: PERMISSIONS.USERS_UPDATE.descripcion,
+      }),
+      permisoRepository.save({
+        tipo: PERMISSIONS.USERS_DELETE.tipo,
+        descripcion: PERMISSIONS.USERS_DELETE.descripcion,
+      }),
+    ]);
 
-  // 2. Hashear contraseñas
-  const salt = await bcrypt.genSalt();
-  const adminPassword = await bcrypt.hash('adminpass', salt);
-  const userPassword = await bcrypt.hash('userpass', salt);
+  // 5. Hashear contraseñas usando un número de rondas fijo y variables de entorno
+  const saltRounds = 10;
+  const [adminPassword, userPassword] = await Promise.all([
+    bcrypt.hash(process.env.E2E_ADMIN_PASSWORD || 'adminpass', saltRounds),
+    bcrypt.hash(process.env.E2E_USER_PASSWORD || 'userpass', saltRounds),
+  ]);
 
-  // 3. Crear Usuarios
+  // 6. Crear Usuarios
   const adminUser = userRepository.create({
     username: 'testadmin',
     email: 'admin@test.com',
     password: adminPassword,
-    // isActive: true,
     permisos: [pAdmin, pUsersRead, pUsersCreate, pUsersUpdate, pUsersDelete],
   });
-  await userRepository.save(adminUser);
 
   const regularUser = userRepository.create({
     username: 'testuser',
@@ -45,7 +93,9 @@ const seedDatabase = async (dataSource: DataSource) => {
     // isActive: true,
     permisos: [pUsersRead], // Solo tiene permiso de lectura
   });
-  await userRepository.save(regularUser);
+
+  // Guardar ambos usuarios en una sola operación
+  await userRepository.save([adminUser, regularUser]);
 
   console.log('✅ Database seeded successfully!');
 };
@@ -55,7 +105,7 @@ const seedDatabase = async (dataSource: DataSource) => {
  */
 export default async () => {
   console.log('\n\n-- E2E Global Setup --');
-  const dataSource = new DataSource(testDbOptions);
+  const dataSource = new DataSource(getTestDbOptions());
 
   try {
     await dataSource.initialize();

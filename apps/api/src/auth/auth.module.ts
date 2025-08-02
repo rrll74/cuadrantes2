@@ -11,7 +11,6 @@ import { TokenDenylistService } from './token-denylist.service';
 import { AuthLockdownService } from './auth-lockdown.service';
 import { StatusModule } from '@/status/status.module';
 
-// TODO: Configurar el tiempo de duración de la sesión mediante variable de entorno
 @Module({
   imports: [
     // Usamos forwardRef para romper la dependencia circular:

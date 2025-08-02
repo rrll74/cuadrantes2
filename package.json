@@ -16,7 +16,8 @@
     "watch:shared": "npm run -w @cuadrantes/shared-dto watch",
     "dev:api": "npm run -w apps/api start:dev",
     "dev:gestion": "npm run -w apps/gestion dev",
-    "test:api": "jest --config ./apps/api/jest.config.js",
+    "test:api": "npm run -w apps/api test",
+    "test:apie2e": "jest --config ./apps/api/test/jest-e2e.config.js",
     "test:gestion": "jest --config ./apps/gestion/jest.config.js"
   },
   "keywords": [],
