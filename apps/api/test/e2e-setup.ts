@@ -1,5 +1,5 @@
 import { register } from 'tsconfig-paths';
-// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports
 const tsconfig = require('../tsconfig.json');
 import { resolve } from 'path';
 
