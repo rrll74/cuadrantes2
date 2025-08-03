@@ -13,7 +13,7 @@ describe('AuthController (e2e)', () => {
   // Las credenciales se definen en el archivo e2e-setup.ts
   const adminCredentials = {
     username: 'testadmin',
-    password: 'adminpass',
+    password: 'adminpass', // La contraseña se envía en texto plano, como lo haría un cliente real.
   };
 
   beforeAll(async () => {
@@ -50,7 +50,6 @@ describe('AuthController (e2e)', () => {
         .post('/auth/login')
         .send(adminCredentials)
         .expect(201);
-      console.log(response.body);
 
       expect(response.body).toHaveProperty('access_token');
       expect(typeof response.body.access_token).toBe('string');

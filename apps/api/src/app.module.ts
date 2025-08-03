@@ -125,6 +125,8 @@ import { StatusModule } from './status/status.module';
     StatusModule,
   ],
   controllers: [AppController],
+  // El JwtAuthGuard se aplicará manualmente en los controladores necesarios
+  // en lugar de ser global para simplificar la resolución de dependencias en tests.
   providers: [AppService],
 })
 export class AppModule {}

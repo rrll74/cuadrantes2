@@ -1,6 +1,7 @@
 import {
   BeforeInsert,
   Column,
+  BeforeUpdate,
   Entity,
   JoinTable,
   ManyToMany,
@@ -40,8 +41,13 @@ export class User {
   permisos: Permiso[];
 
   @BeforeInsert()
+  @BeforeUpdate()
   async hashPassword() {
-    this.password = await bcrypt.hash(this.password, 10);
+    // Si la contraseña existe y NO es ya un hash (no empieza con '$2b$'), la hasheamos.
+    // Esto evita el doble hasheo en las actualizaciones.
+    if (this.password && !this.password.startsWith('$2b$')) {
+      this.password = await bcrypt.hash(this.password, 10);
+    }
   }
 
   async validatePassword(password: string): Promise<boolean> {

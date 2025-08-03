@@ -22,6 +22,7 @@ export class SeederService implements OnModuleInit {
     if (existingPermisos > 0) return;
 
     const permisosData = [
+      { tipo: 'admin', descripcion: 'Permisos de administrador' },
       { tipo: 'users:create', descripcion: 'Crear usuarios' },
       { tipo: 'users:read', descripcion: 'Leer usuarios' },
       { tipo: 'users:update', descripcion: 'Actualizar usuarios' },

@@ -16,7 +16,6 @@ register({
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { User } from '@/newdatabase/users/entities/user.entity';
 import { Permiso } from '@/newdatabase/permisos/entities/permiso.entity';
-import * as bcrypt from 'bcrypt';
 import { config } from 'dotenv';
 
 // 1. Cargar variables de entorno desde .env.test.local
@@ -71,12 +70,9 @@ const seedDatabase = async (dataSource: DataSource) => {
       }),
     ]);
 
-  // 5. Hashear contraseñas usando un número de rondas fijo y variables de entorno
-  const saltRounds = 10;
-  const [adminPassword, userPassword] = await Promise.all([
-    bcrypt.hash(process.env.E2E_ADMIN_PASSWORD || 'adminpass', saltRounds),
-    bcrypt.hash(process.env.E2E_USER_PASSWORD || 'userpass', saltRounds),
-  ]);
+  // 5. Obtener contraseñas en texto plano. La entidad se encargará de hashearlas.
+  const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'adminpass';
+  const userPassword = process.env.E2E_USER_PASSWORD || 'userpass';
 
   // 6. Crear Usuarios
   const adminUser = userRepository.create({
