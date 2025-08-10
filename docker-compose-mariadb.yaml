@@ -11,14 +11,14 @@ services:
       - "3007:3306"
     environment:
       - MARIADB_ROOT_PASSWORD=mi-password-root
-      - MARIADB_USER=db_user
+      - MARIADB_USER=dbuser
       - MARIADB_PASSWORD=mi-password-dbuser
       - MARIADB_DATABASE=mi-database
     volumes:
       - ./data/mariadb:/var/lib/mysql
 
   phpmyadminMariaDB:
-    image: phpmyadmin:5.2.2-fpm-alpine
+    image: phpmyadmin:5.2.2-apache
     container_name: phpmyadmin-db
     restart: always
     networks:
