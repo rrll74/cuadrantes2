@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  mariadb:
+    image: mariadb:lts-noble
+    container_name: mariadb-db
+    restart: always
+    networks:
+      - mi-red-db
+    ports:
+      - "3007:3306"
+    environment:
+      - MARIADB_ROOT_PASSWORD=mi-password-root
+      - MARIADB_USER=db_user
+      - MARIADB_PASSWORD=mi-password-dbuser
+      - MARIADB_DATABASE=mi-database
+    volumes:
+      - ./data/mariadb:/var/lib/mysql
+
+  phpmyadminMariaDB:
+    image: phpmyadmin:5.2.2-fpm-alpine
+    container_name: phpmyadmin-db
+    restart: always
+    networks:
+      - mi-red-db
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_HOST=mariadb
+      - PMA_USER=root
+      - PMA_PASSWORD=mi-password-root
+
+networks:
+  mi-red-db:
+    driver: bridge
