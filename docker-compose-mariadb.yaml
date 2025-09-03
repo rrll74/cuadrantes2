@@ -8,12 +8,12 @@ services:
     networks:
       - mi-red-db
     ports:
-      - "3007:3306"
+      - "3307:3306"
     environment:
-      - MARIADB_ROOT_PASSWORD=mi-password-root
-      - MARIADB_USER=dbuser
-      - MARIADB_PASSWORD=mi-password-dbuser
-      - MARIADB_DATABASE=mi-database
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+      - MARIADB_USER=${MARIADB_USER}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD}
+      # - MARIADB_DATABASE=${MARIADB_DATABASE}
     volumes:
       - ./data/mariadb:/var/lib/mysql
 
@@ -28,7 +28,7 @@ services:
     environment:
       - PMA_HOST=mariadb
       - PMA_USER=root
-      - PMA_PASSWORD=mi-password-root
+      - PMA_PASSWORD=${MARIADB_ROOT_PASSWORD}
 
 networks:
   mi-red-db:

@@ -2,3 +2,4 @@ docker-compose.yml
 docker-compose.yaml
 node_modules
 data
+.env

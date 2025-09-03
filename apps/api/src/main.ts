@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
@@ -15,9 +17,31 @@ async function bootstrap() {
   );
 
   // CORS config to let petitions from frontend
-  const gestionPort = process.env.GESTION_PORT ?? 3002;
+  const gestionPort = process.env.GESTION_PORT ?? '3002'; // Puerto del frontend
+
+  // Lista de orígenes permitidos explícitamente
+  const whitelist = [
+    `http://localhost:${gestionPort}`,
+    `http://127.0.0.1:${gestionPort}`,
+  ];
+
   app.enableCors({
-    origin: `http://localhost:${gestionPort}`, // Especificar el origen del frontend explícitamente
+    origin: function (origin, callback) {
+      // Permitir peticiones sin 'origin' (como Postman o apps móviles) y las de la whitelist
+      // En desarrollo, también permitimos IPs de la red local.
+      if (
+        !origin ||
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        whitelist.indexOf(origin) !== -1 ||
+        origin.startsWith('http://10.1.') ||
+        origin.startsWith('http://192.168.') ||
+        origin.startsWith('http://172.')
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });

@@ -30,9 +30,28 @@ interface EngineIoError {
   message: string;
   context?: any;
 }
+
+const gestionPort = process.env.GESTION_PORT ?? '3002'; // Puerto del frontend
+const whitelist = [
+  `http://localhost:${gestionPort}`,
+  `http://127.0.0.1:${gestionPort}`,
+];
+
 @WebSocketGateway({
   cors: {
-    origin: `http://localhost:${process.env.GESTION_PORT ?? 3002}`, // El origen de tu frontend
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        whitelist.indexOf(origin) !== -1 ||
+        origin.startsWith('http://192.168.') ||
+        origin.startsWith('http://10.1.') ||
+        origin.startsWith('http://172.')
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST'],
     credentials: true,
   },
