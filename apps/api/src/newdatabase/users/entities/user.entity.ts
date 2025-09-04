@@ -22,7 +22,7 @@ export class User {
   email: string;
 
   @Column({ select: false })
-  password: string;
+  password?: string;
 
   @ManyToMany(() => Permiso, (permiso) => permiso.users, { eager: true }) // eager: true para que siempre cargue los permisos
   @JoinTable({
@@ -51,6 +51,9 @@ export class User {
   }
 
   async validatePassword(password: string): Promise<boolean> {
+    if (!this.password) {
+      return false;
+    }
     return bcrypt.compare(password, this.password);
   }
 }

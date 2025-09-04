@@ -81,6 +81,20 @@ import { StatusModule } from './status/status.module';
         configService: ConfigService,
         dbStatusService: DatabaseStatusService,
       ): Promise<DataSourceOptions> => {
+        // Si estamos en entorno de test, usamos una BD en memoria para 'old'
+        if (process.env.NODE_ENV === 'test') {
+          dbStatusService.setOldDbStatus('ok', 'Mocked for test environment');
+          return {
+            name: 'old',
+            type: 'sqlite',
+            database: ':memory:',
+            // ¡Clave! Incluimos las entidades para que la inyección de repositorios no falle.
+            entities: [__dirname + '/oldatabase/**/*.entity{.ts,.js}'],
+            synchronize: true, // Necesario para que TypeORM cree el esquema en la DB en memoria.
+          };
+        }
+
+        // Lógica original para entornos de desarrollo/producción
         const realOptions: DataSourceOptions = {
           type: 'mysql',
           host: configService.get<string>('DB_OLD_HOST'),
