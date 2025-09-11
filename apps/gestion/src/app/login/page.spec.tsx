@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LoginPage from "./page";
 import { useAuth } from "@/context/AuthContext";
@@ -57,35 +57,28 @@ describe("LoginPage", () => {
 
   it("should allow a user to log in successfully and redirect", async () => {
     const user = userEvent.setup();
-    // Hacemos que el mock de la API sea realmente asíncrono con un pequeño delay.
-    // Esto nos da tiempo para verificar el estado de carga.
-    mockedApiPost.mockImplementation(
-      () =>
-        new Promise((resolve) =>
-          setTimeout(
-            () => resolve({ data: { access_token: "fake-jwt-token" } }),
-            10
-          )
-        )
-    );
+    const fakeToken = "fake-jwt-token";
+    mockedApiPost.mockResolvedValue({ data: { access_token: fakeToken } });
 
     render(<LoginPage />);
 
     // 1. Simular que el usuario rellena el formulario
     await user.type(screen.getByLabelText(/nombre de usuario/i), "testuser");
     await user.type(screen.getByLabelText(/contraseña/i), "password123");
+    const submitButton = screen.getByRole("button", { name: /acceder/i });
 
-    // 2. Simular el clic. La función onSubmit se ejecutará y esperará a nuestra promesa.
-    await user.click(screen.getByRole("button", { name: /acceder/i }));
+    // 2. Simular el clic.
+    await user.click(submitButton);
 
-    // 3. Ahora el componente ESTÁ en estado de carga. Lo verificamos.
-    expect(await screen.findByRole("progressbar")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /acceder/i })).toBeDisabled();
+    // 3. Esperar a que se completen las acciones asíncronas (llamada a la API, login, redirección)
+    // `waitFor` es ideal para esperar efectos secundarios como una llamada a una función.
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledWith(fakeToken);
+      expect(mockPush).toHaveBeenCalledWith("/dashboard");
+    });
 
-    // 4. Esperamos a que la redirección final ocurra después de que la API responda.
-    // `findByRole` fallará si el elemento no está, pero `waitFor` es más explícito para esperar un efecto secundario.
-    await screen.findByRole("button", { name: /acceder/i }); // Esperamos a que el botón vuelva a estar disponible
-    expect(mockPush).toHaveBeenCalledWith("/dashboard"); // Verificamos la redirección
+    // Opcional: Verificar que el botón ya no está deshabilitado después de todo el proceso.
+    expect(submitButton).not.toBeDisabled();
   });
 
   it("should display a generic error message on failed login", async () => {

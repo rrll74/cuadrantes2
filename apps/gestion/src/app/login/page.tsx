@@ -31,11 +31,12 @@ export default function LoginPage() {
       router.push("/dashboard"); // Redirige al dashboard después del login
     } catch (err) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((err as any).response?.status === 503) {
+      const error = err as any;
+      if (error.response?.status === 503) {
         setError(
           "El inicio de sesión está deshabilitado temporalmente por un administrador."
         );
-      } else if (err instanceof Error && "response" in err) {
+      } else if (error.response) {
         setError(
           "Usuario o contraseña incorrectos. Por favor, inténtelo de nuevo."
         );

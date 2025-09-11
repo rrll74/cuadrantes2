@@ -19,7 +19,8 @@
     "build:api": "npm run -w apps/api build",
     "test:api": "npm run -w apps/api test",
     "test:apie2e": "npm run build:api && jest --config ./apps/api/test/jest-e2e.config.js",
-    "test:gestion": "jest --config ./apps/gestion/jest.config.js -w apps/gestion"
+    "test:gestion": "jest --config ./apps/gestion/jest.config.js -w apps/gestion",
+    "cypress:open:gestion": "cypress open --project apps/gestion"
   },
   "keywords": [],
   "author": "",

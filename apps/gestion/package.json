@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "cross-env NODE_ENV=production next start -p ${PORT:-3102}",
     "start:standalone": "node --env-file=.env.production .next/standalone/server.js",
-    "lint": "next lint"
+    "lint": "next lint",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -38,6 +40,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "cross-env": "^7.0.3",
+    "cypress": "^15.2.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "jest": "^30.1.3",

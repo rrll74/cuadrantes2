@@ -32,7 +32,7 @@ const PERMISSIONS = {
 } as const;
 
 // 3. Centralizar la configuración de la base de datos de prueba
-const getTestDbOptions = (): DataSourceOptions => ({
+export const getTestDbOptions = (): DataSourceOptions => ({
   type: 'sqlite',
   database: process.env.E2E_DB_PATH || './test.sqlite', // Lee del .env con un fallback
   entities: [User, Permiso],
