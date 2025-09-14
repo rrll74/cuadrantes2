@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  api:
+    container_name: cuadrantes-api-prod
+    image: cuadrantes-api:1.0.0
+    restart: unless-stopped
+    ports:
+      # Expone la API en el puerto 3001 del servidor
+      - "3101:3000"
+    environment:
+      - NODE_ENV=production
+      # Aquí irían las variables de entorno de producción para la API
+      # - DATABASE_URL=...
+      # - JWT_SECRET=...
+
+  gestion:
+    container_name: cuadrantes-gestion-prod
+    image: cuadrantes-gestion:1.0.0
+    restart: unless-stopped
+    ports:
+      # Expone la app de gestión en el puerto 3002 del servidor
+      - "3002:3000" # El servidor standalone de Next.js corre en el puerto 3000 por defecto
+    environment:
+      - NODE_ENV=production
+      # Variable para que el código que se ejecuta en el servidor Next.js (SSR)
+      # sepa cómo llamar a la API a través de la red interna de Docker.
+      - API_URL_INTERNAL=http://api:3000
+      # Variable para el código que se ejecuta en el navegador del cliente.
+      # Debes reemplazar "http://tu-dominio.com" por la IP o dominio público de tu servidor.
+      - NEXT_PUBLIC_API_URL=http://tu-dominio.com:3001

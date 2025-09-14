@@ -1,20 +1,36 @@
-# ---- Etapa 1: Builder ----
-FROM node:iron-alpine3.22
+# --- Fase 1: Dependencias ---
+FROM node:20-alpine AS deps
 
 WORKDIR /app
 
-COPY . .
+# Copiamos los package.json y package-lock.json del monorepo
+COPY package*.json ./
+COPY packages/shared-dto/package.json ./packages/shared-dto/
+COPY apps/gestion/package.json ./apps/gestion/
 
+# Instalamos TODAS las dependencias (incluidas las de desarrollo)
 RUN npm install
 
+# --- Fase 2: Build ---
+FROM node:20-alpine AS builder
+WORKDIR /app
 
-# Construye la aplicación Next.js para producción
-RUN npm run build
+# Copiamos las dependencias de la fase anterior
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 
-ENV PORT 3102
+# Construimos la aplicación de gestión
+RUN npm run build:gestion
 
-# Expone el puerto en el que la App va a correr
-EXPOSE 3102
+# --- Fase 3: Producción ---
+FROM node:20-alpine AS runner
+WORKDIR /app
 
-# Comando para iniciar el servidor de Next.js optimizado
-CMD ["npm", "start"]
+ENV NODE_ENV=production
+
+# Copiamos la salida "standalone" de Next.js
+COPY --from=builder /app/apps/gestion/.next/standalone ./
+COPY --from=builder /app/apps/gestion/.next/static ./apps/gestion/.next/static
+COPY --from=builder /app/apps/gestion/public ./apps/gestion/public
+
+CMD ["node", "apps/gestion/server.js"]

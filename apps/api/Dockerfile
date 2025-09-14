@@ -1,36 +1,35 @@
-# ---- Etapa 1: Builder ----
-# Usa la imagen completa de Node para instalar dependencias y construir la aplicación
-# FROM node:iron-alpine3.22 AS builder
-FROM node:iron-alpine3.22
+# --- Fase 1: Build ---
+# Usamos una imagen de Node.js más completa para instalar dependencias y construir el proyecto.
+FROM node:20-alpine AS builder
+
+# Establecemos el directorio de trabajo dentro del contenedor
+WORKDIR /usr/src/app
+
+# Copiamos los package.json y package-lock.json del monorepo
+# para instalar todas las dependencias necesarias para el build.
+COPY package*.json ./
+COPY packages/shared-dto/package.json ./packages/shared-dto/
+COPY apps/api/package.json ./apps/api/
+
+# Instalamos TODAS las dependencias (incluidas las de desarrollo)
+RUN npm install
+
+# Copiamos el resto del código fuente
+COPY . .
+
+# Construimos la aplicación de la API
+RUN npm run build:api
+
+# --- Fase 2: Producción ---
+# Usamos una imagen de Node.js ligera para la ejecución.
+FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
-# Copia el código fuente de la aplicación con las restricciones del .dockerignore
-COPY . .
+# Copiamos solo los artefactos de build y las dependencias de producción desde la fase 'builder'
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY apps/api/package.json ./
 
-# Copia los ficheros de dependencias y las instala
-# Esto aprovecha el cache de Docker para no reinstalar si no cambian
-# COPY package*.json ./
-RUN npm install
-
-# Construye la aplicación para producción
-RUN npm run build
-
-# ---- Etapa 2: Production ----
-# Usa una imagen base de Node más ligera para la ejecución
-# FROM node:iron-alpine3.22
-
-# WORKDIR /usr/src/app
-
-# Copia solo las dependencias de producción desde la etapa de builder
-# COPY --from=builder /usr/src/app/node_modules ./node_modules
-# Copia la aplicación compilada desde la etapa de builder
-# COPY --from=builder /usr/src/app/dist ./dist
-# Copia el fichero de entorno de producción
-# COPY ./.env.production .
-# COPY ./.env .
-# Expone el puerto en el que la API va a correr
-EXPOSE 3101
-
-# El comando para iniciar la aplicación en producción
-ENTRYPOINT [ "npm", "run", "start:prod" ]
+# El comando para iniciar la aplicación en modo producción
+CMD ["npm", "run", "start:prod"]
