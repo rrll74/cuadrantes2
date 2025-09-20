@@ -1,0 +1,23 @@
+# Archivos y carpetas de Node. NUNCA deben incluirse en el contexto.
+node_modules
+npm-debug.log
+
+# Carpetas de build (se generan DENTRO del contenedor, no deben copiarse)
+dist
+.next
+
+# Git
+.git
+
+# Variables de entorno locales y logs
+.env
+*.log
+
+# La carpeta de datos de la base de datos que está causando el problema
+data/
+
+# Archivos de configuración de Docker y scripts de despliegue
+docker-compose.yml
+docker-compose.prod.yml
+build_and_start.sh
+apps/gestion/build_and_start.sh

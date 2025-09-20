@@ -5,31 +5,37 @@ FROM node:20-alpine AS builder
 # Establecemos el directorio de trabajo dentro del contenedor
 WORKDIR /usr/src/app
 
-# Copiamos los package.json y package-lock.json del monorepo
-# para instalar todas las dependencias necesarias para el build.
-COPY package*.json ./
-COPY packages/shared-dto/package.json ./packages/shared-dto/
-COPY apps/api/package.json ./apps/api/
-
-# Instalamos TODAS las dependencias (incluidas las de desarrollo)
-RUN npm install
-
-# Copiamos el resto del código fuente
+# Copiamos primero todo el código fuente del monorepo.
 COPY . .
 
-# Construimos la aplicación de la API
+# Instalamos TODAS las dependencias necesarias para el build.
+RUN npm install
+
+# Construimos la aplicación de la API desde la raíz del monorepo.
+# Esto asegura que se use la configuración correcta y se genere el output esperado.
 RUN npm run build:api
 
 # --- Fase 2: Producción ---
 # Usamos una imagen de Node.js ligera para la ejecución.
 FROM node:20-alpine
 
-WORKDIR /usr/src/app
+ENV NODE_ENV=production
+# El directorio de trabajo final será la raíz de la app
+WORKDIR /usr/src/app 
 
-# Copiamos solo los artefactos de build y las dependencias de producción desde la fase 'builder'
-COPY --from=builder /usr/src/app/dist ./dist
-COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY apps/api/package.json ./
+# Copiamos los package.json necesarios para instalar solo las dependencias de producción.
+COPY package.json package-lock.json ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/shared-dto/package.json ./packages/shared-dto/
 
-# El comando para iniciar la aplicación en modo producción
-CMD ["npm", "run", "start:prod"]
+# Instalamos ÚNICAMENTE las dependencias de producción.
+RUN npm install --omit=dev
+
+# Copiamos los artefactos de build desde la fase 'builder'.
+# La ruta de origen en 'builder' es la que genera el build del monorepo.
+# Corregido: Apuntamos a la ruta de salida real observada.
+COPY --from=builder /usr/src/app/apps/api/dist .
+
+# Ejecuta la aplicación directamente con Node. Es más simple y evita problemas de directorios.
+# Corregido: Apuntamos a la ruta real del fichero de arranque, que está dentro de 'src'.
+CMD ["node", "src/main.js"]

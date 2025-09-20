@@ -15,7 +15,7 @@ services:
       - MARIADB_PASSWORD=${MARIADB_PASSWORD}
       # - MARIADB_DATABASE=${MARIADB_DATABASE}
     volumes:
-      - ./data/mariadb:/var/lib/mysql
+      - ../data/mariadb:/var/lib/mysql
 
   phpmyadminMariaDB:
     image: phpmyadmin:5.2.2-apache

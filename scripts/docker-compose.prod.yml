@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  api:
+    container_name: cuadrantes-api-prod
+    image: cuadrantes-api:1.0.0
+    restart: unless-stopped
+    ports:
+      # Expone la API en el puerto 3001 del servidor
+      - "3101:3000"
+    env_file:
+      - ./prod.env # Carga las variables desde el fichero prod.env
+    networks:
+      - cuadrantes-net
+
+  gestion:
+    container_name: cuadrantes-gestion-prod
+    image: cuadrantes-gestion:1.0.0
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=production
+      - API_URL_INTERNAL=http://api:3000 # Correcto: se comunica por la red interna usando el nombre del servicio
+      - NEXT_PUBLIC_API_URL=http://localhost:3101 # Corregido: debe apuntar al puerto expuesto de la API (3101)
+    networks:
+      - cuadrantes-net
+
+networks:
+  cuadrantes-net:
+    driver: bridge
