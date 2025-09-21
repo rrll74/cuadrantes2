@@ -18,6 +18,15 @@ usage() {
   exit 1
 }
 
+# --- Comprobaciones Previas ---
+if [ ! -f "$PHP_COMPOSE_FILE" ] || [ ! -f "$MARIADB_COMPOSE_FILE" ]; then
+    echo "Error: No se encontraron los archivos docker-compose.yaml requeridos."
+    echo "Asegúrate de que las rutas en el script son correctas:"
+    echo "  - $PHP_COMPOSE_FILE"
+    echo "  - $MARIADB_COMPOSE_FILE"
+    exit 1
+fi
+
 # Comprobamos la acción solicitada
 case "$ACTION" in
   up)
