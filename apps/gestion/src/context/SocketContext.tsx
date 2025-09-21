@@ -28,8 +28,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (token) {
       const socketURL =
-        `${process.env.NEXT_PUBLIC_API_HOST}:${process.env.NEXT_PUBLIC_API_PORT}` ||
-        "http://localhost:3001";
+        `${process.env.NEXT_PUBLIC_API_HOST}` || "http://localhost:3001";
 
       const newSocket = io(socketURL, {
         withCredentials: true,

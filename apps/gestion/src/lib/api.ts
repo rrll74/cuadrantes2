@@ -1,12 +1,15 @@
 import axios from "axios";
 
-const apiHost = process.env.NEXT_PUBLIC_API_HOST;
-const apiPort = process.env.NEXT_PUBLIC_API_PORT;
+// Determina la URL base correcta dependiendo del entorno de ejecución.
+// - `typeof window === 'undefined'` es VERDADERO en el servidor (SSR, Server Actions).
+// - Es FALSO en el navegador del cliente.
+const baseURL =
+  typeof window === "undefined"
+    ? process.env.API_URL_SERVER_SIDE // URL para comunicación interna de Docker
+    : process.env.NEXT_PUBLIC_API_URL; // URL pública para el navegador
 
-console.log("conexión: ", apiHost, apiPort);
-
-const api = axios.create({
-  baseURL: `${apiHost}:${apiPort}`, // La URL de tu backend NestJS
+export const api = axios.create({
+  baseURL,
   withCredentials: true,
 });
 

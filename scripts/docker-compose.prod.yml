@@ -9,9 +9,16 @@ services:
       # Expone la API en el puerto 3001 del servidor
       - "3101:3000"
     env_file:
-      - ./prod.env # Carga las variables desde el fichero prod.env
+      - ./.env.production # Carga las variables desde el fichero prod.env
+    environment:
+      - PORT=3000 # Sobrescribe el puerto para que sea el interno correcto
+    # Conecta el servicio 'api' a las tres redes:
+    # - la suya propia para hablar con 'gestion'
+    # - las dos redes externas donde están las bases de datos
     networks:
       - cuadrantes-net
+      - db_new_net
+      - db_old_net
 
   gestion:
     container_name: cuadrantes-gestion-prod
@@ -19,13 +26,22 @@ services:
     restart: unless-stopped
     ports:
       - "3002:3000"
+    env_file:
+      - ./.env.production
     environment:
-      - NODE_ENV=production
-      - API_URL_INTERNAL=http://api:3000 # Correcto: se comunica por la red interna usando el nombre del servicio
-      - NEXT_PUBLIC_API_URL=http://localhost:3101 # Corregido: debe apuntar al puerto expuesto de la API (3101)
+      - PORT=3000 # Sobrescribe el puerto para que sea el interno correcto
     networks:
       - cuadrantes-net
 
 networks:
   cuadrantes-net:
     driver: bridge
+  # Declara las redes de las bases de datos como externas.
+  # Docker no intentará crearlas, solo se conectará a ellas.
+  # ¡Asegúrate de que los nombres coincidan con el resultado de 'docker network ls'!
+  db_new_net:
+    name: scripts_mi-red-db # Reemplaza con el nombre real de la red de la DB nueva
+    external: true
+  db_old_net:
+    name: phpcuadrantes_default # Reemplaza con el nombre real de la red de la DB antigua
+    external: true

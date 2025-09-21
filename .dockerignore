@@ -19,5 +19,4 @@ data/
 # Archivos de configuración de Docker y scripts de despliegue
 docker-compose.yml
 docker-compose.prod.yml
-build_and_start.sh
-apps/gestion/build_and_start.sh
+scripts/

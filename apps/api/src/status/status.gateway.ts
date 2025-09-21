@@ -31,18 +31,27 @@ interface EngineIoError {
   context?: any;
 }
 
-const gestionPort = process.env.GESTION_PORT ?? '3002'; // Puerto del frontend
-const whitelist = [
-  `http://localhost:${gestionPort}`,
-  `http://127.0.0.1:${gestionPort}`,
-];
+// --- Configuración de CORS más flexible ---
+// En desarrollo, permitimos localhost.
+// En producción, leemos el dominio permitido desde una variable de entorno.
+const allowedOrigins: string[] = [];
+if (process.env.NODE_ENV !== 'production') {
+  const gestionPort = process.env.GESTION_PORT ?? '3002';
+  allowedOrigins.push(
+    `http://localhost:${gestionPort}`,
+    `http://127.0.0.1:${gestionPort}`,
+  );
+}
+if (process.env.CORS_ALLOWED_ORIGIN) {
+  allowedOrigins.push(process.env.CORS_ALLOWED_ORIGIN);
+}
 
 @WebSocketGateway({
   cors: {
     origin: (origin, callback) => {
       if (
         !origin ||
-        whitelist.indexOf(origin) !== -1 ||
+        allowedOrigins.indexOf(origin) !== -1 ||
         origin.startsWith('http://192.168.') ||
         origin.startsWith('http://10.1.') ||
         origin.startsWith('http://172.')

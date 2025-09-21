@@ -16,6 +16,7 @@ services:
       # - MARIADB_DATABASE=${MARIADB_DATABASE}
     volumes:
       - ../data/mariadb:/var/lib/mysql
+    env_file: "./.env"
 
   phpmyadminMariaDB:
     image: phpmyadmin:5.2.2-apache
@@ -29,6 +30,7 @@ services:
       - PMA_HOST=mariadb
       - PMA_USER=root
       - PMA_PASSWORD=${MARIADB_ROOT_PASSWORD}
+    env_file: "./.env"
 
 networks:
   mi-red-db:

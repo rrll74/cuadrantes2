@@ -88,11 +88,11 @@ export default function HomePage() {
               <div className="border-t pt-4 space-y-2">
                 <StatusIndicator
                   name="Base de Datos Principal (new)"
-                  status={data.databaseStatus.new}
+                  status={data?.databaseStatus?.new}
                 />
                 <StatusIndicator
                   name="Base de Datos Antigua (old)"
-                  status={data.databaseStatus.old}
+                  status={data?.databaseStatus?.old}
                 />
               </div>
             </div>
@@ -113,14 +113,16 @@ const StatusIndicator = ({
   name,
   status,
 }: {
-  name: string;
+  name: string; // La propiedad status ahora puede ser undefined
   status: HealthStatus;
 }) => (
   <div className="flex items-center justify-between py-1">
     <span className="font-medium text-gray-600 dark:text-gray-400">
       {name}:
     </span>
-    {status.status === "ok" ? (
+    {!status ? ( // Si status es undefined, mostramos un estado de carga o desconocido
+      <span className="font-bold text-yellow-500">...</span>
+    ) : status.status === "ok" ? (
       <span className="font-bold text-green-600">✅ Conectado</span>
     ) : (
       <div className="text-right">

@@ -7,7 +7,9 @@ WORKDIR /app
 COPY package*.json ./
 COPY packages/shared-dto/package.json ./packages/shared-dto/
 COPY apps/gestion/package.json ./apps/gestion/
-
+# Copia el fichero de entorno de producción específico para la compilación del frontend
+# Next.js lo usará automáticamente durante el `pnpm build`
+COPY apps/gestion/.env.production.local ./apps/gestion/.env.production.local
 # Instalamos TODAS las dependencias (incluidas las de desarrollo)
 RUN npm install
 
