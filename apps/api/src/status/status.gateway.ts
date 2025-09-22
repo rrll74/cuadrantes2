@@ -31,31 +31,31 @@ interface EngineIoError {
   context?: any;
 }
 
-// --- Configuración de CORS más flexible ---
-// En desarrollo, permitimos localhost.
-// En producción, leemos el dominio permitido desde una variable de entorno.
-const allowedOrigins: string[] = [];
-if (process.env.NODE_ENV !== 'production') {
-  const gestionPort = process.env.GESTION_PORT ?? '3002';
-  allowedOrigins.push(
-    `http://localhost:${gestionPort}`,
-    `http://127.0.0.1:${gestionPort}`,
-  );
-}
-if (process.env.CORS_ALLOWED_ORIGIN) {
-  allowedOrigins.push(process.env.CORS_ALLOWED_ORIGIN);
-}
+// --- Configuración de CORS para WebSockets ---
+const gestionPort = process.env.GESTION_PORT ?? '3002';
+const staticAllowedOrigins = [
+  `http://localhost:${gestionPort}`,
+  `http://127.0.0.1:${gestionPort}`,
+];
+const dynamicOrigins = process.env.CORS_ALLOWED_ORIGIN
+  ? process.env.CORS_ALLOWED_ORIGIN.split(',')
+  : [];
 
 @WebSocketGateway({
   cors: {
     origin: (origin, callback) => {
-      if (
-        !origin ||
-        allowedOrigins.indexOf(origin) !== -1 ||
-        origin.startsWith('http://192.168.') ||
-        origin.startsWith('http://10.1.') ||
-        origin.startsWith('http://172.')
-      ) {
+      // 1. Permitir peticiones sin 'origin'
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      // 2. Comprobar si el origen coincide con la lista estática o con los patrones dinámicos
+      const isAllowed =
+        staticAllowedOrigins.includes(origin) ||
+        dynamicOrigins.some((o) => origin.startsWith(o));
+
+      if (isAllowed) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
