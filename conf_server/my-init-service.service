@@ -1,0 +1,11 @@
+[Unit]
+Description=Mi servicio de inicio personalizado
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/init-script.sh
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,8 @@
+Instrucciones de ejecución en para arranque automático de los contenedores docker cuando se inicial el servidor Ubuntu 24.04:
+
+El fichero init-script.sh debe estar ubicado en: /usr/local/bin
+Es necesario darle permiso de ejecución: sudo chmod +x /usr/local/bin
+El fichero my-init-service.service debe estar ubicado en: /etc/systemd/system/
+Se recarga el demonio systemd: sudo systemctl daemon-reload
+Se habilita es servicio para que se inicie automáticamente: sudo systemctl enable mi-servicio.service
+Se reinicia el sistema para su comprobación: sudo reboot
