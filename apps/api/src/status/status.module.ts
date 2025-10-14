@@ -10,7 +10,7 @@ import { UsersModule } from '@/newdatabase/users/users.module';
   // Usamos forwardRef para evitar dependencias circulares si AuthModule necesitara StatusModule
   imports: [
     forwardRef(() => AuthModule),
-    forwardRef(() => UsersModule), // Importamos UsersModule para la comprobación de permisos
+    forwardRef(() => UsersModule), // Usamos forwardRef para romper el ciclo Status <-> Users
   ],
   providers: [StatusGateway, ConnectionStatusService, DatabaseStatusService],
   exports: [StatusGateway, ConnectionStatusService, DatabaseStatusService],

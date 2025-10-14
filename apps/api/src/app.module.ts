@@ -12,6 +12,7 @@ import { PermisosModule } from '@/newdatabase/permisos/permisos.module';
 import { SeederModule } from '@/newdatabase/seeder.module';
 import { AuthModule } from './auth/auth.module';
 import { StatusModule } from './status/status.module';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -139,8 +140,15 @@ import { StatusModule } from './status/status.module';
     StatusModule,
   ],
   controllers: [AppController],
-  // El JwtAuthGuard se aplicará manualmente en los controladores necesarios
-  // en lugar de ser global para simplificar la resolución de dependencias en tests.
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Hacemos que el JwtAuthGuard sea global.
+    // Todas las rutas estarán protegidas por defecto.
+    // Para hacer una ruta pública, se debe usar el decorador @Public().
+    {
+      provide: 'APP_GUARD',
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}

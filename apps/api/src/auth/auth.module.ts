@@ -17,13 +17,19 @@ import { StatusModule } from '@/status/status.module';
     // AuthModule -> UsersModule -> StatusModule -> AuthModule
     forwardRef(() => UsersModule),
     forwardRef(() => StatusModule),
-    PassportModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: configService.get<string>('JWT_EXPIRATION') },
+        // Usamos getOrThrow para asegurar que JWT_SECRET existe.
+        // Si no, la aplicación fallará al iniciar con un error claro.
+        // Esto garantiza a TypeScript que el valor nunca será 'undefined'.
+        secret: configService.getOrThrow<string>('JWT_SECRET'),
+        signOptions: {
+          // La librería acepta un número de segundos.
+          expiresIn: parseInt(configService.get('JWT_EXPIRATION', '3600'), 10),
+        },
       }),
     }),
   ],

@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
@@ -40,7 +43,10 @@ describe('StatusGateway (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    await app.init();
+    // Usamos app.listen() para que el servidor HTTP comience a escuchar en un puerto.
+    // `app.init()` solo inicializa la app, pero no la pone en escucha.
+    // Usar el puerto 0 le dice al SO que elija un puerto efímero disponible.
+    await app.listen(0);
     httpServer = app.getHttpServer();
     const address = httpServer.address() as AddressInfo;
     socketUrl = `http://localhost:${address.port}`;
@@ -82,11 +88,13 @@ describe('StatusGateway (e2e)', () => {
         transports: ['websocket'], // Forzar websocket para consistencia
       });
 
-      const error = await new Promise((resolve) =>
-        client.once('connect_error', resolve),
+      // El servidor fuerza un 'disconnect' en caso de token inválido.
+      // Esperamos ese evento en lugar de 'connect_error'.
+      const reason = await new Promise((resolve) =>
+        client.once('disconnect', resolve),
       );
 
-      expect(error).toBeDefined();
+      expect(reason).toBe('io server disconnect');
       expect(client.connected).toBe(false);
     });
 

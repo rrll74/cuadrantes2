@@ -32,7 +32,8 @@ export class AuthService {
 
     // 2. Comprobamos si el usuario tiene el permiso de bypass.
     const hasBypassPermission = user.permisos.some(
-      (p) => p.tipo === 'users:update',
+      // Un admin o alguien con el permiso específico puede saltarse el bloqueo.
+      (p) => p.tipo === 'admin' || p.tipo === 'users:update',
     );
 
     // 3. Aplicamos la lógica de bloqueo mejorada.

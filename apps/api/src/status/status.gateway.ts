@@ -169,7 +169,7 @@ export class StatusGateway
       // 2. Verificar si el administrador tiene permisos
       const adminUser = await this.usersService.findOneById(adminUserId);
       const hasPermission = adminUser!.permisos.some(
-        (p) => p.tipo === 'users:update',
+        (p) => p.tipo === 'admin' || p.tipo === 'users:update',
       );
 
       if (!hasPermission) {

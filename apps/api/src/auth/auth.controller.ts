@@ -6,7 +6,7 @@ import {
   Get,
   Logger,
 } from '@nestjs/common';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+// import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
@@ -17,7 +17,10 @@ import { StatusGateway } from '@/status/status.gateway';
 import { AuthModel } from './auth.model';
 import { Public } from './decorators/public.decorator';
 
-@UseGuards(JwtAuthGuard, PermissionsGuard) // Aplicar guardias a nivel de controlador
+// El JwtAuthGuard ya es global, por lo que solo necesitamos aplicar el
+// PermissionsGuard a nivel de controlador para que verifique los permisos
+// en todas las rutas de este controlador que no sean públicas.
+@UseGuards(PermissionsGuard)
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
