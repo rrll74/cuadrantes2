@@ -33,9 +33,14 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
           return {
             name: 'new',
             type: 'sqlite',
-            database: './test.sqlite',
+            // Usamos la variable de entorno para la ruta de la BD de test.
+            // Esto centraliza la configuración en un solo lugar (.env.test.local).
+            database:
+              configService.get<string>('E2E_DB_PATH') || './test.sqlite',
             entities: [__dirname + '/newdatabase/**/*.entity{.ts,.js}'],
-            synchronize: false, // El setup global ya se encarga de esto
+            // Se establece en `false` para evitar condiciones de carrera.
+            // La sincronización se manejará explícitamente en el `beforeAll` de cada test.
+            synchronize: false,
           };
         }
         const realOptions: DataSourceOptions = {

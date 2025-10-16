@@ -3,11 +3,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
+// import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
+import { getDataSourceToken } from '@nestjs/typeorm';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { AppModule } from '@/app.module';
+import { AppModule } from '../src/app.module';
 import { io, Socket } from 'socket.io-client';
 import { AddressInfo } from 'net';
+import { seedDatabase } from './e2e-setup';
 
 /**
  * Función de ayuda que crea una Promesa que se resuelve cuando un socket
@@ -31,6 +34,8 @@ describe('StatusGateway (e2e)', () => {
   let socketUrl: string;
   let adminToken: string;
   let userToken: string;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let adminUserId: number;
   let userId: number;
 
   // Credenciales definidas en e2e-setup.ts
@@ -39,10 +44,19 @@ describe('StatusGateway (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [AppModule], // AppModule ya importa la configuración de TypeORM
     }).compile();
 
     app = moduleFixture.createNestApplication();
+
+    // --- INICIO: Limpieza y Sembrado de la Base de Datos ---
+    // Esta es la parte clave. La ejecutamos antes de levantar el servidor.
+    const connection = app.get(getDataSourceToken('new')); // Obtener la conexión de TypeORM
+    await connection.synchronize(true); // true = drop and re-create schema
+    await seedDatabase(connection);
+    // --- FIN: Limpieza y Sembrado de la Base de Datos ---
+
+    // Ahora que la BD está limpia y sembrada, podemos iniciar la aplicación.
     // Usamos app.listen() para que el servidor HTTP comience a escuchar en un puerto.
     // `app.init()` solo inicializa la app, pero no la pone en escucha.
     // Usar el puerto 0 le dice al SO que elija un puerto efímero disponible.
@@ -55,13 +69,18 @@ describe('StatusGateway (e2e)', () => {
     const adminLoginRes = await request(httpServer)
       .post('/auth/login')
       .send(adminCredentials);
+    expect(adminLoginRes.status).toBe(201); // Verificamos que el login fue exitoso
     adminToken = adminLoginRes.body.access_token;
+    const adminProfileRes = await request(httpServer)
+      .get('/auth/profile')
+      .set('Authorization', `Bearer ${adminToken}`);
+    adminUserId = adminProfileRes.body.userId;
 
     const userLoginRes = await request(httpServer)
       .post('/auth/login')
       .send(userCredentials);
+    expect(userLoginRes.status).toBe(201); // Verificamos que el login fue exitoso
     userToken = userLoginRes.body.access_token;
-
     const userProfileRes = await request(httpServer)
       .get('/auth/profile')
       .set('Authorization', `Bearer ${userToken}`);

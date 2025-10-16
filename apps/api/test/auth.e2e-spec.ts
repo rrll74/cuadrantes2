@@ -3,8 +3,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { getDataSourceToken } from '@nestjs/typeorm';
 import * as request from 'supertest';
-import { AppModule } from '@/app.module';
+import { seedDatabase } from './e2e-setup';
+import { AppModule } from '../src/app.module';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
@@ -17,16 +19,18 @@ describe('AuthController (e2e)', () => {
   };
 
   beforeAll(async () => {
-    // El entorno de prueba (NODE_ENV=test) ya está configurado por jest-e2e.json
-    // y el setup global (e2e-setup.ts) ya se ha ejecutado.
-
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    // Es buena práctica usar los mismos pipes que en producción
     app.useGlobalPipes(new ValidationPipe());
+
+    // Limpiamos y sembramos la BD para este test también
+    const connection = app.get(getDataSourceToken('new'));
+    await connection.synchronize(true);
+    await seedDatabase(connection);
+
     await app.init();
   });
 

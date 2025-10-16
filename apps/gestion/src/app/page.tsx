@@ -17,6 +17,7 @@ import { ApiStatusResponse, HealthStatus } from "@cuadrantes/shared-dto";
 // --- Función que obtiene el estado de la API ---
 const getApiStatus = async (): Promise<ApiStatusResponse> => {
   const { data } = await api.get<ApiStatusResponse>("/");
+  console.log("API Status:", data);
   return data;
 };
 

@@ -1,3 +1,13 @@
+// Carga las variables de entorno desde .env.test.local ANTES de que Jest haga nada más.
+// Usamos `require` para asegurar la carga síncrona al inicio.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const path = require('path');
+// Construimos una ruta absoluta al fichero .env.test.local para evitar problemas con el CWD.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+require('dotenv').config({
+  path: path.resolve(__dirname, '../.env.test.local'),
+});
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { pathsToModuleNameMapper } = require('ts-jest');
 // Leemos el tsconfig.json de la API para obtener los mapeos de rutas.
@@ -8,17 +18,17 @@ const { compilerOptions } = require('../tsconfig.json');
 module.exports = {
   preset: 'ts-jest',
   moduleFileExtensions: ['js', 'json', 'ts'],
-  // El rootDir es el directorio donde se encuentra este jest.config.js.
+  // rootDir se establece en el directorio que contiene este fichero de config.
   rootDir: '.',
   testEnvironment: 'node',
   testRegex: '.e2e-spec.ts$',
   // Convierte los "paths" de tsconfig.json a un formato que Jest entiende.
-  // El prefijo '<rootDir>/../' navega desde 'apps/api/test' hasta 'apps/api/'
-  // para que las rutas se resuelvan correctamente desde la raíz de la API.
+  // Con rootDir='.', el prefijo '<rootDir>/../' navega desde 'apps/api/test'
+  // hasta 'apps/api/', que es la base para resolver los alias como '@/...'.
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
     prefix: '<rootDir>/../',
   }),
-  globalSetup: '<rootDir>/e2e-setup.ts',
-  globalTeardown: '<rootDir>/e2e-teardown.ts',
+  // Limita la ejecución a un solo worker para evitar condiciones de carrera en la BD de SQLite.
+  maxWorkers: 1,
 };

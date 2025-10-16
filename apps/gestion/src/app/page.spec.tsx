@@ -54,5 +54,23 @@ describe("Home Page", () => {
     expect(
       await screen.findByText(mockApiData.welcomeMessage),
     ).toBeInTheDocument();
+
+    // Verificamos que el estado de la base de datos "new" es correcto
+    const newDbStatusLabel = await screen.findByText(
+      /Base de Datos Principal \(new\):/i,
+    );
+    const newDbStatusIndicator = newDbStatusLabel.nextElementSibling;
+    expect(newDbStatusIndicator).toBeInTheDocument();
+    // Asumimos que el indicador tiene un atributo para testear su estado, ej: data-status
+    expect(newDbStatusIndicator).toHaveAttribute("data-status", "ok");
+
+    // Verificamos que el estado de la base de datos "old" es correcto
+    const oldDbStatusLabel = await screen.findByText(
+      /Base de Datos Antigua \(old\):/i,
+    );
+    const oldDbStatusIndicator = oldDbStatusLabel.nextElementSibling;
+    expect(oldDbStatusIndicator).toBeInTheDocument();
+    // Asumimos que el indicador tiene un atributo para testear su estado, ej: data-status
+    expect(oldDbStatusIndicator).toHaveAttribute("data-status", "ok");
   });
 });
