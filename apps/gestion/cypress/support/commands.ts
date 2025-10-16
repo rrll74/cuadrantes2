@@ -24,7 +24,7 @@ Cypress.Commands.add(
   (
     // Credenciales por defecto del e2e-setup.ts
     username = "testadmin",
-    password = "adminpass"
+    password = "adminpass",
   ) => {
     // cy.session() guarda y restaura cookies, localStorage, etc.
     // Esto evita tener que hacer login visualmente antes de cada test.
@@ -35,5 +35,5 @@ Cypress.Commands.add(
       cy.get('button[type="submit"]').click();
       cy.url().should("include", "/dashboard"); // Verificamos que el login fue exitoso
     });
-  }
+  },
 );

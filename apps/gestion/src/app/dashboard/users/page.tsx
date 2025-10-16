@@ -96,12 +96,12 @@ export default function UsersListPage() {
   const handleDisconnectUser = (userId: number) => {
     if (!socket) {
       console.error(
-        "Socket no está conectado. No se puede desconectar al usuario."
+        "Socket no está conectado. No se puede desconectar al usuario.",
       );
       return;
     }
     console.log(
-      `Enviando petición para forzar desconexión del usuario: ${userId}`
+      `Enviando petición para forzar desconexión del usuario: ${userId}`,
     );
     socket.emit("admin:disconnect_user", { userId });
   };
@@ -112,7 +112,7 @@ export default function UsersListPage() {
     // Función genérica para actualizar el estado de conexión en el caché de React Query
     const handleStatusUpdate = (
       event: "user:connected" | "user:disconnected",
-      data: { userId: number }
+      data: { userId: number },
     ) => {
       console.log(`Evento recibido: ${event}`, data);
       queryClient.setQueryData(["users"], (oldData: User[] | undefined) => {
@@ -120,7 +120,7 @@ export default function UsersListPage() {
         return oldData.map((user) =>
           user.id === data.userId
             ? { ...user, isConnected: event === "user:connected" }
-            : user
+            : user,
         );
       });
     };
@@ -131,10 +131,10 @@ export default function UsersListPage() {
 
     // Escuchamos los eventos del backend
     socket.on("user:connected", (data: { userId: number }) =>
-      handleStatusUpdate("user:connected", data)
+      handleStatusUpdate("user:connected", data),
     );
     socket.on("user:disconnected", (data: { userId: number }) =>
-      handleStatusUpdate("user:disconnected", data)
+      handleStatusUpdate("user:disconnected", data),
     );
 
     // Limpieza: nos aseguramos de desconectar el socket cuando el componente se desmonte

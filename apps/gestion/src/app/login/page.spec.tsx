@@ -46,12 +46,12 @@ describe("LoginPage", () => {
     render(<LoginPage />);
 
     expect(
-      screen.getByRole("heading", { name: /iniciar sesión/i })
+      screen.getByRole("heading", { name: /iniciar sesión/i }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/nombre de usuario/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/contraseña/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /acceder/i })
+      screen.getByRole("button", { name: /acceder/i }),
     ).toBeInTheDocument();
   });
 
@@ -115,7 +115,7 @@ describe("LoginPage", () => {
     // Esperamos a que aparezca el mensaje de error específico
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(
-      /el inicio de sesión está deshabilitado temporalmente/i
+      /el inicio de sesión está deshabilitado temporalmente/i,
     );
 
     // Verificamos que no se intentó hacer login ni redirigir

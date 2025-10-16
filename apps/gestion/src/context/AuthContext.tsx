@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout();
       }
     },
-    [logout]
+    [logout],
   );
 
   // Efecto para cargar el token de la cookie en el primer renderizado
@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         console.error(
           "No se pudo renovar la sesión. Se cerrará la sesión.",
-          error
+          error,
         );
         logout();
       }

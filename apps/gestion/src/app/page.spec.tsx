@@ -52,7 +52,7 @@ describe("Home Page", () => {
 
     // Verificamos que el mensaje de bienvenida de la API se renderiza
     expect(
-      await screen.findByText(mockApiData.welcomeMessage)
+      await screen.findByText(mockApiData.welcomeMessage),
     ).toBeInTheDocument();
   });
 });

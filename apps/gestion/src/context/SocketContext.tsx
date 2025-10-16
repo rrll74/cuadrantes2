@@ -57,12 +57,12 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         (status: { isLocked: boolean }) => {
           console.log(
             "Estado de bloqueo actualizado desde el servidor:",
-            status
+            status,
           );
           // Actualizamos el caché de react-query directamente.
           // Esto hará que cualquier componente que use useQuery(['lockdownStatus']) se actualice.
           queryClient.setQueryData(["lockdownStatus"], status);
-        }
+        },
       );
 
       // Limpieza al desmontar el proveedor (ej. al cerrar sesión)

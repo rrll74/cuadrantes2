@@ -91,10 +91,13 @@ const UserForm = ({
   };
 
   const permissionsMap =
-    allPermissions?.reduce((acc, perm) => {
-      acc[perm.id] = perm.tipo;
-      return acc;
-    }, {} as Record<number, string>) || {};
+    allPermissions?.reduce(
+      (acc, perm) => {
+        acc[perm.id] = perm.tipo;
+        return acc;
+      },
+      {} as Record<number, string>,
+    ) || {};
 
   return (
     <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} noValidate>

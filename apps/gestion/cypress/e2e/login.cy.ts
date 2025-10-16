@@ -34,7 +34,7 @@ describe("Login Page", () => {
     // Verifica que se muestra el mensaje de error correcto
     cy.get('[role="alert"]').should(
       "contain.text",
-      "Usuario o contraseña incorrectos"
+      "Usuario o contraseña incorrectos",
     );
   });
 

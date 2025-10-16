@@ -34,11 +34,11 @@ export default function LoginPage() {
       const error = err as any;
       if (error.response?.status === 503) {
         setError(
-          "El inicio de sesión está deshabilitado temporalmente por un administrador."
+          "El inicio de sesión está deshabilitado temporalmente por un administrador.",
         );
       } else if (error.response) {
         setError(
-          "Usuario o contraseña incorrectos. Por favor, inténtelo de nuevo."
+          "Usuario o contraseña incorrectos. Por favor, inténtelo de nuevo.",
         );
       }
       console.error("Fallo en el login", err);
