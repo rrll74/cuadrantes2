@@ -44,6 +44,7 @@ describe("Home Page", () => {
 
     render(<HomePage />, { wrapper: AllTheProviders });
 
+    // FIXME: Errores en las propiedades del expect. Typescript no reconoce las propiedades toBeInTheDocument ni ToHaveAttribute
     // Esperamos a que aparezca el encabezado correcto
     const heading = await screen.findByRole("heading", {
       name: /aplicación de gestión/i,
@@ -61,8 +62,8 @@ describe("Home Page", () => {
     );
     const newDbStatusIndicator = newDbStatusLabel.nextElementSibling;
     expect(newDbStatusIndicator).toBeInTheDocument();
-    // Asumimos que el indicador tiene un atributo para testear su estado, ej: data-status
-    expect(newDbStatusIndicator).toHaveAttribute("data-status", "ok");
+    // Verificamos que el indicador muestra el estado correcto ("Conectado")
+    expect(newDbStatusIndicator).toHaveTextContent("✅ Conectado");
 
     // Verificamos que el estado de la base de datos "old" es correcto
     const oldDbStatusLabel = await screen.findByText(
@@ -70,7 +71,7 @@ describe("Home Page", () => {
     );
     const oldDbStatusIndicator = oldDbStatusLabel.nextElementSibling;
     expect(oldDbStatusIndicator).toBeInTheDocument();
-    // Asumimos que el indicador tiene un atributo para testear su estado, ej: data-status
-    expect(oldDbStatusIndicator).toHaveAttribute("data-status", "ok");
+    // Verificamos que el indicador muestra el estado correcto ("Conectado")
+    expect(oldDbStatusIndicator).toHaveTextContent("✅ Conectado");
   });
 });
