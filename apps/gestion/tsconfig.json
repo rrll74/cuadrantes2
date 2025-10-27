@@ -1,4 +1,5 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -22,6 +23,9 @@
         "name": "next"
       }
     ],
+    // IMPORTANTE: Asegúrate de que "cypress" no esté en la lista.
+    // "jest" y "node" son buenas prácticas para el entorno de testing unitario.
+    "types": ["jest", "node"],
     "paths": {
       "@/*": ["./src/*"]
     }

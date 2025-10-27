@@ -1,0 +1,13 @@
+{
+  // Hereda la configuración base de la aplicación
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    // Sobrescribe la opción "types" para incluir los tipos de Cypress y Node.
+    // Esto es lo que resuelve el conflicto.
+    "types": ["cypress", "node"]
+  },
+  "include": [
+    // Asegúrate de que este tsconfig solo se aplique a los ficheros de test de Cypress.
+    "**/*.ts"
+  ]
+}

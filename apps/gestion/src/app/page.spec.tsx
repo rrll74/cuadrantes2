@@ -44,7 +44,6 @@ describe("Home Page", () => {
 
     render(<HomePage />, { wrapper: AllTheProviders });
 
-    // FIXME: Errores en las propiedades del expect. Typescript no reconoce las propiedades toBeInTheDocument ni ToHaveAttribute
     // Esperamos a que aparezca el encabezado correcto
     const heading = await screen.findByRole("heading", {
       name: /aplicación de gestión/i,

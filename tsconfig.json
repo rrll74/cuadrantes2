@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    // Hereda las opciones base que ya tenías
+    "target": "es2021",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "files": [], // No compilar ficheros a nivel raíz
+  "references": [
+    { "path": "./apps/gestion" },
+    { "path": "./apps/api" },
+    { "path": "./packages/shared-dto" }
+  ]
+}

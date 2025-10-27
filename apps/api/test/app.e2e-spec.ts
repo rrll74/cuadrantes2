@@ -4,6 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { getDataSourceToken } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { AppModule } from '../src/app.module';
 import { seedDatabase } from './e2e-setup';
 
@@ -18,7 +19,12 @@ describe('AppController (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [
+        AppModule,
+        ConfigModule.forRoot({
+          envFilePath: '.env.test.local', // Carga explicitamente el fichero de entorno de tests
+        }),
+      ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
