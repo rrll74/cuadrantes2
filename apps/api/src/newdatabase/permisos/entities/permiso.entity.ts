@@ -1,17 +1,27 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from '@/newdatabase/users/entities/user.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
 
 @Entity({ name: 'permisos' })
 export class Permiso {
+  @ApiProperty({ example: 1, description: 'ID único del permiso' })
   @PrimaryGeneratedColumn()
   id: number;
 
+  @ApiProperty({
+    example: 'users:read',
+    description: 'El identificador único del permiso (string)',
+  })
   @Column({ type: 'varchar', length: 30 })
   tipo: string;
 
+  @ApiProperty({ example: 'Leer usuarios', description: 'Descripción legible' })
   @Column({ type: 'varchar', length: 50 })
   descripcion: string;
 
+  @ApiProperty({
+    description: 'Indica si el permiso es solo para super-admins',
+  })
   @Column({ type: 'tinyint', width: 1, default: false })
   restringido: boolean;
 

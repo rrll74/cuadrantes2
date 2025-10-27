@@ -7,6 +7,10 @@
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
+    // Esta opción es CRUCIAL cuando se usa "moduleResolution": "bundler".
+    // Permite importar archivos que no terminan en .ts o .tsx (como .css)
+    // y que TypeScript encuentre sus declaraciones de tipo (en types.d.ts).
+    "allowImportingTsExtensions": true,
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
@@ -25,6 +29,8 @@
   "include": [
     "next-env.d.ts",
     "**/*.ts",
+    ".storybook/**/*.ts",
+    "**/*.d.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
     "jest.setup.ts"

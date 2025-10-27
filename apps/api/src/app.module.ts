@@ -13,6 +13,7 @@ import { SeederModule } from '@/newdatabase/seeder.module';
 import { AuthModule } from './auth/auth.module';
 import { StatusModule } from './status/status.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { getTestDbOptions } from '../test/e2e-setup';
 
 @Module({
   imports: [
@@ -30,18 +31,19 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
       ): Promise<DataSourceOptions> => {
         // Si estamos en entorno de test, usamos la BD de test SQLite
         if (process.env.NODE_ENV === 'test') {
-          return {
-            name: 'new',
-            type: 'sqlite',
-            // Usamos la variable de entorno para la ruta de la BD de test.
-            // Esto centraliza la configuración en un solo lugar (.env.test.local).
-            database:
-              configService.get<string>('E2E_DB_PATH') || './test.sqlite',
-            entities: [__dirname + '/newdatabase/**/*.entity{.ts,.js}'],
-            // Se establece en `false` para evitar condiciones de carrera.
-            // La sincronización se manejará explícitamente en el `beforeAll` de cada test.
-            synchronize: false,
-          };
+          return getTestDbOptions();
+          // {
+          // name: 'new',
+          // type: 'sqlite',
+          // // Usamos la variable de entorno para la ruta de la BD de test.
+          // // Esto centraliza la configuración en un solo lugar (.env.test.local).
+          // database:
+          //   configService.get<string>('E2E_DB_PATH') || './test.sqlite',
+          // entities: [__dirname + '/newdatabase/**/*.entity{.ts,.js}'],
+          // // Se establece en `false` para evitar condiciones de carrera.
+          // // La sincronización se manejará explícitamente en el `beforeAll` de cada test.
+          // synchronize: false,
+          // };
         }
         const realOptions: DataSourceOptions = {
           type: 'mariadb',

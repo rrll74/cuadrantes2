@@ -5,3 +5,5 @@ data
 .env
 scripts/.env.production
 test.sqlite
+*storybook.log
+storybook-static

@@ -2,6 +2,7 @@
 module.exports = {
   // ... otras configuraciones
   plugins: ["prettier"],
+
   rules: {
     // ... otras reglas
     "prettier/prettier": [
@@ -11,4 +12,6 @@ module.exports = {
       },
     ],
   },
+
+  extends: ["plugin:storybook/recommended"]
 };

@@ -16,11 +16,18 @@ import { PermissionsGuard } from '@/auth/guards/permissions.guard';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { User } from './entities/user.entity';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UserResponseDto } from './dto/user-response.dto';
 
 @ApiTags('Users')
+@ApiBearerAuth()
 @Controller('users')
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class UsersController {
@@ -31,8 +38,10 @@ export class UsersController {
   @ApiResponse({
     status: 200,
     description: 'Lista de usuarios recuperada con éxito.',
-    type: [User],
+    type: [UserResponseDto],
   })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 403, description: 'Permisos insuficientes.' })
   @HasAnyPermission(
     'users:read',
     'users:create',
@@ -44,12 +53,34 @@ export class UsersController {
   }
 
   @Post()
+  @ApiOperation({ summary: 'Crear un nuevo usuario' })
+  @ApiBody({ type: CreateUserDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Usuario creado con éxito.',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 403, description: 'Permisos insuficientes.' })
   @HasPermissions('users:create')
   createUser(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Actualizar un usuario existente' })
+  @ApiParam({ name: 'id', description: 'ID del usuario a actualizar' })
+  @ApiBody({ type: UpdateUserDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario actualizado con éxito.',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 403, description: 'Permisos insuficientes.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
   @HasPermissions('users:update')
   updateUser(
     @Param('id', ParseIntPipe) id: number,
@@ -59,6 +90,12 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar un usuario' })
+  @ApiParam({ name: 'id', description: 'ID del usuario a eliminar' })
+  @ApiResponse({ status: 204, description: 'Usuario eliminado con éxito.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 403, description: 'Permisos insuficientes.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
   @HasPermissions('users:delete')
   deleteUser(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);

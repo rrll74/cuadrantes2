@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   BeforeInsert,
   Column,
@@ -12,15 +13,22 @@ import { Permiso } from '@/newdatabase/permisos/entities/permiso.entity';
 
 @Entity({ name: 'users' })
 export class User {
+  @ApiProperty({ example: 1, description: 'ID único del usuario' })
   @PrimaryGeneratedColumn()
   id: number;
 
+  @ApiProperty({
+    example: 'nuevo_usuario',
+    description: 'Nombre de usuario único',
+  })
   @Column({ unique: true })
   username: string;
 
+  @ApiProperty({ description: 'Email del usuario', example: 'user@test.com' })
   @Column({ unique: true })
   email: string;
 
+  @ApiProperty({ description: 'Contraseña del usuario', minLength: 8 })
   @Column({ select: false })
   password?: string;
 

@@ -21,13 +21,21 @@
     "test:api": "npm run -w apps/api test",
     "test:apie2e": "npm run build:api && jest --config ./apps/api/test/jest-e2e.config.js",
     "test:gestion": "jest --config ./apps/gestion/jest.config.js -w ./apps/gestion",
-    "cypress:open:gestion": "cypress open --project apps/gestion"
+    "cypress:open:gestion": "cypress open --project apps/gestion",
+    "storybook:gestion": "npm run storybook -w apps/gestion",
+    "build-storybook:gestion": "npm run build-storybook -w apps/gestion",
+    "db:seed:e2e": "npm run db:seed --workspace=apps/api",
+    "start:api:e2e": "cross-env NODE_ENV=test nest start --watch api",
+    "start:gestion:e2e": "npm run dev --workspace=gestion",
+    "test:e2e:gestion": "npm run db:seed:e2e && concurrently --kill-others --success first \"npm:start:api:e2e\" \"npm:start:gestion:e2e\" \"npm:cy:open\"",
+    "cy:open": "cypress open --e2e --browser chrome --project ./apps/gestion"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "npm-run-all": "^4.1.5",
     "typescript": "^5.0.0"
   }

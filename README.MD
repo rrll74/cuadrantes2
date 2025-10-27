@@ -23,3 +23,8 @@ Para test e2e de api: npm run test:apie2e -- --json --outputFile=apps/api/test/e
 Para test unitarios de api: npm run test:api -- --json --outputFile=apps/api/test/unit-spec.jest-result.json
 Para test e2e de gestion: npm run cypress:open:gestion
 Para test unitarios de gestion: npm run test:gestion -- --json --outputFile=apps/gestion/test-unitarios.json
+Para test de componentes y documentación de gestion: npm run storybook:gestion
+
+### Documentación de la base de datos
+
+Información de la base de datos en la dirección de la API, en el puerto configurado y con el end-point [api-docs](http://localhost:3101/api-docs#/)

@@ -9,7 +9,9 @@
     "start:standalone": "node --env-file=.env.production .next/standalone/server.js",
     "lint": "next lint",
     "cypress:open": "cypress open",
-    "cypress:run": "cypress run"
+    "cypress:run": "cypress run",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -17,9 +19,12 @@
     "@hookform/resolvers": "^5.1.1",
     "@mui/icons-material": "^7.1.2",
     "@mui/material": "^7.1.2",
+    "@radix-ui/react-slot": "^1.2.3",
     "@tanstack/react-query": "^5.80.10",
     "@types/js-cookie": "^3.0.6",
     "axios": "^1.10.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "js-cookie": "^3.0.5",
     "jwt-decode": "^4.0.0",
     "next": "15.3.4",
@@ -27,10 +32,17 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.59.0",
     "socket.io-client": "^4.8.1",
+    "tailwind-merge": "^3.3.1",
     "yup": "^1.6.1"
   },
   "devDependencies": {
+    "@chromatic-com/storybook": "^4.1.1",
     "@eslint/eslintrc": "^3",
+    "@storybook/addon-a11y": "^9.1.15",
+    "@storybook/addon-docs": "^9.1.15",
+    "@storybook/addon-onboarding": "^9.1.15",
+    "@storybook/addon-vitest": "^9.1.15",
+    "@storybook/nextjs-vite": "^9.1.15",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.8.0",
@@ -44,8 +56,10 @@
     "cypress": "^15.2.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
+    "eslint-plugin-storybook": "^9.1.15",
     "jest": "^30.1.3",
     "jest-environment-jsdom": "^30.1.2",
+    "storybook": "^9.1.15",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
