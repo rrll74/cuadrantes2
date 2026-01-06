@@ -37,7 +37,12 @@
     "**/*.d.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "jest.setup.ts"
+    "jest.setup.ts",
+    "../api/src/newdatabase/jornadas/entities/presence-result.entity.ts",
+    "../api/src/newdatabase/jornadas/entities/import-session.entity.ts",
+    "../api/src/newdatabase/jornadas/entities/raw-clock-in.entity.ts",
+    "../api/src/newdatabase/jornadas/entities/raw-worker.entity.ts",
+    "../api/src/newdatabase/jornadas/entities/scheduled-route.entity.ts"
   ],
   "exclude": ["node_modules"]
 }
