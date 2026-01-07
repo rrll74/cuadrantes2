@@ -11,17 +11,14 @@ import {
   isWithinInterval,
   differenceInMinutes,
 } from 'date-fns';
-import { ImportSession } from '../newdatabase/jornadas/entities/import-session.entity';
-import { ScheduledRoute } from '../newdatabase/jornadas/entities/scheduled-route.entity';
-import { RawWorker } from '../newdatabase/jornadas/entities/raw-worker.entity';
-import {
-  RawClockIn,
-  TipoFichaje,
-} from '../newdatabase/jornadas/entities/raw-clock-in.entity';
+import { ImportSession } from './entities/import-session.entity';
+import { ScheduledRoute } from './entities/scheduled-route.entity';
+import { RawWorker } from './entities/raw-worker.entity';
+import { RawClockIn, TipoFichaje } from './entities/raw-clock-in.entity';
 import {
   PresenceResult,
   EstadoPresencia,
-} from '../newdatabase/jornadas/entities/presence-result.entity';
+} from './entities/presence-result.entity';
 import {
   EXCEL_COLUMNS,
   CONFIG_JORNADAS,
@@ -83,7 +80,7 @@ export class JornadasService {
       const clockInsData = this.parseExcel(files.fichajes[0].buffer);
       const clockInsEntities = clockInsData.map((c) => {
         // Normalizar tipo de fichaje
-        const evento = c[EXCEL_COLUMNS.FICHAJE.EVENTO];
+        const evento: string = c[EXCEL_COLUMNS.FICHAJE.EVENTO];
         const tipo = evento?.toLowerCase().includes('entrada')
           ? TipoFichaje.ENTRADA
           : TipoFichaje.SALIDA;
@@ -273,8 +270,8 @@ export class JornadasService {
   }
 
   private calcularEstado(
-    entrada: RawClockIn | null,
-    salida: RawClockIn | null,
+    entrada: RawClockIn | Date | null,
+    salida: RawClockIn | Date | null,
   ): EstadoPresencia {
     if (entrada && salida) {
       return EstadoPresencia.COMPLETO;
@@ -317,7 +314,7 @@ export class JornadasService {
         first.estado = this.calcularEstado(
           first.fichajeEntrada,
           first.fichajeSalida,
-        ) as EstadoPresencia;
+        );
       }
 
       // Última ruta: Entrada forzada al inicio planificado, Mantiene salida real
@@ -326,7 +323,7 @@ export class JornadasService {
         last.estado = this.calcularEstado(
           last.fichajeEntrada,
           last.fichajeSalida,
-        ) as EstadoPresencia;
+        );
       }
 
       // Rutas intermedias: Se asumen completas (Inicio planificado -> Fin planificado)
@@ -412,7 +409,7 @@ export class JornadasService {
       trabajador: workersMap.get(r.route.workerId) || null,
       fichajeEntrada: r.fichajeEntrada,
       fichajeSalida: r.fichajeSalida,
-      estado: r.estado as EstadoPresencia,
+      estado: r.estado,
       esDuplicado: r.esDuplicado,
       revisar: r.revisar,
     }));
@@ -444,7 +441,7 @@ export class JornadasService {
     headerRow.font = { bold: true };
     headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    results.forEach((res) => {
+    results.forEach((res: IResultadoPresencia) => {
       const row = worksheet.addRow({
         fecha: res.ruta.fechaGeneral,
         servicio: res.ruta.servicio,
@@ -472,11 +469,12 @@ export class JornadasService {
       // Colores según estado
       const estadoCell = row.getCell('estado');
       let argb = 'FFFFFFFF'; // Blanco por defecto
-      if (res.estado === EstadoPresencia.COMPLETO)
+      if ((res.estado as unknown) === EstadoPresencia.COMPLETO)
         argb = 'FFC6EFCE'; // Verde
-      else if (res.estado === EstadoPresencia.INCOMPLETO)
+      else if ((res.estado as unknown) === EstadoPresencia.INCOMPLETO)
         argb = 'FFFFEB9C'; // Amarillo
-      else if (res.estado === EstadoPresencia.SIN_PRESENCIA) argb = 'FFFFC7CE'; // Rojo
+      else if ((res.estado as unknown) === EstadoPresencia.SIN_PRESENCIA)
+        argb = 'FFFFC7CE'; // Rojo
 
       estadoCell.fill = {
         type: 'pattern',
@@ -503,7 +501,7 @@ export class JornadasService {
       });
     });
 
-    return (await workbook.xlsx.writeBuffer()) as Buffer;
+    return (await workbook.xlsx.writeBuffer()) as unknown as Buffer;
   }
 
   async findAllSessions() {

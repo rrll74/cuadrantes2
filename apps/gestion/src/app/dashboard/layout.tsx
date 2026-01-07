@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import PeopleIcon from "@mui/icons-material/People";
+import CalendarIcon from "@mui/icons-material/CalendarToday";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -121,7 +122,16 @@ export default function DashboardLayout({
                     </ListItemButton>
                   </ListItem>
                 )}
-                {/* Aquí puedes añadir más enlaces a otras secciones */}
+                {
+                  <ListItem disablePadding>
+                    <ListItemButton component={Link} href="/dashboard/jornadas">
+                      <ListItemIcon>
+                        <CalendarIcon />
+                      </ListItemIcon>
+                      <ListItemText primary="Comprobación de jornadas" />
+                    </ListItemButton>
+                  </ListItem>
+                }
               </List>
             </Box>
           </Drawer>

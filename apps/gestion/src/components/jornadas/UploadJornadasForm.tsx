@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useCallback } from "react";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useDropzone, FileRejection, DropEvent } from "react-dropzone";
