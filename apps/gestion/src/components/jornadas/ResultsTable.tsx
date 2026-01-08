@@ -7,7 +7,7 @@ import {
   createColumnHelper,
   ColumnFiltersState,
 } from "@tanstack/react-table";
-import axios from "axios";
+import api from "@/lib/api";
 import { clsx } from "clsx";
 import { IResultadoPresencia, EstadoPresencia } from "@cuadrantes/shared-dto";
 import { SummaryCards } from "./SummaryCards";
@@ -111,8 +111,8 @@ export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get<IResultadoPresencia[]>(
-          `/api/jornadas/${sessionId}`,
+        const response = await api.get<IResultadoPresencia[]>(
+          `/jornadas/${sessionId}`,
         );
         setData(response.data);
       } catch (error) {
@@ -129,7 +129,7 @@ export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
 
   const handleExport = async () => {
     try {
-      const response = await axios.get(`/api/jornadas/${sessionId}/export`, {
+      const response = await api.get(`/jornadas/${sessionId}/export`, {
         responseType: "blob",
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));

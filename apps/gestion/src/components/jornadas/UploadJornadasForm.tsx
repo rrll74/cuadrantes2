@@ -2,12 +2,12 @@
 import React, { useState, useCallback } from "react";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useDropzone, FileRejection, DropEvent } from "react-dropzone";
-import axios from "axios";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 // NOTA: Ajusta este import según el nombre de tu paquete en package.json
 // ej: @cuadrantes/shared-dto
 import type { UploadJornadasResponse } from "@cuadrantes/shared-dto";
+import api from "@/lib/api";
 
 type FileKey = "titulares" | "auxiliares" | "trabajadores" | "fichajes";
 
@@ -73,8 +73,8 @@ export const UploadJornadasForm = () => {
 
     try {
       // Ajusta la URL a tu endpoint de backend
-      const { data } = await axios.post<UploadJornadasResponse>(
-        "/api/jornadas/upload",
+      const { data } = await api.post<UploadJornadasResponse>(
+        "/jornadas/upload",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },

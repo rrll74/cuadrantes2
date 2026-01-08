@@ -2,8 +2,9 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import api from "@/lib/api";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 interface SessionSummary {
   id: number;
@@ -13,12 +14,16 @@ interface SessionSummary {
 }
 
 export const SessionsList = () => {
+  const { user } = useAuth();
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["jornadas-sessions"],
+    queryKey: ["jornadas-sessions", user?.userId],
     queryFn: async () => {
-      const res = await axios.get<SessionSummary[]>("/api/jornadas");
+      if (!user?.userId) return [];
+      const res = await api.get<SessionSummary[]>(`/jornadas/${user.userId}`);
       return res.data;
     },
+    enabled: !!user?.userId,
   });
 
   if (isLoading)

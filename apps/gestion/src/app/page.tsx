@@ -42,8 +42,6 @@ export default function HomePage() {
     if (isLoading) return;
     if (isAuthenticated) {
       router.replace("/dashboard");
-    } else {
-      router.replace("/");
     }
   }, [isLoading, isAuthenticated, router]);
 
@@ -115,14 +113,14 @@ const StatusIndicator = ({
   status,
 }: {
   name: string; // La propiedad status ahora puede ser undefined
-  status: HealthStatus;
+  status: HealthStatus | undefined;
 }) => (
   <div className="flex items-center justify-between py-1">
     <span className="font-medium text-gray-600 dark:text-gray-400">
       {name}:
     </span>
     {!status ? ( // Si status es undefined, mostramos un estado de carga o desconocido
-      <span className="font-bold text-yellow-500">...</span>
+      <span className="font-bold text-orange-500">Sin datos (undefined)</span>
     ) : status.status === "ok" ? (
       <span className="font-bold text-green-600">✅ Conectado</span>
     ) : (

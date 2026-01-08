@@ -7,3 +7,4 @@ scripts/.env.production
 test.sqlite
 *storybook.log
 storybook-static
+analisis/codigo_comprobacion_jornadas/ejemplos

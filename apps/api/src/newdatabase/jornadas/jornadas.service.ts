@@ -1,29 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import * as XLSX from 'xlsx';
-import * as ExcelJS from 'exceljs';
-import {
-  addHours,
-  subHours,
-  isWithinInterval,
-  differenceInMinutes,
-} from 'date-fns';
 import { ImportSession } from './entities/import-session.entity';
 import { ScheduledRoute } from './entities/scheduled-route.entity';
 import { RawWorker } from './entities/raw-worker.entity';
 import { RawClockIn, TipoFichaje } from './entities/raw-clock-in.entity';
-import {
-  PresenceResult,
-  EstadoPresencia,
-} from './entities/presence-result.entity';
-import {
-  EXCEL_COLUMNS,
-  CONFIG_JORNADAS,
-  IResultadoPresencia,
-} from '@cuadrantes/shared-dto';
+import { PresenceResult } from './entities/presence-result.entity';
+import { EXCEL_COLUMNS, IResultadoPresencia } from '@cuadrantes/shared-dto';
+import { JornadasParserService } from './services/jornadas-parser.service';
+import { JornadasMatchingService } from './services/jornadas-matcher.service';
+import { JornadasExportService } from './services/jornadas-export.service';
 
 interface UploadedFiles {
   titulares: Express.Multer.File[];
@@ -37,17 +27,21 @@ export class JornadasService {
   private readonly logger = new Logger(JornadasService.name);
 
   constructor(
-    @InjectRepository(ImportSession)
+    @InjectRepository(ImportSession, 'new')
     private sessionRepo: Repository<ImportSession>,
-    @InjectRepository(ScheduledRoute)
+    @InjectRepository(ScheduledRoute, 'new')
     private routeRepo: Repository<ScheduledRoute>,
-    @InjectRepository(RawWorker)
+    @InjectRepository(RawWorker, 'new')
     private workerRepo: Repository<RawWorker>,
-    @InjectRepository(RawClockIn)
+    @InjectRepository(RawClockIn, 'new')
     private clockInRepo: Repository<RawClockIn>,
-    @InjectRepository(PresenceResult)
+    @InjectRepository(PresenceResult, 'new')
     private resultRepo: Repository<PresenceResult>,
+    @InjectDataSource('new')
     private dataSource: DataSource,
+    private parserService: JornadasParserService,
+    private matchingService: JornadasMatchingService,
+    private exportService: JornadasExportService,
   ) {}
 
   async procesarArchivos(files: UploadedFiles, userId?: number) {
@@ -61,7 +55,9 @@ export class JornadasService {
       await queryRunner.manager.save(session);
 
       // 2. Parsear y Guardar Trabajadores
-      const workersData = this.parseExcel(files.trabajadores[0].buffer);
+      const workersData = this.parserService.parseExcel(
+        files.trabajadores[0].buffer,
+      ) as any[];
       const workersEntities = workersData.map((w) =>
         this.workerRepo.create({
           session,
@@ -77,7 +73,9 @@ export class JornadasService {
       await queryRunner.manager.save(workersEntities);
 
       // 3. Parsear y Guardar Fichajes
-      const clockInsData = this.parseExcel(files.fichajes[0].buffer);
+      const clockInsData = this.parserService.parseExcel(
+        files.fichajes[0].buffer,
+      ) as any[];
       const clockInsEntities = clockInsData.map((c) => {
         // Normalizar tipo de fichaje
         const evento: string = c[EXCEL_COLUMNS.FICHAJE.EVENTO];
@@ -95,8 +93,12 @@ export class JornadasService {
       await queryRunner.manager.save(clockInsEntities);
 
       // 4. Parsear y Guardar Rutas (Titulares y Auxiliares)
-      const titularesData = this.parseExcel(files.titulares[0].buffer);
-      const auxiliaresData = this.parseExcel(files.auxiliares[0].buffer);
+      const titularesData = this.parserService.parseExcel(
+        files.titulares[0].buffer,
+      ) as any[];
+      const auxiliaresData = this.parserService.parseExcel(
+        files.auxiliares[0].buffer,
+      ) as any[];
 
       const mapRoute = (r: any, esTitular: boolean) => {
         // Lógica para extraer ID del trabajador del string "ID - Nombre" si es necesario
@@ -129,45 +131,12 @@ export class JornadasService {
       ];
       const savedRoutes = await queryRunner.manager.save(routesEntities);
 
-      // 5. Lógica de Casación (Matching)
-      // Agrupar fichajes por trabajador para búsqueda rápida
-      const fichajesMap = new Map<number, RawClockIn[]>();
-      clockInsEntities.forEach((f) => {
-        if (!fichajesMap.has(f.workerId)) {
-          fichajesMap.set(f.workerId, []);
-        }
-        fichajesMap.get(f.workerId)?.push(f);
-      });
-
-      const results: PresenceResult[] = [];
-
-      for (const route of savedRoutes) {
-        const fichajesTrabajador = fichajesMap.get(route.workerId) || [];
-
-        const { entrada, salida } = this.buscarCoincidenciaFichaje(
-          route.inicio,
-          route.fin,
-          fichajesTrabajador,
-        );
-
-        const estado = this.calcularEstado(entrada, salida);
-
-        const result = this.resultRepo.create({
-          session,
-          route,
-          fichajeEntrada: entrada ? entrada.timestamp : null,
-          fichajeSalida: salida ? salida.timestamp : null,
-          estado,
-          // La lógica de duplicados y revisar se puede refinar aquí o en un paso posterior
-          esDuplicado: false,
-          revisar: estado === EstadoPresencia.INCOMPLETO,
-        });
-        results.push(result);
-      }
-
-      // 6. Post-procesamiento: Lógica de Negocio (Ajustes y Duplicados)
-      this.ajustarHorarios(results);
-      this.detectarDuplicados(results);
+      // 5. Lógica de Casación (Matching) delegada al servicio
+      const results = this.matchingService.match(
+        session,
+        savedRoutes,
+        clockInsEntities,
+      );
 
       await queryRunner.manager.save(results);
       await queryRunner.commitTransaction();
@@ -178,7 +147,7 @@ export class JornadasService {
         stats: {
           totalRutas: savedRoutes.length,
           procesados: results.length,
-          conflictos: results.filter((r) => r.revisar).length,
+          conflictos: results.filter((r: PresenceResult) => r.revisar).length,
         },
       };
     } catch (error) {
@@ -187,204 +156,6 @@ export class JornadasService {
       throw error;
     } finally {
       await queryRunner.release();
-    }
-  }
-
-  private parseExcel(buffer: Buffer): any[] {
-    const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
-    const sheetName = workbook.SheetNames[0];
-    return XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-  }
-
-  private buscarCoincidenciaFichaje(
-    inicioPlanificado: Date,
-    finPlanificado: Date,
-    fichajes: RawClockIn[],
-  ): { entrada: RawClockIn | null; salida: RawClockIn | null } {
-    const tolerancia = CONFIG_JORNADAS.TOLERANCIA_HORAS || 2;
-
-    // Ventanas de búsqueda
-    const ventanaEntradaInicio = subHours(inicioPlanificado, tolerancia);
-    const ventanaEntradaFin = addHours(inicioPlanificado, tolerancia);
-
-    const ventanaSalidaInicio = subHours(finPlanificado, tolerancia);
-    const ventanaSalidaFin = addHours(finPlanificado, tolerancia);
-
-    // Buscar Entrada: Tipo Entrada dentro de la ventana
-    let entrada = fichajes.find(
-      (f) =>
-        f.tipo === TipoFichaje.ENTRADA &&
-        isWithinInterval(f.timestamp, {
-          start: ventanaEntradaInicio,
-          end: ventanaEntradaFin,
-        }),
-    );
-
-    // Buscar Salida: Tipo Salida dentro de la ventana
-    let salida = fichajes.find(
-      (f) =>
-        f.tipo === TipoFichaje.SALIDA &&
-        isWithinInterval(f.timestamp, {
-          start: ventanaSalidaInicio,
-          end: ventanaSalidaFin,
-        }),
-    );
-
-    // Lógica de fallback (similar al script original):
-    // Si no hay entrada explícita, buscar el fichaje más cercano al inicio que sea anterior
-    if (!entrada) {
-      const posibles = fichajes.filter(
-        (f) =>
-          Math.abs(differenceInMinutes(f.timestamp, inicioPlanificado)) <
-          tolerancia * 60,
-      );
-      // Ordenar por cercanía
-      posibles.sort(
-        (a, b) =>
-          Math.abs(differenceInMinutes(a.timestamp, inicioPlanificado)) -
-          Math.abs(differenceInMinutes(b.timestamp, inicioPlanificado)),
-      );
-      if (posibles.length > 0) entrada = posibles[0];
-    }
-
-    // Si no hay salida explícita, buscar fichaje más cercano al fin
-    if (!salida) {
-      const posibles = fichajes.filter(
-        (f) =>
-          Math.abs(differenceInMinutes(f.timestamp, finPlanificado)) <
-            tolerancia * 60 &&
-          (entrada ? f.timestamp > entrada.timestamp : true), // Que sea posterior a la entrada
-      );
-      posibles.sort(
-        (a, b) =>
-          Math.abs(differenceInMinutes(a.timestamp, finPlanificado)) -
-          Math.abs(differenceInMinutes(b.timestamp, finPlanificado)),
-      );
-      if (posibles.length > 0) salida = posibles[0];
-    }
-
-    return {
-      entrada: entrada || null,
-      salida: salida || null,
-    };
-  }
-
-  private calcularEstado(
-    entrada: RawClockIn | Date | null,
-    salida: RawClockIn | Date | null,
-  ): EstadoPresencia {
-    if (entrada && salida) {
-      return EstadoPresencia.COMPLETO;
-    }
-    if (entrada || salida) {
-      return EstadoPresencia.INCOMPLETO;
-    }
-    return EstadoPresencia.SIN_PRESENCIA;
-  }
-
-  /**
-   * Replica _ajustarHorariosDePresencia:
-   * Agrupa por trabajador+fecha+equipo y ajusta entradas/salidas para dar continuidad.
-   */
-  private ajustarHorarios(results: PresenceResult[]) {
-    // Agrupar
-    const groups = new Map<string, PresenceResult[]>();
-
-    results.forEach((r) => {
-      const key = `${r.route.workerId}-${r.route.fechaGeneral.getTime()}-${r.route.equipo}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)?.push(r);
-    });
-
-    for (const group of groups.values()) {
-      if (group.length <= 1) continue;
-
-      // Ordenar por hora de inicio
-      group.sort((a, b) => a.route.inicio.getTime() - b.route.inicio.getTime());
-
-      const first = group[0];
-      const last = group[group.length - 1];
-
-      const fichajeEntrada = first.fichajeEntrada;
-      const fichajeSalida = last.fichajeSalida;
-
-      // Primera ruta: Mantiene su entrada real, Salida forzada al fin planificado
-      if (fichajeEntrada) {
-        first.fichajeSalida = first.route.fin;
-        first.estado = this.calcularEstado(
-          first.fichajeEntrada,
-          first.fichajeSalida,
-        );
-      }
-
-      // Última ruta: Entrada forzada al inicio planificado, Mantiene salida real
-      if (fichajeSalida) {
-        last.fichajeEntrada = last.route.inicio;
-        last.estado = this.calcularEstado(
-          last.fichajeEntrada,
-          last.fichajeSalida,
-        );
-      }
-
-      // Rutas intermedias: Se asumen completas (Inicio planificado -> Fin planificado)
-      for (let i = 1; i < group.length - 1; i++) {
-        const mid = group[i];
-        mid.fichajeEntrada = mid.route.inicio;
-        mid.fichajeSalida = mid.route.fin;
-        mid.estado = EstadoPresencia.COMPLETO;
-      }
-    }
-  }
-
-  /**
-   * Replica _identificarRutasDuplicadas:
-   * Marca duplicados y decide si hay que revisar según reglas de negocio.
-   */
-  private detectarDuplicados(results: PresenceResult[]) {
-    // Agrupar por trabajador+fecha+turno
-    const groups = new Map<string, PresenceResult[]>();
-
-    results.forEach((r) => {
-      const key = `${r.route.workerId}-${r.route.fechaGeneral.getTime()}-${r.route.turno}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)?.push(r);
-    });
-
-    for (const group of groups.values()) {
-      if (group.length <= 1) continue;
-
-      // Marcar todos como duplicados
-      group.forEach((r) => (r.esDuplicado = true));
-
-      // Lógica para "revisar"
-      const partesAsociadosCero = group.filter(
-        (r) => r.route.partesAsociados === 0,
-      ).length;
-      const equiposUnicos = new Set(group.map((r) => r.route.equipo)).size;
-
-      let revisar = true;
-
-      // Caso 1: Son 2 rutas y al menos una tiene partesAsociados = 0
-      if (group.length === 2 && partesAsociadosCero > 0) {
-        revisar = false;
-      }
-      // Caso 2: Todos son del mismo equipo
-      else if (equiposUnicos === 1) {
-        revisar = false;
-      }
-      // Caso 3: Son 2 equipos distintos y al menos uno tiene partesAsociados = 0
-      else if (equiposUnicos === 2 && partesAsociadosCero > 0) {
-        revisar = false;
-      }
-
-      // Aplicar flag revisar solo si sigue siendo true (y si no estaba ya marcado por incompleto)
-      if (revisar) {
-        group.forEach((r) => (r.revisar = true));
-      } else {
-        // Si la lógica dice que no hay que revisar por duplicidad, mantenemos el estado previo (ej. si era incompleto)
-        // O forzamos false si solo queremos revisar duplicados conflictivos.
-        // Asumimos que 'revisar' es acumulativo, así que no lo ponemos a false si ya era true por otro motivo.
-      }
     }
   }
 
@@ -417,91 +188,7 @@ export class JornadasService {
 
   async generateExcelExport(sessionId: number): Promise<Buffer> {
     const results = await this.getSessionResults(sessionId);
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Resultados');
-
-    // Definición de columnas
-    worksheet.columns = [
-      { header: 'Fecha', key: 'fecha', width: 12 },
-      { header: 'Servicio', key: 'servicio', width: 25 },
-      { header: 'Turno', key: 'turno', width: 10 },
-      { header: 'Equipo', key: 'equipo', width: 10 },
-      { header: 'Trabajador', key: 'trabajador', width: 30 },
-      { header: 'Inicio Plan.', key: 'inicio', width: 12 },
-      { header: 'Fin Plan.', key: 'fin', width: 12 },
-      { header: 'Entrada Real', key: 'entrada', width: 12 },
-      { header: 'Salida Real', key: 'salida', width: 12 },
-      { header: 'Estado', key: 'estado', width: 15 },
-      { header: 'Duplicado', key: 'duplicado', width: 10 },
-      { header: 'Revisar', key: 'revisar', width: 10 },
-    ];
-
-    // Estilo Cabecera
-    const headerRow = worksheet.getRow(1);
-    headerRow.font = { bold: true };
-    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-    results.forEach((res: IResultadoPresencia) => {
-      const row = worksheet.addRow({
-        fecha: res.ruta.fechaGeneral,
-        servicio: res.ruta.servicio,
-        turno: res.ruta.turno,
-        equipo: res.ruta.equipo,
-        trabajador: res.trabajador
-          ? `${res.trabajador.nombre} ${res.trabajador.apellido1}`
-          : 'Sin asignar',
-        inicio: res.ruta.inicio,
-        fin: res.ruta.fin,
-        entrada: res.fichajeEntrada,
-        salida: res.fichajeSalida,
-        estado: res.estado,
-        duplicado: res.esDuplicado ? 'SÍ' : '',
-        revisar: res.revisar ? 'SÍ' : '',
-      });
-
-      // Formato de Fechas y Horas
-      row.getCell('fecha').numFmt = 'dd/mm/yyyy';
-      row.getCell('inicio').numFmt = 'hh:mm';
-      row.getCell('fin').numFmt = 'hh:mm';
-      row.getCell('entrada').numFmt = 'hh:mm';
-      row.getCell('salida').numFmt = 'hh:mm';
-
-      // Colores según estado
-      const estadoCell = row.getCell('estado');
-      let argb = 'FFFFFFFF'; // Blanco por defecto
-      if ((res.estado as unknown) === EstadoPresencia.COMPLETO)
-        argb = 'FFC6EFCE'; // Verde
-      else if ((res.estado as unknown) === EstadoPresencia.INCOMPLETO)
-        argb = 'FFFFEB9C'; // Amarillo
-      else if ((res.estado as unknown) === EstadoPresencia.SIN_PRESENCIA)
-        argb = 'FFFFC7CE'; // Rojo
-
-      estadoCell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb },
-      };
-
-      // Alineación centrada para columnas cortas
-      [
-        'fecha',
-        'turno',
-        'equipo',
-        'inicio',
-        'fin',
-        'entrada',
-        'salida',
-        'duplicado',
-        'revisar',
-      ].forEach((key) => {
-        row.getCell(key).alignment = {
-          vertical: 'middle',
-          horizontal: 'center',
-        };
-      });
-    });
-
-    return (await workbook.xlsx.writeBuffer()) as unknown as Buffer;
+    return this.exportService.generateExcel(results);
   }
 
   async findAllSessions() {

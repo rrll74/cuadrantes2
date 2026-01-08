@@ -10,6 +10,7 @@ import { OldPermisosModule } from '@/oldatabase/permisos/oldpermisos.module';
 import { UsersModule } from '@/newdatabase/users/users.module';
 import { PermisosModule } from '@/newdatabase/permisos/permisos.module';
 import { SeederModule } from '@/newdatabase/seeder.module';
+import { JornadasModule } from '@/newdatabase/jornadas/jornadas.module';
 import { AuthModule } from './auth/auth.module';
 import { StatusModule } from './status/status.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -145,6 +146,7 @@ import { getTestDbOptions } from '../test/e2e-setup';
     SeederModule,
     AuthModule,
     StatusModule,
+    JornadasModule,
   ],
   controllers: [AppController],
   providers: [
