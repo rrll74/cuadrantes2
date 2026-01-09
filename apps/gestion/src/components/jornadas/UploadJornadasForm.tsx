@@ -77,7 +77,9 @@ export const UploadJornadasForm = () => {
         "/jornadas/upload",
         formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
+          // Forzamos a undefined para eliminar cualquier default (como application/json)
+          headers: { "Content-Type": undefined },
+          transformRequest: [(data) => data],
         },
       );
 

@@ -2,9 +2,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import * as fs from 'fs';
 import { ImportSession } from './entities/import-session.entity';
 import { ScheduledRoute } from './entities/scheduled-route.entity';
 import { RawWorker } from './entities/raw-worker.entity';
@@ -49,33 +50,42 @@ export class JornadasService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
+    const fileTrabajadores = files.trabajadores?.[0];
+    const fileFichajes = files.fichajes?.[0];
+    const fileTitulares = files.titulares?.[0];
+    const fileAuxiliares = files.auxiliares?.[0];
+    if (
+      !fileTrabajadores ||
+      !fileFichajes ||
+      !fileTitulares ||
+      !fileAuxiliares
+    ) {
+      throw new BadRequestException('Los archivos son requeridos');
+    }
+
     try {
       // 1. Crear Sesión
       const session = this.sessionRepo.create({ userId });
       await queryRunner.manager.save(session);
 
       // 2. Parsear y Guardar Trabajadores
-      const workersData = this.parserService.parseExcel(
-        files.trabajadores[0].buffer,
-      ) as any[];
+      const workersData = this.parserService.parseExcel(fileTrabajadores.path);
       const workersEntities = workersData.map((w) =>
         this.workerRepo.create({
           session,
-          excelId: w[EXCEL_COLUMNS.TRABAJADOR.ID],
+          excelId: w[EXCEL_COLUMNS.TRABAJADOR.ID] || 0,
           codigo: w['Código'] || '',
           nombre: w[EXCEL_COLUMNS.TRABAJADOR.NOMBRE],
           apellido1: w[EXCEL_COLUMNS.TRABAJADOR.APELLIDO1],
-          apellido2: w[EXCEL_COLUMNS.TRABAJADOR.APELLIDO2],
-          puesto: w[EXCEL_COLUMNS.TRABAJADOR.PUESTO],
-          equal: w[EXCEL_COLUMNS.TRABAJADOR.EQUAL],
+          apellido2: w[EXCEL_COLUMNS.TRABAJADOR.APELLIDO2] || '',
+          puesto: w[EXCEL_COLUMNS.TRABAJADOR.PUESTO] || '',
+          equal: w[EXCEL_COLUMNS.TRABAJADOR.EQUAL] || '0',
         }),
       );
       await queryRunner.manager.save(workersEntities);
 
       // 3. Parsear y Guardar Fichajes
-      const clockInsData = this.parserService.parseExcel(
-        files.fichajes[0].buffer,
-      ) as any[];
+      const clockInsData = this.parserService.parseExcel(fileFichajes.path);
       const clockInsEntities = clockInsData.map((c) => {
         // Normalizar tipo de fichaje
         const evento: string = c[EXCEL_COLUMNS.FICHAJE.EVENTO];
@@ -93,12 +103,8 @@ export class JornadasService {
       await queryRunner.manager.save(clockInsEntities);
 
       // 4. Parsear y Guardar Rutas (Titulares y Auxiliares)
-      const titularesData = this.parserService.parseExcel(
-        files.titulares[0].buffer,
-      ) as any[];
-      const auxiliaresData = this.parserService.parseExcel(
-        files.auxiliares[0].buffer,
-      ) as any[];
+      const titularesData = this.parserService.parseExcel(fileTitulares.path);
+      const auxiliaresData = this.parserService.parseExcel(fileAuxiliares.path);
 
       const mapRoute = (r: any, esTitular: boolean) => {
         // Lógica para extraer ID del trabajador del string "ID - Nombre" si es necesario
@@ -152,10 +158,22 @@ export class JornadasService {
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error('Error procesando archivos', error);
+      // Imprimimos el error completo en consola para depuración inmediata
+      console.error('ERROR DETALLADO PROCESANDO ARCHIVOS:', error);
+      // Registramos en el logger con el stack trace si está disponible
+      this.logger.error(
+        'Error procesando archivos',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw error;
     } finally {
       await queryRunner.release();
+      deleteFiles([
+        fileTrabajadores,
+        fileFichajes,
+        fileTitulares,
+        fileAuxiliares,
+      ]);
     }
   }
 
@@ -199,4 +217,11 @@ export class JornadasService {
       .orderBy('session.createdAt', 'DESC')
       .getMany();
   }
+}
+function deleteFiles(files) {
+  files.forEach((file) => {
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+  });
 }
