@@ -70,41 +70,71 @@ export class JornadasService {
 
       // 2. Parsear y Guardar Trabajadores
       const workersData = this.parserService.parseExcel(fileTrabajadores.path);
-      const workersEntities = workersData.map((w) =>
-        this.workerRepo.create({
-          session,
-          excelId: w[EXCEL_COLUMNS.TRABAJADOR.ID] || 0,
-          codigo: w['Código'] || '',
-          nombre: w[EXCEL_COLUMNS.TRABAJADOR.NOMBRE],
-          apellido1: w[EXCEL_COLUMNS.TRABAJADOR.APELLIDO1],
-          apellido2: w[EXCEL_COLUMNS.TRABAJADOR.APELLIDO2] || '',
-          puesto: w[EXCEL_COLUMNS.TRABAJADOR.PUESTO] || '',
-          equal: w[EXCEL_COLUMNS.TRABAJADOR.EQUAL] || '0',
-        }),
+      // FIXME: Verificar que este es el comportamiento que queremos tener, puesto que el código en realidad está en `codigo`. Ocurre igual en los demás fichero.
+      this.validateHeaders(
+        workersData,
+        EXCEL_COLUMNS.TRABAJADOR.ID,
+        'Trabajadores',
       );
+
+      const workersEntities = workersData
+        .filter((w) => w[EXCEL_COLUMNS.TRABAJADOR.ID] != null) // Filtrar filas vacías
+        .map((w) =>
+          this.workerRepo.create({
+            session,
+            excelId: Number(w[EXCEL_COLUMNS.TRABAJADOR.ID]), // Asegurar conversión a número
+            codigo: w['Código'] || '',
+            nombre: w[EXCEL_COLUMNS.TRABAJADOR.NOMBRE],
+            apellido1: w[EXCEL_COLUMNS.TRABAJADOR.APELLIDO1],
+            apellido2: w[EXCEL_COLUMNS.TRABAJADOR.APELLIDO2] || '',
+            puesto: w[EXCEL_COLUMNS.TRABAJADOR.PUESTO] || '',
+            equal: w[EXCEL_COLUMNS.TRABAJADOR.EQUAL] || '0',
+          }),
+        );
       await queryRunner.manager.save(workersEntities);
 
       // 3. Parsear y Guardar Fichajes
       const clockInsData = this.parserService.parseExcel(fileFichajes.path);
-      const clockInsEntities = clockInsData.map((c) => {
-        // Normalizar tipo de fichaje
-        const evento: string = c[EXCEL_COLUMNS.FICHAJE.EVENTO];
-        const tipo = evento?.toLowerCase().includes('entrada')
-          ? TipoFichaje.ENTRADA
-          : TipoFichaje.SALIDA;
+      this.validateHeaders(
+        clockInsData,
+        EXCEL_COLUMNS.FICHAJE.ID_TRABAJADOR,
+        'Fichajes',
+      );
 
-        return this.clockInRepo.create({
-          session,
-          workerId: c[EXCEL_COLUMNS.FICHAJE.ID_TRABAJADOR],
-          timestamp: new Date(c[EXCEL_COLUMNS.FICHAJE.FECHA_HORA]),
-          tipo,
+      const clockInsEntities = clockInsData
+        .filter((c) => c[EXCEL_COLUMNS.FICHAJE.ID_TRABAJADOR] != null)
+        .map((c) => {
+          // Normalizar tipo de fichaje
+          const evento: string = c[EXCEL_COLUMNS.FICHAJE.EVENTO];
+          const tipo = evento?.toLowerCase().includes('entrada')
+            ? TipoFichaje.ENTRADA
+            : TipoFichaje.SALIDA;
+
+          return this.clockInRepo.create({
+            session,
+            workerId: c[EXCEL_COLUMNS.FICHAJE.ID_TRABAJADOR],
+            timestamp: new Date(c[EXCEL_COLUMNS.FICHAJE.FECHA_HORA]),
+            tipo,
+          });
         });
-      });
       await queryRunner.manager.save(clockInsEntities);
 
       // 4. Parsear y Guardar Rutas (Titulares y Auxiliares)
       const titularesData = this.parserService.parseExcel(fileTitulares.path);
       const auxiliaresData = this.parserService.parseExcel(fileAuxiliares.path);
+
+      this.validateHeaders(
+        titularesData,
+        EXCEL_COLUMNS.RUTA.SERVICIO,
+        'Rutas Titulares',
+      );
+      if (auxiliaresData.length > 0) {
+        this.validateHeaders(
+          auxiliaresData,
+          EXCEL_COLUMNS.RUTA.SERVICIO,
+          'Rutas Auxiliares',
+        );
+      }
 
       const mapRoute = (r: any, esTitular: boolean) => {
         // Lógica para extraer ID del trabajador del string "ID - Nombre" si es necesario
@@ -216,6 +246,25 @@ export class JornadasService {
       .loadRelationCountAndMap('session.totalResultados', 'session.results')
       .orderBy('session.createdAt', 'DESC')
       .getMany();
+  }
+
+  private validateHeaders(
+    data: any[],
+    requiredColumn: string,
+    fileName: string,
+  ) {
+    if (!data || data.length === 0) {
+      throw new BadRequestException(
+        `El archivo ${fileName} está vacío o no se pudo leer.`,
+      );
+    }
+    const firstRow = data[0];
+    if (firstRow[requiredColumn] === undefined) {
+      const detectedHeaders = Object.keys(firstRow).join(', ');
+      throw new BadRequestException(
+        `El archivo ${fileName} no contiene la columna requerida: "${requiredColumn}". Columnas detectadas: [${detectedHeaders}]`,
+      );
+    }
   }
 }
 function deleteFiles(files) {
