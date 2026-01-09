@@ -20,7 +20,7 @@ export const SessionsList = () => {
     queryKey: ["jornadas-sessions", user?.userId],
     queryFn: async () => {
       if (!user?.userId) return [];
-      const res = await api.get<SessionSummary[]>(`/jornadas/${user.userId}`);
+      const res = await api.get<SessionSummary[]>("/jornadas");
       return res.data;
     },
     enabled: !!user?.userId,

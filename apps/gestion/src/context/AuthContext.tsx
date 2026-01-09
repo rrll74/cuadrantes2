@@ -58,7 +58,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = useCallback(
     (newToken: string) => {
       try {
-        const decodedUser: AuthUser = jwtDecode(newToken);
+        const decoded = jwtDecode(newToken) as {
+          userId?: number | undefined;
+          sub?: number;
+          username: string;
+          permisos?: string[];
+        };
+        const decodedUser: AuthUser = {
+          userId: Number(decoded.userId) || Number(decoded.sub), // Usar 'sub' si 'userId' no existe en el token
+          username: decoded.username,
+          permisos: decoded.permisos || [],
+        };
         const expirationTime = getTokenExpiration(newToken);
 
         // Si el token es inválido o ya expiró, cerramos sesión

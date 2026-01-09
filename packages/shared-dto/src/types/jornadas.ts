@@ -13,12 +13,12 @@ export enum EstadoPresencia {
 
 export interface ITrabajador {
   id: number;
-  codigo: string;
+  excelId: number;
   nombre: string;
   apellido1: string;
   apellido2: string;
   puesto: string;
-  equal: string;
+  equal: number;
 }
 
 export interface IFichaje {

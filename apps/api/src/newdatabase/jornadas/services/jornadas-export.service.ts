@@ -4,10 +4,18 @@ import { IResultadoPresencia, EstadoPresencia } from '@cuadrantes/shared-dto';
 
 @Injectable()
 export class JornadasExportService {
+  /**
+   * Genera un libro de Excel con los resultados de la casación de jornadas.
+   * Aplica formato condicional (colores) según el estado de presencia y formatea fechas/horas.
+   *
+   * @param results Lista de resultados de presencia a exportar.
+   * @returns Buffer con el contenido del archivo Excel.
+   */
   async generateExcel(results: IResultadoPresencia[]): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Resultados');
 
+    // Definir columnas y anchos
     worksheet.columns = [
       { header: 'Fecha', key: 'fecha', width: 12 },
       { header: 'Servicio', key: 'servicio', width: 25 },
@@ -23,10 +31,12 @@ export class JornadasExportService {
       { header: 'Revisar', key: 'revisar', width: 10 },
     ];
 
+    // Estilar cabecera (negrita y centrado)
     const headerRow = worksheet.getRow(1);
     headerRow.font = { bold: true };
     headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
+    // Iterar datos y agregar filas
     results.forEach((res: IResultadoPresencia) => {
       const row = worksheet.addRow({
         fecha: res.ruta.fechaGeneral,
@@ -45,12 +55,14 @@ export class JornadasExportService {
         revisar: res.revisar ? 'SÍ' : '',
       });
 
+      // Aplicar formato de fecha y hora
       row.getCell('fecha').numFmt = 'dd/mm/yyyy';
       row.getCell('inicio').numFmt = 'hh:mm';
       row.getCell('fin').numFmt = 'hh:mm';
       row.getCell('entrada').numFmt = 'hh:mm';
       row.getCell('salida').numFmt = 'hh:mm';
 
+      // Aplicar colores según estado (Completo, Incompleto, Sin Presencia)
       const estadoCell = row.getCell('estado');
       let argb = 'FFFFFFFF';
       if ((res.estado as unknown) === EstadoPresencia.COMPLETO)
@@ -66,6 +78,7 @@ export class JornadasExportService {
         fgColor: { argb },
       };
 
+      // Alinear celdas al centro
       [
         'fecha',
         'turno',

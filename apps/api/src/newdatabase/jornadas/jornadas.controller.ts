@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import {
   Controller,
   Post,
@@ -9,14 +9,24 @@ import {
   BadRequestException,
   Res,
   StreamableFile,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JornadasService } from './jornadas.service';
 import { UploadJornadasResponse } from '@cuadrantes/shared-dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @Controller('jornadas')
+@UseGuards(JwtAuthGuard)
 export class JornadasController {
   constructor(private readonly jornadasService: JornadasService) {}
+
+  @Get()
+  async findAll() {
+    console.log('findAll');
+    return this.jornadasService.findAllSessions();
+  }
 
   @Post('upload')
   @UseInterceptors(
@@ -35,6 +45,7 @@ export class JornadasController {
       trabajadores?: Express.Multer.File[];
       fichajes?: Express.Multer.File[];
     },
+    @Req() req: Request & { user: { userId: number } },
   ): Promise<UploadJornadasResponse> {
     // Validación básica de presencia de archivos
     if (
@@ -48,8 +59,7 @@ export class JornadasController {
       );
     }
 
-    // TODO: Obtener el ID del usuario real desde el request (AuthGuard)
-    const userId = 1;
+    const userId = req.user?.userId;
 
     const result = await this.jornadasService.procesarArchivos(
       {
@@ -88,10 +98,5 @@ export class JornadasController {
     });
 
     return new StreamableFile(buffer);
-  }
-
-  @Get()
-  async findAll() {
-    return this.jornadasService.findAllSessions();
   }
 }

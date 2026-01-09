@@ -45,10 +45,19 @@ export class JornadasService {
     private exportService: JornadasExportService,
   ) {}
 
+  /**
+   * Procesa los archivos Excel subidos (Trabajadores, Fichajes, Rutas Titulares y Auxiliares).
+   * Realiza la importación de datos, validación de cabeceras y ejecuta la casación de jornadas.
+   * Todo el proceso se realiza dentro de una transacción de base de datos.
+   *
+   * @param files Objeto con los archivos subidos.
+   * @param userId ID del usuario que realiza la importación.
+   * @returns Un resumen del resultado de la importación.
+   */
   async procesarArchivos(files: UploadedFiles, userId?: number) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
-    await queryRunner.startTransaction();
+    await queryRunner.startTransaction(); // Iniciar transacción para asegurar integridad de datos
 
     const fileTrabajadores = files.trabajadores?.[0];
     const fileFichajes = files.fichajes?.[0];
@@ -70,10 +79,10 @@ export class JornadasService {
 
       // 2. Parsear y Guardar Trabajadores
       const workersData = this.parserService.parseExcel(fileTrabajadores.path);
-      // FIXME: Verificar que este es el comportamiento que queremos tener, puesto que el código en realidad está en `codigo`. Ocurre igual en los demás fichero.
+
       this.validateHeaders(
         workersData,
-        EXCEL_COLUMNS.TRABAJADOR.ID,
+        EXCEL_COLUMNS.TRABAJADOR,
         'Trabajadores',
       );
 
@@ -83,23 +92,18 @@ export class JornadasService {
           this.workerRepo.create({
             session,
             excelId: Number(w[EXCEL_COLUMNS.TRABAJADOR.ID]), // Asegurar conversión a número
-            codigo: w['Código'] || '',
             nombre: w[EXCEL_COLUMNS.TRABAJADOR.NOMBRE],
             apellido1: w[EXCEL_COLUMNS.TRABAJADOR.APELLIDO1],
             apellido2: w[EXCEL_COLUMNS.TRABAJADOR.APELLIDO2] || '',
-            puesto: w[EXCEL_COLUMNS.TRABAJADOR.PUESTO] || '',
-            equal: w[EXCEL_COLUMNS.TRABAJADOR.EQUAL] || '0',
+            puesto: w[EXCEL_COLUMNS.TRABAJADOR.PUESTO],
+            equal: Number(w[EXCEL_COLUMNS.TRABAJADOR.EQUAL]) || 0,
           }),
         );
       await queryRunner.manager.save(workersEntities);
 
       // 3. Parsear y Guardar Fichajes
       const clockInsData = this.parserService.parseExcel(fileFichajes.path);
-      this.validateHeaders(
-        clockInsData,
-        EXCEL_COLUMNS.FICHAJE.ID_TRABAJADOR,
-        'Fichajes',
-      );
+      this.validateHeaders(clockInsData, EXCEL_COLUMNS.FICHAJE, 'Fichajes');
 
       const clockInsEntities = clockInsData
         .filter((c) => c[EXCEL_COLUMNS.FICHAJE.ID_TRABAJADOR] != null)
@@ -113,7 +117,7 @@ export class JornadasService {
           return this.clockInRepo.create({
             session,
             workerId: c[EXCEL_COLUMNS.FICHAJE.ID_TRABAJADOR],
-            timestamp: new Date(c[EXCEL_COLUMNS.FICHAJE.FECHA_HORA]),
+            timestamp: new Date(c[EXCEL_COLUMNS.FICHAJE.FECHA_HORA] as string),
             tipo,
           });
         });
@@ -125,40 +129,82 @@ export class JornadasService {
 
       this.validateHeaders(
         titularesData,
-        EXCEL_COLUMNS.RUTA.SERVICIO,
+        EXCEL_COLUMNS.RUTATITULAR,
         'Rutas Titulares',
       );
       if (auxiliaresData.length > 0) {
         this.validateHeaders(
           auxiliaresData,
-          EXCEL_COLUMNS.RUTA.SERVICIO,
+          EXCEL_COLUMNS.RUTAAUXILIAR,
           'Rutas Auxiliares',
         );
       }
 
+      // Función auxiliar para mapear datos del Excel a la entidad ScheduledRoute
       const mapRoute = (r: any, esTitular: boolean) => {
         // Lógica para extraer ID del trabajador del string "ID - Nombre" si es necesario
         // Asumimos que la columna trae el ID limpio o aplicamos limpieza
-        let workerId = r['Id trabajador'];
+        let workerId =
+          r[
+            esTitular
+              ? EXCEL_COLUMNS.RUTATITULAR.TRABAJADOR
+              : EXCEL_COLUMNS.RUTAAUXILIAR.TRABAJADOR
+          ];
         if (typeof workerId === 'string' && workerId.includes('-')) {
           workerId = parseInt(workerId.split('-')[0].trim(), 10);
         }
 
-        return this.routeRepo.create({
-          session,
-          fechaGeneral: new Date(r[EXCEL_COLUMNS.RUTA.FECHA]),
-          codigoParte: r['Código parte'] || '',
-          servicio: r[EXCEL_COLUMNS.RUTA.SERVICIO],
-          turno: r[EXCEL_COLUMNS.RUTA.TURNO],
-          equipo: r['Equipo'] || '',
-          inicio: new Date(r[EXCEL_COLUMNS.RUTA.INICIO]),
-          fin: new Date(r[EXCEL_COLUMNS.RUTA.FIN]),
-          workerId: Number(workerId),
-          vehiculo: r['Vehículo'] || '',
-          kms: Number(r['Kms'] || 0),
-          esTitular,
-          partesAsociados: Number(r['Partes asociados'] || 0),
-        });
+        // Si es auxiliar, buscar datos de la ruta titular asociada
+        const ruta = esTitular
+          ? null
+          : this._findHojaDeRutaInTitulares(
+              titularesData,
+              r[EXCEL_COLUMNS.RUTAAUXILIAR.HOJARUTA],
+            );
+
+        return this.routeRepo.create(
+          esTitular
+            ? {
+                session,
+                fechaGeneral: new Date(
+                  r[EXCEL_COLUMNS.RUTATITULAR.FECHA] as string,
+                ),
+                codigoParte: r[EXCEL_COLUMNS.RUTATITULAR.HOJARUTA],
+                servicio: r[EXCEL_COLUMNS.RUTATITULAR.SERVICIO],
+                turno: r[EXCEL_COLUMNS.RUTATITULAR.TURNO],
+                equipo: r[EXCEL_COLUMNS.RUTATITULAR.EQUIPO],
+                inicio: new Date(r[EXCEL_COLUMNS.RUTATITULAR.INICIO] as string),
+                fin: new Date(r[EXCEL_COLUMNS.RUTATITULAR.FIN] as string),
+                workerId: Number(workerId),
+                vehiculo: r[EXCEL_COLUMNS.RUTATITULAR.VEHICULO] || '',
+                kms: Number(r[EXCEL_COLUMNS.RUTATITULAR.KMS] || 0),
+                esTitular,
+                partesAsociados: Number(
+                  r[EXCEL_COLUMNS.RUTATITULAR.PARTES_ASOCIADOS] || 0,
+                ),
+              }
+            : {
+                session,
+                fechaGeneral: new Date(
+                  r[EXCEL_COLUMNS.RUTAAUXILIAR.FECHA] as string,
+                ),
+                codigoParte: r[EXCEL_COLUMNS.RUTAAUXILIAR.HOJARUTA],
+                servicio: ruta[EXCEL_COLUMNS.RUTATITULAR.SERVICIO],
+                turno: ruta[EXCEL_COLUMNS.RUTATITULAR.TURNO],
+                equipo: ruta[EXCEL_COLUMNS.RUTATITULAR.EQUIPO],
+                inicio: new Date(
+                  ruta[EXCEL_COLUMNS.RUTATITULAR.INICIO] as string,
+                ),
+                fin: new Date(ruta[EXCEL_COLUMNS.RUTATITULAR.FIN] as string),
+                workerId: Number(workerId),
+                vehiculo: ruta[EXCEL_COLUMNS.RUTATITULAR.VEHICULO] || '',
+                kms: Number(ruta[EXCEL_COLUMNS.RUTATITULAR.KMS] || 0),
+                esTitular,
+                partesAsociados: Number(
+                  ruta[EXCEL_COLUMNS.RUTATITULAR.PARTES_ASOCIADOS] || 0,
+                ),
+              },
+        );
       };
 
       const routesEntities = [
@@ -175,7 +221,7 @@ export class JornadasService {
       );
 
       await queryRunner.manager.save(results);
-      await queryRunner.commitTransaction();
+      await queryRunner.commitTransaction(); // Confirmar transacción si todo va bien
 
       return {
         success: true,
@@ -198,7 +244,7 @@ export class JornadasService {
       throw error;
     } finally {
       await queryRunner.release();
-      deleteFiles([
+      this._deleteFiles([
         fileTrabajadores,
         fileFichajes,
         fileTitulares,
@@ -207,7 +253,13 @@ export class JornadasService {
     }
   }
 
-  // Método auxiliar para obtener resultados para el frontend
+  /**
+   * Obtiene los resultados de la casación para una sesión específica.
+   * Carga las relaciones necesarias y mapea los trabajadores para una respuesta optimizada.
+   *
+   * @param sessionId ID de la sesión de importación.
+   * @returns Lista de resultados formateados para el frontend.
+   */
   async getSessionResults(sessionId: number): Promise<IResultadoPresencia[]> {
     const results = await this.resultRepo.find({
       where: { sessionId },
@@ -234,11 +286,43 @@ export class JornadasService {
     }));
   }
 
+  /**
+   * Busca la ruta titular correspondiente a una hoja de ruta auxiliar.
+   * Utilizado para heredar datos de la ruta titular en las auxiliares.
+   */
+  private _findHojaDeRutaInTitulares(titularesData: any[], hojaDeRuta) {
+    const ruta = titularesData.filter(
+      (r) => r[EXCEL_COLUMNS.RUTATITULAR.HOJARUTA] === hojaDeRuta,
+    );
+    return ruta[0];
+  }
+
+  /**
+   * Elimina los archivos físicos del disco una vez procesados.
+   */
+  private _deleteFiles(files) {
+    files.forEach((file) => {
+      if (fs.existsSync(file.path as string)) {
+        fs.unlinkSync(file.path as string);
+      }
+    });
+  }
+
+  /**
+   * Genera un archivo Excel con los resultados de una sesión.
+   *
+   * @param sessionId ID de la sesión.
+   * @returns Buffer del archivo Excel generado.
+   */
   async generateExcelExport(sessionId: number): Promise<Buffer> {
     const results = await this.getSessionResults(sessionId);
     return this.exportService.generateExcel(results);
   }
 
+  /**
+   * Obtiene el historial de todas las sesiones de importación realizadas.
+   * Incluye contadores de rutas y resultados para mostrar estadísticas en el listado.
+   */
   async findAllSessions() {
     return this.sessionRepo
       .createQueryBuilder('session')
@@ -248,9 +332,17 @@ export class JornadasService {
       .getMany();
   }
 
+  /**
+   * Valida que el archivo Excel contenga las columnas requeridas.
+   * Lanza una excepción si falta alguna columna obligatoria.
+   *
+   * @param data Datos parseados del Excel.
+   * @param requiredColumns Columnas requeridas (string o objeto de constantes).
+   * @param fileName Nombre descriptivo del archivo para el mensaje de error.
+   */
   private validateHeaders(
     data: any[],
-    requiredColumn: string,
+    requiredColumns: string | Record<string, string>,
     fileName: string,
   ) {
     if (!data || data.length === 0) {
@@ -258,19 +350,23 @@ export class JornadasService {
         `El archivo ${fileName} está vacío o no se pudo leer.`,
       );
     }
-    const firstRow = data[0];
-    if (firstRow[requiredColumn] === undefined) {
+    const firstRow: any = data[0];
+    const columnsToCheck =
+      typeof requiredColumns === 'string'
+        ? [requiredColumns]
+        : Object.values(requiredColumns);
+
+    const missingColumns = columnsToCheck.filter(
+      (col) => firstRow[col] === undefined,
+    );
+
+    if (missingColumns.length > 0) {
       const detectedHeaders = Object.keys(firstRow).join(', ');
       throw new BadRequestException(
-        `El archivo ${fileName} no contiene la columna requerida: "${requiredColumn}". Columnas detectadas: [${detectedHeaders}]`,
+        `El archivo ${fileName} no contiene la(s) columna(s) requerida(s): "${missingColumns.join(
+          ', ',
+        )}". Columnas detectadas: [${detectedHeaders}]`,
       );
     }
   }
-}
-function deleteFiles(files) {
-  files.forEach((file) => {
-    if (fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
-    }
-  });
 }

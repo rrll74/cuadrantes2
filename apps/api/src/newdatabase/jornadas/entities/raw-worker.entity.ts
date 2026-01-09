@@ -22,10 +22,7 @@ export class RawWorker {
   session: ImportSession;
 
   @Column()
-  excelId: number; // ID original del excel ("Id trabajador")
-
-  @Column()
-  codigo: string;
+  excelId: number; // ID original del excel ("Código")
 
   @Column()
   nombre: string;
@@ -33,12 +30,12 @@ export class RawWorker {
   @Column()
   apellido1: string;
 
-  @Column()
+  @Column({ default: '' })
   apellido2: string;
 
-  @Column()
+  @Column({ default: '' })
   puesto: string;
 
-  @Column()
-  equal: string;
+  @Column({ default: 0 })
+  equal: number;
 }
