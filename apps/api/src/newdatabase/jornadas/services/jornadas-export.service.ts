@@ -22,6 +22,8 @@ export class JornadasExportService {
       { header: 'Turno', key: 'turno', width: 10 },
       { header: 'Equipo', key: 'equipo', width: 10 },
       { header: 'Trabajador', key: 'trabajador', width: 30 },
+      { header: 'Puesto', key: 'puesto', width: 15 },
+      { header: 'Equal', key: 'equal', width: 10 },
       { header: 'Inicio Plan.', key: 'inicio', width: 12 },
       { header: 'Fin Plan.', key: 'fin', width: 12 },
       { header: 'Entrada Real', key: 'entrada', width: 12 },
@@ -29,6 +31,7 @@ export class JornadasExportService {
       { header: 'Estado', key: 'estado', width: 15 },
       { header: 'Duplicado', key: 'duplicado', width: 10 },
       { header: 'Revisar', key: 'revisar', width: 10 },
+      { header: 'Parte', key: 'parte', width: 10 },
     ];
 
     // Estilar cabecera (negrita y centrado)
@@ -46,6 +49,8 @@ export class JornadasExportService {
         trabajador: res.trabajador
           ? `${res.trabajador.nombre} ${res.trabajador.apellido1}`
           : 'Sin asignar',
+        puesto: res.trabajador ? `${res.trabajador.puesto}` : 'Sin puesto',
+        equal: res.trabajador ? `${res.trabajador.equal}` : '',
         inicio: res.ruta.inicio,
         fin: res.ruta.fin,
         entrada: res.fichajeEntrada,
@@ -53,6 +58,7 @@ export class JornadasExportService {
         estado: res.estado,
         duplicado: res.esDuplicado ? 'SÍ' : '',
         revisar: res.revisar ? 'SÍ' : '',
+        parte: res.ruta.partesAsociados,
       });
 
       // Aplicar formato de fecha y hora

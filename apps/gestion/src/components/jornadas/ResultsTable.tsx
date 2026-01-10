@@ -22,6 +22,9 @@ const columns = [
   columnHelper.accessor("ruta.servicio", {
     header: "Servicio",
   }),
+  columnHelper.accessor("ruta.equipo", {
+    header: "Equipo",
+  }),
   // Modificamos el accessor para que devuelva un string buscable
   columnHelper.accessor(
     (row) => {
