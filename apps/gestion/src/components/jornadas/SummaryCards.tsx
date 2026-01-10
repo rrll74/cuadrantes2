@@ -45,6 +45,7 @@ export const SummaryCards = ({ data }: { data: IResultadoPresencia[] }) => {
   );
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const Card = ({ label, value, color, bold }: any) => (
   <div
     className={clsx(
