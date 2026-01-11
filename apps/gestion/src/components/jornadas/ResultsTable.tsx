@@ -11,6 +11,7 @@ import api from "@/lib/api";
 import { clsx } from "clsx";
 import { IResultadoPresencia, EstadoPresencia } from "@cuadrantes/shared-dto";
 import { SummaryCards } from "./SummaryCards";
+import { Pagination } from "@/components/ui/Pagination";
 
 const columnHelper = createColumnHelper<IResultadoPresencia>();
 
@@ -108,16 +109,39 @@ const columns = [
 export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
   const [data, setData] = useState<IResultadoPresencia[]>([]);
   const [loading, setLoading] = useState(true);
+  // Estado de paginación
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [stats, setStats] = useState<any>(null);
+  const limit = 10; // Registros por página
+
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [debouncedFilter, setDebouncedFilter] = useState(globalFilter);
+
+  // Debounce para la búsqueda
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFilter(globalFilter);
+      setPage(1); // Resetear a la primera página al buscar
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [globalFilter]);
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        const response = await api.get<IResultadoPresencia[]>(
-          `/jornadas/${sessionId}`,
+        // Llamada al endpoint paginado
+        const response = await api.get(
+          `/jornadas/${sessionId}?page=${page}&limit=${limit}&search=${debouncedFilter}`,
         );
-        setData(response.data);
+
+        // La respuesta ahora tiene la estructura { data, meta, stats }
+        setData(response.data.data);
+        setTotalPages(response.data.meta.totalPages);
+        setStats(response.data.stats);
       } catch (error) {
         console.error("Error fetching results:", error);
       } finally {
@@ -128,7 +152,7 @@ export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
     if (sessionId) {
       fetchData();
     }
-  }, [sessionId]);
+  }, [sessionId, page, debouncedFilter]); // Recargar cuando cambie la página o el filtro
 
   const handleExport = async () => {
     try {
@@ -154,13 +178,14 @@ export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
       globalFilter,
       columnFilters,
     },
+    manualFiltering: true, // Importante: Desactivar filtrado cliente para usar backend
     onGlobalFilterChange: setGlobalFilter,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
 
-  if (loading)
+  if (loading && data.length === 0)
     return (
       <div className="p-4 text-center text-gray-500">
         Cargando resultados...
@@ -170,7 +195,7 @@ export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
   return (
     <div className="space-y-4">
       {/* Tarjetas de Resumen */}
-      {!loading && data.length > 0 && <SummaryCards data={data} />}
+      {stats && <SummaryCards stats={stats} />}
 
       {/* Controles de Filtro */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between bg-white p-4 rounded-lg shadow-sm border">
@@ -217,7 +242,12 @@ export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
         </div>
       </div>
 
-      <div className="overflow-x-auto border rounded-lg shadow-sm">
+      <div className="overflow-x-auto border rounded-lg shadow-sm relative">
+        {loading && (
+          <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        )}
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -262,6 +292,13 @@ export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        isLoading={loading}
+      />
     </div>
   );
 };

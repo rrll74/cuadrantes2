@@ -1,18 +1,15 @@
 import React from "react";
-import { IResultadoPresencia, EstadoPresencia } from "@cuadrantes/shared-dto";
 import { clsx } from "clsx";
 
-export const SummaryCards = ({ data }: { data: IResultadoPresencia[] }) => {
-  const stats = {
-    total: data.length,
-    completo: data.filter((r) => r.estado === EstadoPresencia.COMPLETO).length,
-    incompleto: data.filter((r) => r.estado === EstadoPresencia.INCOMPLETO)
-      .length,
-    sinPresencia: data.filter((r) => r.estado === EstadoPresencia.SIN_PRESENCIA)
-      .length,
-    revisar: data.filter((r) => r.revisar).length,
-  };
+interface Stats {
+  total: number;
+  completo: number;
+  incompleto: number;
+  sinPresencia: number;
+  revisar: number;
+}
 
+export const SummaryCards = ({ stats }: { stats: Stats }) => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
       <Card

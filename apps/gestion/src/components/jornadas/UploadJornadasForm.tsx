@@ -8,6 +8,7 @@ import { twMerge } from "tailwind-merge";
 // ej: @cuadrantes/shared-dto
 import type { UploadJornadasResponse } from "@cuadrantes/shared-dto";
 import api from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 type FileKey = "titulares" | "auxiliares" | "trabajadores" | "fichajes";
 
@@ -26,6 +27,7 @@ const FILE_LABELS: Record<FileKey, string> = {
 };
 
 export const UploadJornadasForm = () => {
+  const queryClient = useQueryClient();
   const [files, setFiles] = useState<FileState>({
     titulares: null,
     auxiliares: null,
@@ -88,6 +90,7 @@ export const UploadJornadasForm = () => {
           type: "success",
           text: `Proceso completado. Sesión ID: ${data.sessionId}. Procesados: ${data.stats.procesados}`,
         });
+        queryClient.invalidateQueries({ queryKey: ["jornadas-sessions"] });
         // Aquí podrías redirigir a la página de resultados o actualizar una tabla
       } else {
         setMessage({

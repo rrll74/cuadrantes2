@@ -3,6 +3,7 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Param,
   UseInterceptors,
   UploadedFiles,
@@ -11,9 +12,10 @@ import {
   StreamableFile,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { JornadasService } from './jornadas.service';
+import { JornadasService, PaginatedSessionResults } from './jornadas.service';
 import { UploadJornadasResponse } from '@cuadrantes/shared-dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
@@ -79,8 +81,23 @@ export class JornadasController {
   }
 
   @Get(':sessionId')
-  async getSessionResults(@Param('sessionId') sessionId: string) {
-    return this.jornadasService.getSessionResults(+sessionId);
+  async getSessionResults(
+    @Param('sessionId') sessionId: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('search') search = '',
+  ): Promise<PaginatedSessionResults> {
+    return this.jornadasService.getSessionResults(
+      +sessionId,
+      +page,
+      +limit,
+      search,
+    );
+  }
+
+  @Delete(':id')
+  async deleteSession(@Param('id') id: string) {
+    return this.jornadasService.deleteSession(+id);
   }
 
   @Get(':sessionId/export')

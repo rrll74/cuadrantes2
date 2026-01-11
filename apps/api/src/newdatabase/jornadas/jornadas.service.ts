@@ -4,14 +4,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In, Like } from 'typeorm';
 import * as fs from 'fs';
 import { ImportSession } from './entities/import-session.entity';
 import { ScheduledRoute } from './entities/scheduled-route.entity';
 import { RawWorker } from './entities/raw-worker.entity';
 import { RawClockIn, TipoFichaje } from './entities/raw-clock-in.entity';
-import { PresenceResult } from './entities/presence-result.entity';
-import { EXCEL_COLUMNS, IResultadoPresencia } from '@cuadrantes/shared-dto';
+import {
+  PresenceResult,
+  EstadoPresencia,
+} from './entities/presence-result.entity';
+import { EXCEL_COLUMNS } from '@cuadrantes/shared-dto';
 import { JornadasParserService } from './services/jornadas-parser.service';
 import { JornadasMatchingService } from './services/jornadas-matcher.service';
 import { JornadasExportService } from './services/jornadas-export.service';
@@ -21,6 +24,33 @@ interface UploadedFiles {
   auxiliares: Express.Multer.File[];
   trabajadores: Express.Multer.File[];
   fichajes: Express.Multer.File[];
+}
+
+export interface SessionResultItem {
+  ruta: ScheduledRoute;
+  trabajador: RawWorker | null;
+  fichajeEntrada: Date | null;
+  fichajeSalida: Date | null;
+  estado: EstadoPresencia;
+  esDuplicado: boolean;
+  revisar: boolean;
+}
+
+export interface PaginatedSessionResults {
+  data: SessionResultItem[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  stats: {
+    total: number;
+    completo: number;
+    incompleto: number;
+    sinPresencia: number;
+    revisar: number;
+  };
 }
 
 @Injectable()
@@ -260,9 +290,51 @@ export class JornadasService {
    * @param sessionId ID de la sesión de importación.
    * @returns Lista de resultados formateados para el frontend.
    */
-  async getSessionResults(sessionId: number): Promise<IResultadoPresencia[]> {
-    const results = await this.resultRepo.find({
-      where: { sessionId },
+  async getSessionResults(
+    sessionId: number,
+    page = 1,
+    limit = 10,
+    search?: string,
+  ): Promise<PaginatedSessionResults> {
+    const whereClause: any = { sessionId };
+
+    if (search) {
+      const workers = await this.workerRepo.find({
+        where: [
+          { sessionId, nombre: Like(`%${search}%`) },
+          { sessionId, apellido1: Like(`%${search}%`) },
+          { sessionId, apellido2: Like(`%${search}%`) },
+        ],
+        select: ['excelId'],
+      });
+
+      const workerIds = workers.map((w) => w.excelId);
+
+      if (workerIds.length === 0) {
+        return {
+          data: [],
+          meta: {
+            total: 0,
+            page,
+            limit,
+            totalPages: 0,
+          },
+          // Devolvemos stats vacíos o globales (aquí optamos por devolver estructura vacía para evitar errores en frontend)
+          stats: {
+            total: 0,
+            completo: 0,
+            incompleto: 0,
+            sinPresencia: 0,
+            revisar: 0,
+          },
+        };
+      }
+
+      whereClause.route = { workerId: In(workerIds) };
+    }
+
+    const findOptions: any = {
+      where: whereClause,
       relations: ['route'],
       order: {
         route: {
@@ -270,12 +342,27 @@ export class JornadasService {
           inicio: 'ASC',
         },
       },
-    });
-    // Cargar trabajadores en memoria para mapear rápidamente
-    const workers = await this.workerRepo.find({ where: { sessionId } });
-    const workersMap = new Map(workers.map((w) => [w.excelId, w]));
+    };
 
-    return results.map((r) => ({
+    if (limit > 0) {
+      findOptions.skip = (page - 1) * limit;
+      findOptions.take = limit;
+    }
+
+    const [results, total] = await this.resultRepo.findAndCount(findOptions);
+
+    // Cargar trabajadores solo para los resultados de la página actual
+    const workerIds = [...new Set(results.map((r) => r.route.workerId))];
+    let workersMap = new Map();
+
+    if (workerIds.length > 0) {
+      const workers = await this.workerRepo.find({
+        where: { sessionId, excelId: In(workerIds) },
+      });
+      workersMap = new Map(workers.map((w) => [w.excelId, w]));
+    }
+
+    const data = results.map((r) => ({
       ruta: { ...r.route },
       trabajador: workersMap.get(r.route.workerId) || null,
       fichajeEntrada: r.fichajeEntrada,
@@ -284,6 +371,46 @@ export class JornadasService {
       esDuplicado: r.esDuplicado,
       revisar: r.revisar,
     }));
+
+    // Calcular estadísticas globales de la sesión
+    const statsRaw = await this.resultRepo
+      .createQueryBuilder('result')
+      .select('result.estado', 'estado')
+      .addSelect('COUNT(result.id)', 'count')
+      .where('result.sessionId = :sessionId', { sessionId })
+      .groupBy('result.estado')
+      .getRawMany();
+
+    const revisarCount = await this.resultRepo.count({
+      where: { sessionId, revisar: true },
+    });
+
+    const stats = {
+      total,
+      completo: Number(
+        statsRaw.find((s) => s.estado === EstadoPresencia.COMPLETO)?.count || 0,
+      ),
+      incompleto: Number(
+        statsRaw.find((s) => s.estado === EstadoPresencia.INCOMPLETO)?.count ||
+          0,
+      ),
+      sinPresencia: Number(
+        statsRaw.find((s) => s.estado === EstadoPresencia.SIN_PRESENCIA)
+          ?.count || 0,
+      ),
+      revisar: revisarCount,
+    };
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: limit > 0 ? Math.ceil(total / limit) : 1,
+      },
+      stats,
+    };
   }
 
   /**
@@ -315,8 +442,10 @@ export class JornadasService {
    * @returns Buffer del archivo Excel generado.
    */
   async generateExcelExport(sessionId: number): Promise<Buffer> {
-    const results = await this.getSessionResults(sessionId);
-    return this.exportService.generateExcel(results);
+    // Obtener todos los resultados (limit=0)
+    const results = await this.getSessionResults(sessionId, 1, 0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.exportService.generateExcel(results.data as any);
   }
 
   /**
@@ -330,6 +459,19 @@ export class JornadasService {
       .loadRelationCountAndMap('session.totalResultados', 'session.results')
       .orderBy('session.createdAt', 'DESC')
       .getMany();
+  }
+
+  /**
+   * Elimina una sesión y todos sus datos asociados.
+   * Las entidades dependientes (rutas, trabajadores, fichajes, resultados)
+   * se eliminan automáticamente gracias a la configuración de borrado en cascada.
+   */
+  async deleteSession(id: number) {
+    const result = await this.sessionRepo.delete(id);
+    if (result.affected === 0) {
+      throw new BadRequestException(`La sesión con ID ${id} no existe.`);
+    }
+    return { success: true };
   }
 
   /**
