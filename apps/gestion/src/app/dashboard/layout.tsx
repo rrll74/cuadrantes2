@@ -34,12 +34,15 @@ export default function DashboardLayout({
 }) {
   const { isAuthenticated, isLoading, logout } = useAuth();
   const router = useRouter();
-  const canReadUsers = usePermissions("users:read");
-  const canCreateUsers = usePermissions("users:create");
-  const canUpdateUsers = usePermissions("users:update");
-  const canDeleteUsers = usePermissions("users:delete");
+  const isAdmin = usePermissions("admin");
+  const canReadUsers = usePermissions("users:read") || isAdmin;
+  const canCreateUsers = usePermissions("users:create") || isAdmin;
+  const canUpdateUsers = usePermissions("users:update") || isAdmin;
+  const canDeleteUsers = usePermissions("users:delete") || isAdmin;
   const canCRUD =
     canReadUsers || canCreateUsers || canUpdateUsers || canDeleteUsers;
+  const canReadJornadas = usePermissions("jornadas:read");
+  const showJornadas = canReadJornadas || isAdmin;
 
   useEffect(() => {
     // Si no está cargando y el usuario no está autenticado, lo echamos al login.
@@ -122,7 +125,7 @@ export default function DashboardLayout({
                     </ListItemButton>
                   </ListItem>
                 )}
-                {
+                {showJornadas && (
                   <ListItem disablePadding>
                     <ListItemButton component={Link} href="/dashboard/jornadas">
                       <ListItemIcon>
@@ -131,7 +134,7 @@ export default function DashboardLayout({
                       <ListItemText primary="Comprobación de jornadas" />
                     </ListItemButton>
                   </ListItem>
-                }
+                )}
               </List>
             </Box>
           </Drawer>

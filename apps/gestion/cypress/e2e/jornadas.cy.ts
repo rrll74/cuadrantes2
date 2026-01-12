@@ -20,6 +20,7 @@ describe("Gestión de Jornadas", () => {
     // 2. Preparar intercept para la subida de archivos
     // Simulamos una respuesta exitosa del backend
     cy.intercept("POST", "**/jornadas/upload", {
+      delay: 1000, // Añadimos retardo para verificar la barra de progreso
       statusCode: 201,
       body: {
         success: true,
@@ -63,8 +64,16 @@ describe("Gestión de Jornadas", () => {
     // Buscamos un botón de tipo submit genérico
     cy.get('button[type="submit"]').click();
 
+    // --- VERIFICACIÓN: BARRA DE PROGRESO ---
+    // Verificamos que aparece el indicador de carga y el botón cambia de estado
+    cy.contains("Subiendo y procesando...").should("be.visible");
+    cy.get('button[type="submit"]').should("contain", "Procesando...");
+
     // Esperamos a que la petición de subida se complete
     cy.wait("@uploadFiles");
+
+    // Verificamos que el indicador desaparece tras la carga
+    cy.contains("Subiendo y procesando...").should("not.exist");
 
     // --- VERIFICACIÓN: LISTA ACTUALIZADA ---
     // Esperamos a que la lista se actualice con los nuevos datos

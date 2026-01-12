@@ -18,28 +18,51 @@ export class SeederService implements OnModuleInit {
   }
 
   async seedPermissions() {
-    const existingPermisos = await this.permisoRepository.count();
-    if (existingPermisos > 0) return;
-
     const permisosData = [
       { tipo: 'admin', descripcion: 'Permisos de administrador' },
       { tipo: 'users:create', descripcion: 'Crear usuarios' },
       { tipo: 'users:read', descripcion: 'Leer usuarios' },
       { tipo: 'users:update', descripcion: 'Actualizar usuarios' },
       { tipo: 'users:delete', descripcion: 'Eliminar usuarios' },
+      { tipo: 'jornadas:read', descripcion: 'Jornadas: Leer' },
+      { tipo: 'jornadas:write', descripcion: 'Jornadas: Escribir' },
     ];
-    const permisos = this.permisoRepository.create(permisosData);
-    await this.permisoRepository.save(permisos);
-    console.log('Permisos creados!');
+
+    for (const permisoData of permisosData) {
+      const exists = await this.permisoRepository.findOne({
+        where: { tipo: permisoData.tipo },
+      });
+      if (!exists) {
+        await this.permisoRepository.save(
+          this.permisoRepository.create(permisoData),
+        );
+        console.log(`Permiso creado: ${permisoData.tipo}`);
+      }
+    }
   }
 
   async seedAdminUser() {
     const existingAdmin = await this.userRepository.findOne({
       where: { username: 'admin' },
+      relations: ['permisos'],
     });
-    if (existingAdmin) return;
 
     const allPermisos = await this.permisoRepository.find();
+
+    if (existingAdmin) {
+      const currentPermisosTypes = existingAdmin.permisos.map((p) => p.tipo);
+      const newPermisos = allPermisos.filter(
+        (p) => !currentPermisosTypes.includes(p.tipo),
+      );
+
+      if (newPermisos.length > 0) {
+        existingAdmin.permisos = [...existingAdmin.permisos, ...newPermisos];
+        await this.userRepository.save(existingAdmin);
+        console.log('Usuario Admin actualizado con nuevos permisos!');
+      }
+      return;
+    }
+
     console.log(
       'Permisos para el admin:',
       allPermisos.map((p) => p.tipo).join(', '),

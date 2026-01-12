@@ -9,15 +9,8 @@ import { twMerge } from "tailwind-merge";
 import type { UploadJornadasResponse } from "@cuadrantes/shared-dto";
 import api from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
-
-type FileKey = "titulares" | "auxiliares" | "trabajadores" | "fichajes";
-
-interface FileState {
-  titulares: File | null;
-  auxiliares: File | null;
-  trabajadores: File | null;
-  fichajes: File | null;
-}
+import { useFileUpload, FileKey } from "@/hooks/useFileUpload";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 
 const FILE_LABELS: Record<FileKey, string> = {
   titulares: "Rutas Titulares (Excel)",
@@ -28,50 +21,47 @@ const FILE_LABELS: Record<FileKey, string> = {
 
 export const UploadJornadasForm = () => {
   const queryClient = useQueryClient();
-  const [files, setFiles] = useState<FileState>({
-    titulares: null,
-    auxiliares: null,
-    trabajadores: null,
-    fichajes: null,
-  });
+  const { files, handleFileChange, validateFiles, resetFiles } =
+    useFileUpload();
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
 
-  const onDrop = useCallback((acceptedFiles: File[], key: FileKey) => {
-    if (acceptedFiles?.length > 0) {
-      setFiles((prev) => ({ ...prev, [key]: acceptedFiles[0] }));
-      setMessage(null); // Limpiar mensajes previos al cambiar archivos
-    }
-  }, []);
+  const onDrop = useCallback(
+    (acceptedFiles: File[], key: FileKey) => {
+      if (acceptedFiles?.length > 0) {
+        handleFileChange(key, acceptedFiles[0]);
+        setMessage(null); // Limpiar mensajes previos al cambiar archivos
+      }
+    },
+    [handleFileChange],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validación básica
-    if (
-      !files.titulares ||
-      !files.auxiliares ||
-      !files.trabajadores ||
-      !files.fichajes
-    ) {
+    const validationError = validateFiles();
+    if (validationError) {
       setMessage({
         type: "error",
-        text: "Por favor, selecciona los 4 archivos necesarios.",
+        text: validationError,
       });
       return;
     }
 
     setLoading(true);
+    setUploadProgress(0);
     setMessage(null);
 
     const formData = new FormData();
-    formData.append("titulares", files.titulares);
-    formData.append("auxiliares", files.auxiliares);
-    formData.append("trabajadores", files.trabajadores);
-    formData.append("fichajes", files.fichajes);
+    if (files.titulares) formData.append("titulares", files.titulares);
+    if (files.auxiliares) formData.append("auxiliares", files.auxiliares);
+    if (files.trabajadores) formData.append("trabajadores", files.trabajadores);
+    if (files.fichajes) formData.append("fichajes", files.fichajes);
 
     try {
       // Ajusta la URL a tu endpoint de backend
@@ -82,6 +72,11 @@ export const UploadJornadasForm = () => {
           // Forzamos a undefined para eliminar cualquier default (como application/json)
           headers: { "Content-Type": undefined },
           transformRequest: [(data) => data],
+          onUploadProgress: (progressEvent) => {
+            const total = progressEvent.total || progressEvent.loaded;
+            const percent = Math.round((progressEvent.loaded * 100) / total);
+            setUploadProgress(percent);
+          },
         },
       );
 
@@ -90,6 +85,7 @@ export const UploadJornadasForm = () => {
           type: "success",
           text: `Proceso completado. Sesión ID: ${data.sessionId}. Procesados: ${data.stats.procesados}`,
         });
+        resetFiles();
         queryClient.invalidateQueries({ queryKey: ["jornadas-sessions"] });
         // Aquí podrías redirigir a la página de resultados o actualizar una tabla
       } else {
@@ -128,6 +124,16 @@ export const UploadJornadasForm = () => {
             />
           ))}
         </div>
+
+        {loading && (
+          <div className="mb-6">
+            <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <span>Subiendo y procesando...</span>
+              <span>{uploadProgress}%</span>
+            </div>
+            <ProgressBar progress={uploadProgress} />
+          </div>
+        )}
 
         {message && (
           <div

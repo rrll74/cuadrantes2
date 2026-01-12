@@ -9,6 +9,8 @@ const PERMISSIONS = {
   USERS_CREATE: { tipo: 'users:create', descripcion: 'Usuarios: Crear' },
   USERS_UPDATE: { tipo: 'users:update', descripcion: 'Usuarios: Actualizar' },
   USERS_DELETE: { tipo: 'users:delete', descripcion: 'Usuarios: Eliminar' },
+  JORNADAS_READ: { tipo: 'jornadas:read', descripcion: 'Jornadas: Leer' },
+  JORNADAS_WRITE: { tipo: 'jornadas:write', descripcion: 'Jornadas: Escribir' },
 } as const;
 
 // 2. Centralizar la configuración de la base de datos de prueba
@@ -42,6 +44,10 @@ export const seedDatabase = async (dataSource: DataSource) => {
   const pUsersCreate = await permisoRepository.save(PERMISSIONS.USERS_CREATE);
   const pUsersUpdate = await permisoRepository.save(PERMISSIONS.USERS_UPDATE);
   const pUsersDelete = await permisoRepository.save(PERMISSIONS.USERS_DELETE);
+  const pJornadasRead = await permisoRepository.save(PERMISSIONS.JORNADAS_READ);
+  const pJornadasWrite = await permisoRepository.save(
+    PERMISSIONS.JORNADAS_WRITE,
+  );
 
   // 3. Obtener contraseñas en texto plano. La entidad se encargará de hashearlas.
   const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'adminpass';
@@ -52,7 +58,15 @@ export const seedDatabase = async (dataSource: DataSource) => {
     username: 'testadmin',
     email: 'admin@test.com',
     password: adminPassword,
-    permisos: [pAdmin, pUsersRead, pUsersCreate, pUsersUpdate, pUsersDelete],
+    permisos: [
+      pAdmin,
+      pUsersRead,
+      pUsersCreate,
+      pUsersUpdate,
+      pUsersDelete,
+      pJornadasRead,
+      pJornadasWrite,
+    ],
   });
   await userRepository.save(adminUser);
 
@@ -60,7 +74,7 @@ export const seedDatabase = async (dataSource: DataSource) => {
     username: 'testuser',
     email: 'user@test.com',
     password: userPassword,
-    permisos: [pUsersRead], // Solo tiene permiso de lectura
+    permisos: [pUsersRead, pJornadasRead], // Lectura de usuarios y jornadas
   });
   await userRepository.save(regularUser);
 

@@ -1,8 +1,28 @@
+"use client";
+
 import React from "react";
 import { UploadJornadasForm } from "@/components/jornadas/UploadJornadasForm";
 import { SessionsList } from "@/components/jornadas/SessionsList";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function JornadasPage() {
+  const canRead = usePermissions("jornadas:read");
+  const canWrite = usePermissions("jornadas:write");
+  const isAdmin = usePermissions("admin");
+
+  const hasReadAccess = canRead || isAdmin;
+  const hasWriteAccess = canWrite || isAdmin;
+
+  if (!hasReadAccess) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-10">
+        <div className="container mx-auto px-4 text-red-600">
+          No tienes permisos para acceder a esta sección.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 py-10">
       <div className="container mx-auto px-4">
@@ -16,11 +36,13 @@ export default function JornadasPage() {
           </p>
         </div>
 
-        <UploadJornadasForm />
+        {hasWriteAccess && <UploadJornadasForm />}
 
-        <div className="mt-12">
-          <SessionsList />
-        </div>
+        {hasReadAccess && (
+          <div className="mt-12">
+            <SessionsList />
+          </div>
+        )}
       </div>
     </div>
   );

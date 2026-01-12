@@ -18,19 +18,23 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JornadasService, PaginatedSessionResults } from './jornadas.service';
 import { UploadJornadasResponse } from '@cuadrantes/shared-dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
+import { HasPermissions } from '../../auth/decorators/permissions.decorator';
 
 @Controller('jornadas')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class JornadasController {
   constructor(private readonly jornadasService: JornadasService) {}
 
   @Get()
+  @HasPermissions('jornadas:read')
   async findAll() {
     console.log('findAll');
     return this.jornadasService.findAllSessions();
   }
 
   @Post('upload')
+  @HasPermissions('jornadas:write')
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'titulares', maxCount: 1 },
@@ -61,6 +65,17 @@ export class JornadasController {
       );
     }
 
+    if (
+      files.titulares?.[0]?.size === 0 ||
+      files.auxiliares?.[0]?.size === 0 ||
+      files.trabajadores?.[0]?.size === 0 ||
+      files.fichajes?.[0]?.size === 0
+    ) {
+      throw new BadRequestException(
+        'Uno o más archivos subidos están vacíos (0 bytes).',
+      );
+    }
+
     const userId = req.user?.userId;
 
     const result = await this.jornadasService.procesarArchivos(
@@ -81,6 +96,7 @@ export class JornadasController {
   }
 
   @Get(':sessionId')
+  @HasPermissions('jornadas:read')
   async getSessionResults(
     @Param('sessionId') sessionId: string,
     @Query('page') page = 1,
@@ -96,11 +112,13 @@ export class JornadasController {
   }
 
   @Delete(':id')
+  @HasPermissions('jornadas:write')
   async deleteSession(@Param('id') id: string) {
     return this.jornadasService.deleteSession(+id);
   }
 
   @Get(':sessionId/export')
+  @HasPermissions('jornadas:read')
   async exportSession(
     @Param('sessionId') sessionId: string,
     @Res({ passthrough: true }) res: Response,

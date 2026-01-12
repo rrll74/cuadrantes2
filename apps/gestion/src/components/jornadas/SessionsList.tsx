@@ -10,6 +10,7 @@ import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { Icon } from "@/components/ui/Icon";
 import { ICONS } from "@/components/ui/icons";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface SessionSummary {
   id: number;
@@ -26,6 +27,9 @@ export const SessionsList = () => {
     type: ToastType;
   } | null>(null);
   const [sessionToDelete, setSessionToDelete] = useState<number | null>(null);
+  const canWrite = usePermissions("jornadas:write");
+  const isAdmin = usePermissions("admin");
+  const canDelete = canWrite || isAdmin;
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["jornadas-sessions", user?.userId],
@@ -143,15 +147,17 @@ export const SessionsList = () => {
                         <Icon path={ICONS.EYE} />
                       </Link>
                     </Tooltip>
-                    <Tooltip content="Eliminar sesión">
-                      <button
-                        onClick={() => setSessionToDelete(session.id)}
-                        className="text-red-600 hover:text-red-900 transition-colors"
-                        aria-label="Eliminar sesión"
-                      >
-                        <Icon path={ICONS.TRASH} />
-                      </button>
-                    </Tooltip>
+                    {canDelete && (
+                      <Tooltip content="Eliminar sesión">
+                        <button
+                          onClick={() => setSessionToDelete(session.id)}
+                          className="text-red-600 hover:text-red-900 transition-colors"
+                          aria-label="Eliminar sesión"
+                        >
+                          <Icon path={ICONS.TRASH} />
+                        </button>
+                      </Tooltip>
+                    )}
                   </div>
                 </td>
               </tr>
