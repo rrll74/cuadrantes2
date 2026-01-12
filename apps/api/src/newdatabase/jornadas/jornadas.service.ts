@@ -14,6 +14,7 @@ import {
   PresenceResult,
   EstadoPresencia,
 } from './entities/presence-result.entity';
+import { UnmatchedResult } from './entities/unmatched-result.entity';
 import { EXCEL_COLUMNS } from '@cuadrantes/shared-dto';
 import { JornadasParserService } from './services/jornadas-parser.service';
 import { JornadasMatchingService } from './services/jornadas-matcher.service';
@@ -68,6 +69,8 @@ export class JornadasService {
     private clockInRepo: Repository<RawClockIn>,
     @InjectRepository(PresenceResult, 'new')
     private resultRepo: Repository<PresenceResult>,
+    @InjectRepository(UnmatchedResult, 'new')
+    private unmatchedRepo: Repository<UnmatchedResult>,
     @InjectDataSource('new')
     private dataSource: DataSource,
     private parserService: JornadasParserService,
@@ -244,13 +247,22 @@ export class JornadasService {
       const savedRoutes = await queryRunner.manager.save(routesEntities);
 
       // 5. Lógica de Casación (Matching) delegada al servicio
-      const results = this.matchingService.match(
+      const { results, usedClockInIds } = this.matchingService.match(
         session,
         savedRoutes,
         clockInsEntities,
       );
 
       await queryRunner.manager.save(results);
+
+      // 6. Lógica de Sin Rutas (Fichajes no asociados)
+      const unmatchedResults = this.matchingService.matchSinRutas(
+        session,
+        clockInsEntities,
+        usedClockInIds,
+      );
+      await queryRunner.manager.save(unmatchedResults);
+
       await queryRunner.commitTransaction(); // Confirmar transacción si todo va bien
 
       return {
@@ -414,6 +426,82 @@ export class JornadasService {
   }
 
   /**
+   * Obtiene los resultados de fichajes sin ruta (UnmatchedResults) paginados.
+   *
+   * @param sessionId ID de la sesión.
+   * @param page Número de página.
+   * @param limit Límite de resultados por página.
+   * @param search Término de búsqueda (nombre del trabajador).
+   */
+  async getUnmatchedResults(
+    sessionId: number,
+    page = 1,
+    limit = 10,
+    search?: string,
+  ) {
+    const whereClause: any = { sessionId };
+
+    if (search) {
+      const workers = await this.workerRepo.find({
+        where: [
+          { sessionId, nombre: Like(`%${search}%`) },
+          { sessionId, apellido1: Like(`%${search}%`) },
+          { sessionId, apellido2: Like(`%${search}%`) },
+        ],
+        select: ['excelId'],
+      });
+
+      const workerIds = workers.map((w) => w.excelId);
+
+      if (workerIds.length === 0) {
+        return {
+          data: [],
+          meta: { total: 0, page, limit, totalPages: 0 },
+        };
+      }
+
+      whereClause.workerId = In(workerIds);
+    }
+
+    const findOptions: any = {
+      where: whereClause,
+      order: { fecha: 'ASC' },
+    };
+    if (limit > 0) {
+      findOptions.skip = (page - 1) * limit;
+      findOptions.take = limit;
+    }
+
+    const [results, total] = await this.unmatchedRepo.findAndCount(findOptions);
+
+    // Cargar trabajadores
+    const workerIds = [...new Set(results.map((r) => r.workerId))];
+    let workersMap = new Map();
+
+    if (workerIds.length > 0) {
+      const workers = await this.workerRepo.find({
+        where: { sessionId, excelId: In(workerIds) },
+      });
+      workersMap = new Map(workers.map((w) => [w.excelId, w]));
+    }
+
+    const data = results.map((r) => ({
+      ...r,
+      trabajador: workersMap.get(r.workerId) || null,
+    }));
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: limit > 0 ? Math.ceil(total / limit) : 1,
+      },
+    };
+  }
+
+  /**
    * Busca la ruta titular correspondiente a una hoja de ruta auxiliar.
    * Utilizado para heredar datos de la ruta titular en las auxiliares.
    */
@@ -444,8 +532,13 @@ export class JornadasService {
   async generateExcelExport(sessionId: number): Promise<Buffer> {
     // Obtener todos los resultados (limit=0)
     const results = await this.getSessionResults(sessionId, 1, 0);
+    const unmatched = await this.getUnmatchedResults(sessionId, 1, 0);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return this.exportService.generateExcel(results.data as any);
+    return this.exportService.generateExcel(
+      results.data as any,
+      unmatched.data as any,
+    );
   }
 
   /**

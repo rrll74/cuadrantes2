@@ -1,6 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
-import { IResultadoPresencia, EstadoPresencia } from '@cuadrantes/shared-dto';
+import {
+  IResultadoPresencia,
+  EstadoPresencia,
+  IResultadoSinRuta,
+} from '@cuadrantes/shared-dto';
 
 @Injectable()
 export class JornadasExportService {
@@ -9,9 +15,13 @@ export class JornadasExportService {
    * Aplica formato condicional (colores) según el estado de presencia y formatea fechas/horas.
    *
    * @param results Lista de resultados de presencia a exportar.
+   * @param unmatchedResults Lista de fichajes sin ruta a exportar.
    * @returns Buffer con el contenido del archivo Excel.
    */
-  async generateExcel(results: IResultadoPresencia[]): Promise<Buffer> {
+  async generateExcel(
+    results: IResultadoPresencia[],
+    unmatchedResults: IResultadoSinRuta[] = [],
+  ): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Resultados');
 
@@ -102,6 +112,60 @@ export class JornadasExportService {
         };
       });
     });
+
+    // --- HOJA 2: SIN RUTA ---
+    if (unmatchedResults && unmatchedResults.length > 0) {
+      const wsUnmatched = workbook.addWorksheet('Sin Ruta');
+
+      wsUnmatched.columns = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Trabajador', key: 'trabajador', width: 30 },
+        { header: 'Puesto', key: 'puesto', width: 15 },
+        { header: 'Entrada', key: 'entrada', width: 12 },
+        { header: 'Salida', key: 'salida', width: 12 },
+        { header: 'Estado', key: 'estado', width: 15 },
+      ];
+
+      const headerRowUnmatched = wsUnmatched.getRow(1);
+      headerRowUnmatched.font = { bold: true };
+      headerRowUnmatched.alignment = {
+        vertical: 'middle',
+        horizontal: 'center',
+      };
+
+      unmatchedResults.forEach((res: IResultadoSinRuta) => {
+        const row = wsUnmatched.addRow({
+          fecha: res.fecha,
+          trabajador: res.trabajador
+            ? `${res.trabajador.nombre} ${res.trabajador.apellido1}`
+            : 'Sin asignar',
+          puesto: res.trabajador ? res.trabajador.puesto : '',
+          entrada: res.fichajeEntrada,
+          salida: res.fichajeSalida,
+          estado: res.estado,
+        });
+
+        row.getCell('fecha').numFmt = 'dd/mm/yyyy';
+        row.getCell('entrada').numFmt = 'hh:mm';
+        row.getCell('salida').numFmt = 'hh:mm';
+
+        const estadoCell = row.getCell('estado');
+        let argb = 'FFFFFFFF';
+        if (res.estado === EstadoPresencia.COMPLETO) argb = 'FFC6EFCE';
+        else if (res.estado === EstadoPresencia.INCOMPLETO) argb = 'FFFFEB9C';
+        else if (res.estado === EstadoPresencia.SIN_PRESENCIA)
+          argb = 'FFFFC7CE';
+
+        estadoCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb },
+        };
+
+        row.getCell('fecha').alignment = { horizontal: 'center' };
+        row.getCell('estado').alignment = { horizontal: 'center' };
+      });
+    }
 
     return (await workbook.xlsx.writeBuffer()) as unknown as Buffer;
   }

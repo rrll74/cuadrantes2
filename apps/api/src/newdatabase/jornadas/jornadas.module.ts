@@ -7,6 +7,7 @@ import { ScheduledRoute } from './entities/scheduled-route.entity';
 import { RawWorker } from './entities/raw-worker.entity';
 import { RawClockIn } from './entities/raw-clock-in.entity';
 import { PresenceResult } from './entities/presence-result.entity';
+import { UnmatchedResult } from './entities/unmatched-result.entity';
 import { JornadasParserService } from './services/jornadas-parser.service';
 import { JornadasMatchingService } from './services/jornadas-matcher.service';
 import { JornadasExportService } from './services/jornadas-export.service';
@@ -40,7 +41,14 @@ import { join } from 'path';
       }),
     }),
     TypeOrmModule.forFeature(
-      [ImportSession, ScheduledRoute, RawWorker, RawClockIn, PresenceResult],
+      [
+        ImportSession,
+        ScheduledRoute,
+        RawWorker,
+        RawClockIn,
+        PresenceResult,
+        UnmatchedResult,
+      ],
       'new',
     ),
   ],

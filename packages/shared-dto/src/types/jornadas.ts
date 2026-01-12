@@ -51,3 +51,13 @@ export interface IResultadoPresencia {
   esDuplicado: boolean;
   revisar: boolean;
 }
+
+export interface IResultadoSinRuta {
+  id: number;
+  fecha: Date;
+  fichajeEntrada: Date | null;
+  fichajeSalida: Date | null;
+  estado: EstadoPresencia;
+  trabajador: ITrabajador | null;
+  workerId: number;
+}

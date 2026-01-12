@@ -6,11 +6,13 @@ import {
   subHours,
   isWithinInterval,
   differenceInMinutes,
+  format,
 } from 'date-fns';
 import { CONFIG_JORNADAS } from '@cuadrantes/shared-dto';
 import { ImportSession } from '../entities/import-session.entity';
 import { ScheduledRoute } from '../entities/scheduled-route.entity';
 import { RawClockIn, TipoFichaje } from '../entities/raw-clock-in.entity';
+import { UnmatchedResult } from '../entities/unmatched-result.entity';
 import {
   PresenceResult,
   EstadoPresencia,
@@ -21,6 +23,8 @@ export class JornadasMatchingService {
   constructor(
     @InjectRepository(PresenceResult, 'new')
     private resultRepo: Repository<PresenceResult>,
+    @InjectRepository(UnmatchedResult, 'new')
+    private unmatchedRepo: Repository<UnmatchedResult>,
   ) {}
 
   /**
@@ -29,13 +33,13 @@ export class JornadasMatchingService {
    * @param session La sesión de importación actual.
    * @param routes Lista de rutas planificadas extraídas de los archivos.
    * @param clockIns Lista de fichajes (entradas/salidas) extraídos.
-   * @returns Un array de resultados de presencia (PresenceResult) listos para guardar.
+   * @returns Objeto con resultados de presencia y un Set de IDs de fichajes utilizados.
    */
   match(
     session: ImportSession,
     routes: ScheduledRoute[],
     clockIns: RawClockIn[],
-  ): PresenceResult[] {
+  ): { results: PresenceResult[]; usedClockInIds: Set<number> } {
     // 1. Agrupar fichajes por trabajador para optimizar la búsqueda (evita recorrer todo el array en cada iteración)
     const fichajesMap = new Map<number, RawClockIn[]>();
     clockIns.forEach((f) => {
@@ -46,6 +50,7 @@ export class JornadasMatchingService {
     });
 
     const results: PresenceResult[] = [];
+    const usedClockInIds = new Set<number>();
 
     // 2. Iterar sobre cada ruta planificada para encontrar sus fichajes correspondientes
     for (const route of routes) {
@@ -57,6 +62,10 @@ export class JornadasMatchingService {
         route.fin,
         fichajesTrabajador,
       );
+
+      // Registrar los IDs de los fichajes utilizados
+      if (entrada) usedClockInIds.add(entrada.id);
+      if (salida) usedClockInIds.add(salida.id);
 
       // Determinar el estado (Completo, Incompleto, Sin Presencia)
       const estado = this.calcularEstado(entrada, salida);
@@ -77,6 +86,64 @@ export class JornadasMatchingService {
     // 3. Post-procesamiento: Ajustes lógicos de negocio
     this.ajustarHorarios(results); // Rellenar huecos en turnos continuos
     this.detectarDuplicados(results); // Identificar rutas duplicadas o conflictivas
+
+    return { results, usedClockInIds };
+  }
+
+  /**
+   * Genera resultados para los fichajes que no se asociaron a ninguna ruta.
+   * Agrupa los fichajes restantes por trabajador y día, calculando entrada y salida.
+   */
+  matchSinRutas(
+    session: ImportSession,
+    clockIns: RawClockIn[],
+    usedClockInIds: Set<number>,
+  ): UnmatchedResult[] {
+    // 1. Filtrar fichajes no utilizados
+    const unusedClockIns = clockIns.filter((c) => !usedClockInIds.has(c.id));
+
+    // 2. Agrupar por Trabajador + Fecha (YYYY-MM-DD)
+    const groups = new Map<string, RawClockIn[]>();
+    unusedClockIns.forEach((c) => {
+      const dateStr = format(c.timestamp, 'yyyy-MM-dd');
+      const key = `${c.workerId}_${dateStr}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)?.push(c);
+    });
+
+    const results: UnmatchedResult[] = [];
+
+    // 3. Procesar cada grupo
+    groups.forEach((fichajes, key) => {
+      const [workerIdStr, dateStr] = key.split('_');
+      const workerId = Number(workerIdStr);
+      const fecha = new Date(dateStr);
+
+      // Separar entradas y salidas y ordenar
+      const entradas = fichajes
+        .filter((f) => f.tipo === TipoFichaje.ENTRADA)
+        .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      const salidas = fichajes
+        .filter((f) => f.tipo === TipoFichaje.SALIDA)
+        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()); // Descendente para obtener la última
+
+      const firstEntrada = entradas.length > 0 ? entradas[0] : null;
+      const lastSalida = salidas.length > 0 ? salidas[0] : null;
+
+      const estado = this.calcularEstado(firstEntrada, lastSalida);
+
+      if (estado !== EstadoPresencia.SIN_PRESENCIA) {
+        const result = this.unmatchedRepo.create({
+          session,
+          workerId,
+          fecha,
+          fichajeEntrada: firstEntrada ? firstEntrada.timestamp : null,
+          fichajeSalida: lastSalida ? lastSalida.timestamp : null,
+          estado,
+        });
+        results.push(result);
+      }
+    });
 
     return results;
   }

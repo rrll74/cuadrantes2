@@ -111,6 +111,22 @@ export class JornadasController {
     );
   }
 
+  @Get(':sessionId/unmatched')
+  @HasPermissions('jornadas:read')
+  async getUnmatchedResults(
+    @Param('sessionId') sessionId: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('search') search = '',
+  ) {
+    return this.jornadasService.getUnmatchedResults(
+      +sessionId,
+      +page,
+      +limit,
+      search,
+    );
+  }
+
   @Delete(':id')
   @HasPermissions('jornadas:write')
   async deleteSession(@Param('id') id: string) {
