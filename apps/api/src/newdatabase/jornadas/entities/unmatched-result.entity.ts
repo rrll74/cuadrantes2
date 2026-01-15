@@ -13,8 +13,11 @@ export class UnmatchedResult {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column()
+  sessionId: number;
+
   @ManyToOne(() => ImportSession, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'session_id' })
+  @JoinColumn({ name: 'sessionId' })
   session: ImportSession;
 
   @Column({ name: 'worker_id' })

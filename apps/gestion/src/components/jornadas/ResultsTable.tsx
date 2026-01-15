@@ -12,6 +12,7 @@ import { clsx } from "clsx";
 import { IResultadoPresencia, EstadoPresencia } from "@cuadrantes/shared-dto";
 import { SummaryCards } from "./SummaryCards";
 import { Pagination } from "@/components/ui/Pagination";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const columnHelper = createColumnHelper<IResultadoPresencia>();
 
@@ -112,22 +113,23 @@ export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
   // Estado de paginación
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [stats, setStats] = useState<any>(null);
   const limit = 10; // Registros por página
 
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [debouncedFilter, setDebouncedFilter] = useState(globalFilter);
+  const debouncedFilter = useDebounce(globalFilter, 500);
+  const [statusFilter, setStatusFilter] = useState<string>("");
 
-  // Debounce para la búsqueda
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedFilter(globalFilter);
-      setPage(1); // Resetear a la primera página al buscar
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [globalFilter]);
+    setPage(1);
+  }, [debouncedFilter]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -135,12 +137,13 @@ export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
       try {
         // Llamada al endpoint paginado
         const response = await api.get(
-          `/jornadas/${sessionId}?page=${page}&limit=${limit}&search=${debouncedFilter}`,
+          `/jornadas/${sessionId}?page=${page}&limit=${limit}&search=${debouncedFilter}&status=${statusFilter}`,
         );
 
         // La respuesta ahora tiene la estructura { data, meta, stats }
         setData(response.data.data);
         setTotalPages(response.data.meta.totalPages);
+        setTotalRecords(response.data.meta.total);
         setStats(response.data.stats);
       } catch (error) {
         console.error("Error fetching results:", error);
@@ -152,7 +155,7 @@ export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
     if (sessionId) {
       fetchData();
     }
-  }, [sessionId, page, debouncedFilter]); // Recargar cuando cambie la página o el filtro
+  }, [sessionId, page, debouncedFilter, statusFilter]); // Recargar cuando cambie la página o el filtro
 
   const handleExport = async () => {
     try {
@@ -207,7 +210,7 @@ export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
             type="text"
             value={globalFilter ?? ""}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            placeholder="Nombre, apellido..."
+            placeholder="Nombre, apellido, equipo..."
             className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"
           />
         </div>
@@ -217,12 +220,8 @@ export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
               Filtrar Estado
             </label>
             <select
-              value={
-                (table.getColumn("estado")?.getFilterValue() as string) ?? ""
-              }
-              onChange={(e) =>
-                table.getColumn("estado")?.setFilterValue(e.target.value)
-              }
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"
             >
               <option value="">Todos</option>
@@ -296,6 +295,7 @@ export const ResultsTable = ({ sessionId }: { sessionId: number }) => {
       <Pagination
         currentPage={page}
         totalPages={totalPages}
+        totalRecords={totalRecords}
         onPageChange={setPage}
         isLoading={loading}
       />

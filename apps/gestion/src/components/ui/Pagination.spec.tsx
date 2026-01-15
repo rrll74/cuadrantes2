@@ -30,6 +30,19 @@ describe("Pagination Component", () => {
     ).toBeInTheDocument();
   });
 
+  it("debe mostrar el total de registros cuando se proporciona", () => {
+    render(
+      <Pagination
+        currentPage={1}
+        totalPages={5}
+        totalRecords={100}
+        onPageChange={mockOnPageChange}
+      />,
+    );
+
+    expect(screen.getByText(/Total: 100/)).toBeInTheDocument();
+  });
+
   it("debe llamar a onPageChange con la página anterior al hacer clic en Anterior", () => {
     render(
       <Pagination

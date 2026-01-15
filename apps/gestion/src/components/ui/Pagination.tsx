@@ -5,6 +5,7 @@ import { ICONS } from "./icons";
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
+  totalRecords?: number;
   onPageChange: (page: number) => void;
   isLoading?: boolean;
 }
@@ -12,6 +13,7 @@ interface PaginationProps {
 export const Pagination: React.FC<PaginationProps> = ({
   currentPage,
   totalPages,
+  totalRecords,
   onPageChange,
   isLoading = false,
 }) => {
@@ -40,6 +42,11 @@ export const Pagination: React.FC<PaginationProps> = ({
           <p className="text-sm text-gray-700">
             Página <span className="font-medium">{currentPage}</span> de{" "}
             <span className="font-medium">{totalPages}</span>
+            {totalRecords !== undefined && (
+              <span className="ml-1">
+                (Total: <span className="font-medium">{totalRecords}</span>)
+              </span>
+            )}
           </p>
         </div>
         <div>

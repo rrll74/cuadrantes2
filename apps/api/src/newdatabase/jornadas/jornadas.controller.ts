@@ -20,6 +20,7 @@ import { UploadJornadasResponse } from '@cuadrantes/shared-dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { HasPermissions } from '../../auth/decorators/permissions.decorator';
+import { EstadoPresencia } from './entities/presence-result.entity';
 
 @Controller('jornadas')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -102,12 +103,14 @@ export class JornadasController {
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('search') search = '',
+    @Query('status') status?: EstadoPresencia,
   ): Promise<PaginatedSessionResults> {
     return this.jornadasService.getSessionResults(
       +sessionId,
       +page,
       +limit,
       search,
+      status,
     );
   }
 
@@ -118,13 +121,21 @@ export class JornadasController {
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('search') search = '',
+    @Query('status') status?: EstadoPresencia,
   ) {
     return this.jornadasService.getUnmatchedResults(
       +sessionId,
       +page,
       +limit,
       search,
+      status,
     );
+  }
+
+  @Get(':sessionId/unmatched/stats')
+  @HasPermissions('jornadas:read')
+  async getUnmatchedStats(@Param('sessionId') sessionId: string) {
+    return this.jornadasService.getUnmatchedStats(+sessionId);
   }
 
   @Delete(':id')

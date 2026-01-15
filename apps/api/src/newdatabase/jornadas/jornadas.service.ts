@@ -307,8 +307,9 @@ export class JornadasService {
     page = 1,
     limit = 10,
     search?: string,
+    status?: EstadoPresencia,
   ): Promise<PaginatedSessionResults> {
-    const whereClause: any = { sessionId };
+    let whereClause: any = { sessionId };
 
     if (search) {
       const workers = await this.workerRepo.find({
@@ -322,27 +323,21 @@ export class JornadasService {
 
       const workerIds = workers.map((w) => w.excelId);
 
-      if (workerIds.length === 0) {
-        return {
-          data: [],
-          meta: {
-            total: 0,
-            page,
-            limit,
-            totalPages: 0,
-          },
-          // Devolvemos stats vacíos o globales (aquí optamos por devolver estructura vacía para evitar errores en frontend)
-          stats: {
-            total: 0,
-            completo: 0,
-            incompleto: 0,
-            sinPresencia: 0,
-            revisar: 0,
-          },
-        };
+      const conditions: any[] = [];
+      if (workerIds.length > 0) {
+        conditions.push({ sessionId, route: { workerId: In(workerIds) } });
       }
+      conditions.push({ sessionId, route: { equipo: Like(`%${search}%`) } });
 
-      whereClause.route = { workerId: In(workerIds) };
+      whereClause = conditions;
+    }
+
+    if (status) {
+      if (Array.isArray(whereClause)) {
+        whereClause.forEach((cond) => (cond.estado = status));
+      } else {
+        whereClause.estado = status;
+      }
     }
 
     const findOptions: any = {
@@ -438,8 +433,13 @@ export class JornadasService {
     page = 1,
     limit = 10,
     search?: string,
+    status?: EstadoPresencia,
   ) {
     const whereClause: any = { sessionId };
+
+    if (status) {
+      whereClause.estado = status;
+    }
 
     if (search) {
       const workers = await this.workerRepo.find({
@@ -447,6 +447,7 @@ export class JornadasService {
           { sessionId, nombre: Like(`%${search}%`) },
           { sessionId, apellido1: Like(`%${search}%`) },
           { sessionId, apellido2: Like(`%${search}%`) },
+          { sessionId, puesto: Like(`%${search}%`) },
         ],
         select: ['excelId'],
       });
@@ -499,6 +500,49 @@ export class JornadasService {
         totalPages: limit > 0 ? Math.ceil(total / limit) : 1,
       },
     };
+  }
+
+  /**
+   * Obtiene estadísticas de los resultados sin ruta (conteo por estado y puesto).
+   */
+  async getUnmatchedStats(sessionId: number) {
+    const statusStatsRaw = await this.unmatchedRepo
+      .createQueryBuilder('u')
+      .select('u.estado', 'estado')
+      .addSelect('COUNT(u.id)', 'count')
+      .where('u.sessionId = :sessionId', { sessionId })
+      .groupBy('u.estado')
+      .getRawMany();
+
+    const puestoStatsRaw = await this.dataSource
+      .createQueryBuilder()
+      .select('w.puesto', 'puesto')
+      .addSelect('COUNT(u.id)', 'count')
+      .from(UnmatchedResult, 'u')
+      .innerJoin(
+        RawWorker,
+        'w',
+        'w.excelId = u.workerId AND w.sessionId = u.sessionId',
+      )
+      .where('u.sessionId = :sessionId', { sessionId })
+      .groupBy('w.puesto')
+      .orderBy('count', 'DESC')
+      .getRawMany();
+
+    const byStatus = statusStatsRaw.reduce((acc, curr) => {
+      acc[curr.estado] = Number(curr.count);
+      return acc;
+    }, {});
+
+    const byPuesto = puestoStatsRaw.reduce((acc, curr) => {
+      const rawPuesto = curr.puesto;
+      const key =
+        rawPuesto && rawPuesto.trim() ? rawPuesto.trim() : 'Sin puesto';
+      acc[key] = (acc[key] || 0) + Number(curr.count);
+      return acc;
+    }, {});
+
+    return { byStatus, byPuesto };
   }
 
   /**
