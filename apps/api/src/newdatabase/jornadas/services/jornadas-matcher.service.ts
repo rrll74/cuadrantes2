@@ -7,6 +7,7 @@ import {
   isWithinInterval,
   differenceInMinutes,
   format,
+  isSameDay,
 } from 'date-fns';
 import { CONFIG_JORNADAS } from '@cuadrantes/shared-dto';
 import { ImportSession } from '../entities/import-session.entity';
@@ -41,6 +42,7 @@ export class JornadasMatchingService {
     clockIns: RawClockIn[],
   ): { results: PresenceResult[]; usedClockInIds: Set<number> } {
     // 1. Agrupar fichajes por trabajador para optimizar la búsqueda (evita recorrer todo el array en cada iteración)
+    // FIXME: Arreglar problema de que si un trabajador tica 2 veces entrada o 2 veces salida, que busque cuál es la inferior y la ponga como entrada y la otra como salida. Si hay varias entradas y salidas, que las ordene y que genere de manera que el primero sea entrada, el segundo salida, el tercero vuelta a entrar, el cuarto vuelta a salir, y así.
     const fichajesMap = new Map<number, RawClockIn[]>();
     clockIns.forEach((f) => {
       if (!fichajesMap.has(Number(f.workerId))) {
@@ -57,11 +59,37 @@ export class JornadasMatchingService {
       const fichajesTrabajador = fichajesMap.get(route.workerId) || [];
 
       // Buscar fichajes que coincidan temporalmente con el inicio y fin de la ruta
-      const { entrada, salida } = this.buscarCoincidenciaFichaje(
+      let { entrada, salida } = this.buscarCoincidenciaFichaje(
         route.inicio,
         route.fin,
         fichajesTrabajador,
       );
+
+      // Condición especial: Si el horario planificado es nulo (inicio == fin) y el trabajador tiene presencia en el día
+      // Se intenta asociar cualquier fichaje del día a esta ruta vacía para cumplir con el requisito de añadir la ruta con el trabajador
+      if (route.inicio.getTime() === route.fin.getTime()) {
+        const fichajesDia = fichajesTrabajador.filter((f) =>
+          isSameDay(f.timestamp, route.fechaGeneral),
+        );
+
+        if (fichajesDia.length > 0) {
+          // Si no se encontró entrada por proximidad, buscar la primera del día
+          if (!entrada) {
+            const entradas = fichajesDia
+              .filter((f) => f.tipo === TipoFichaje.ENTRADA)
+              .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+            if (entradas.length > 0) entrada = entradas[0];
+          }
+
+          // Si no se encontró salida por proximidad, buscar la última del día
+          if (!salida) {
+            const salidas = fichajesDia
+              .filter((f) => f.tipo === TipoFichaje.SALIDA)
+              .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+            if (salidas.length > 0) salida = salidas[0];
+          }
+        }
+      }
 
       // Registrar los IDs de los fichajes utilizados
       if (entrada) usedClockInIds.add(entrada.id);
