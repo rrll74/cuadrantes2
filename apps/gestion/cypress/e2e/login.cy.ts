@@ -1,5 +1,3 @@
-// FIXME: Error en este test completo
-
 describe("Login Page", () => {
   beforeEach(() => {
     // Visita la página de login antes de cada test

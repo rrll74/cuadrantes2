@@ -34,4 +34,5 @@ export const EXCEL_COLUMNS = {
 
 export const CONFIG_JORNADAS = {
   TOLERANCIA_HORAS: 2, // Horas de margen para buscar fichajes
+  TOLERANCIA_CONTINUIDAD_MINUTOS: 15, // Minutos de tolerancia de continuidad entre rutas de trabajador,
 };
