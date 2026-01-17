@@ -1,3 +1,18 @@
 {
-  "endOfLine": "lf"
+  "endOfLine": "auto",
+  "trailingComma": "all",
+  "overrides": [
+    {
+      "files": "apps/api/**/*.ts",
+      "options": {
+        "singleQuote": true
+      }
+    },
+    {
+      "files": "apps/gestion/**/*.{ts,tsx}",
+      "options": {
+        "singleQuote": false
+      }
+    }
+  ]
 }
