@@ -55,7 +55,7 @@ export class JornadasExportService {
         turno: res.ruta.turno,
         equipo: res.ruta.equipo,
         trabajador: res.trabajador
-          ? `${res.trabajador.nombre} ${res.trabajador.apellido1}`
+          ? `${res.trabajador.apellido1} ${res.trabajador.apellido2}, ${res.trabajador.nombre}`
           : 'Sin asignar',
         puesto: res.trabajador ? `${res.trabajador.puesto}` : 'Sin puesto',
         equal: res.trabajador ? `${res.trabajador.equal}` : '',
@@ -135,7 +135,7 @@ export class JornadasExportService {
         const row = wsUnmatched.addRow({
           fecha: res.fecha,
           trabajador: res.trabajador
-            ? `${res.trabajador.nombre} ${res.trabajador.apellido1}`
+            ? `${res.trabajador.apellido1} ${res.trabajador.apellido2}, ${res.trabajador.nombre}`
             : 'Sin asignar',
           puesto: res.trabajador ? res.trabajador.puesto : '',
           entrada: res.fichajeEntrada,

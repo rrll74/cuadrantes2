@@ -6,9 +6,8 @@ import {
 } from '../../entities/presence-result.entity';
 import { calcularEstado } from './matcher.helper';
 
-// FIXME: Arreglar 2 errores de asignación en casación.
+// FIXME: Arreglar 1 errores de asignación en casación.
 
-// Que un mismo día, el mismo trabajador tenga una ruta en horario de A a B y otro de B a C (incluso otro más de C a D). El fichaje del trabajador se puede encuadrar en A y en D, por lo que el trabajador habría cubierto el horario en todas las rutas, sin embargo, según nuestro comportamiento, sólo quedaría reflejado el horario en la primera ruta y en la última de forma incompleta. Se debe rellenar el valor de A como la entrada inicial real, B como la salida de la planificación de ruta 1, C como entrada de la planificación de ruta 2 y D como la salida real de fichaje.
 // Que trabajador haya realizado un horario de trabajo, sin embargo el horario de ruta es inferior a los fichajes de tolerancia de entrada o salida. Se debe marcar como salida real, la salida marcada en la ruta y se debe crear una nueva entrada a esa hora para que cuando se haga el listado de fichajes sin ruta se gener un estado de completocon el horario restante que el trabajador ha realizado.
 
 // TODO: Agregar un campo horarioInferior del listado de casación que indique el porcentaje de jornada que se ha planificado de trabajo (para valorar el descuento de las jornadas que no sean completas, o dicho de otro modo, el conteo de las jornadas reales realizadas).
@@ -53,9 +52,9 @@ export function ajustarHorarios(results: PresenceResult[]) {
           prevRoute.fin,
         );
 
-        // Considerar consecutivos si son del mismo equipo y el hueco es pequeño
+        // Considerar consecutivos si el hueco es pequeño
         if (
-          currentRoute.equipo === prevRoute.equipo &&
+          // currentRoute.equipo === prevRoute.equipo &&
           gapInMinutes >= 0 &&
           gapInMinutes < toleranciaContinuidad
         ) {
@@ -76,11 +75,22 @@ export function ajustarHorarios(results: PresenceResult[]) {
   }
 }
 
+/**
+ * Este código implementa la lógica de "continuidad de jornada".
+ *
+ * Cuando un trabajador tiene varias rutas consecutivas (por ejemplo, una ruta de 08:00 a 10:00 y otra de 10:00
+ * a 14:00), normalmente solo ficha al entrar a las 08:00 y al salir a las 14:00.
+ *
+ * @param group Grupo de fichajes del trabajador
+ */
+
 function aplicarAjusteContinuidad(group: PresenceResult[]) {
   const first = group[0];
   const last = group[group.length - 1];
 
-  // Ajuste del primero
+  // --- PRIMER TRAMO ---
+  // Si el trabajador fichó entrada al inicio de la cadena, asumimos que cubre hasta el final de este tramo
+  // para conectar con el siguiente. Forzamos la salida al fin planificado de esta ruta.
   if (
     first.fichajeEntrada &&
     first.route.inicio.getTime() !== first.route.fin.getTime()
@@ -89,7 +99,9 @@ function aplicarAjusteContinuidad(group: PresenceResult[]) {
     first.estado = calcularEstado(first.fichajeEntrada, first.fichajeSalida);
   }
 
-  // Ajuste del último
+  // --- ÚLTIMO TRAMO ---
+  // Si el trabajador fichó salida al final de la cadena, asumimos que viene trabajando desde el tramo anterior.
+  // Forzamos la entrada al inicio planificado de esta ruta final.
   if (
     last.fichajeSalida &&
     last.route.inicio.getTime() !== last.route.fin.getTime()
@@ -98,9 +110,12 @@ function aplicarAjusteContinuidad(group: PresenceResult[]) {
     last.estado = calcularEstado(last.fichajeEntrada, last.fichajeSalida);
   }
 
-  // Ajuste de intermedios
+  // --- TRAMOS INTERMEDIOS ---
+  // Los tramos que quedan "en medio" (entre el primero y el último) se consideran totalmente cubiertos
+  // por la continuidad del servicio. Se rellenan automáticamente con el horario planificado.
   for (let k = 1; k < group.length - 1; k++) {
     const current = group[k];
+    // Solo aplicamos si la ruta tiene duración (inicio != fin)
     if (current.route.inicio.getTime() !== current.route.fin.getTime()) {
       current.fichajeEntrada = current.route.inicio;
       current.fichajeSalida = current.route.fin;
@@ -113,6 +128,7 @@ function aplicarAjusteContinuidad(group: PresenceResult[]) {
  * Detecta rutas duplicadas y aplica reglas de negocio.
  */
 export function detectarDuplicados(results: PresenceResult[]) {
+  // 1. Agrupación: Identificamos candidatos a duplicados por Trabajador + Fecha + Turno
   const groups = new Map<string, PresenceResult[]>();
   results.forEach((r) => {
     const key = `${r.route.workerId}-${r.route.fechaGeneral.getTime()}-${r.route.turno}`;
@@ -122,6 +138,7 @@ export function detectarDuplicados(results: PresenceResult[]) {
 
   for (const group of groups.values()) {
     if (group.length <= 1) continue;
+    // 2. Marcado Inicial: Si hay más de una ruta para el mismo turno, es un duplicado técnico
     group.forEach((r) => (r.esDuplicado = true));
 
     const partesAsociadosCero = group.filter(
@@ -129,9 +146,15 @@ export function detectarDuplicados(results: PresenceResult[]) {
     ).length;
     const equiposUnicos = new Set(group.map((r) => r.route.equipo)).size;
 
+    // 3. Lógica de Conflicto: Decidimos si requiere revisión manual
     let revisar = true;
+    // Excepción 1: Rutas "vacías". Si hay 2 rutas y una no tiene partes (carga de trabajo),
+    // asumimos que la válida es la que tiene partes.
     if (group.length === 2 && partesAsociadosCero > 0) revisar = false;
+    // Excepción 2: Mismo Equipo. Si son del mismo equipo, es una organización interna válida.
     else if (equiposUnicos === 1) revisar = false;
+    // Excepción 3: Diferentes equipos pero sin carga. Si son equipos distintos (conflicto)
+    // pero una ruta está vacía, se ignora el conflicto.
     else if (equiposUnicos === 2 && partesAsociadosCero > 0) revisar = false;
 
     if (revisar) group.forEach((r) => (r.revisar = true));

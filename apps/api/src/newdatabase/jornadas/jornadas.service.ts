@@ -95,6 +95,8 @@ export class JornadasService {
     return this.queryService.getUnmatchedStats(sessionId);
   }
 
+  // TODO: Crear un nuevo método que muestre la información de todas las jornadas almacenadas de todos los equipos, sumadas y en una tabla con sumatorios finales. Debe recoger que las jornadas sean completas o parciales, siempre en base a la información de los horarios planificados de las hojas de ruta.
+
   /**
    * Incluye contadores de rutas y resultados para mostrar estadísticas en el listado.
    */
@@ -112,6 +114,9 @@ export class JornadasService {
     // Obtener todos los resultados (limit=0)
     const results = await this.getSessionResults(sessionId, 1, 0);
     const unmatched = await this.getUnmatchedResults(sessionId, 1, 0);
+    // TODO: Incluir los datos de información de jornadas por equipo en una tabla en una nueva hoja
+
+    // TODO: Incluir una tabla resumen de sumatorio por jornadas y porcentajes de cumplimiento de presencialidad
 
     return this.exportService.generateExcel(results.data, unmatched.data);
   }
