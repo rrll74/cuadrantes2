@@ -102,7 +102,7 @@ describe("Gestión de Jornadas", () => {
     // --- ACCIÓN: ELIMINAR SESIÓN ---
     // Controlamos el window.confirm del navegador
     cy.on("window:confirm", (text) => {
-      expect(text).to.contains("¿Estás seguro");
+      expect(text).to.include("¿Estás seguro");
       return true; // Confirmamos la acción
     });
 

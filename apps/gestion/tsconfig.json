@@ -25,13 +25,16 @@
     ],
     // IMPORTANTE: Asegúrate de que "cypress" no esté en la lista.
     // "jest" y "node" son buenas prácticas para el entorno de testing unitario.
-    "types": ["jest", "node"],
+    // Excluimos vitest para evitar conflictos de tipos
+    "types": ["jest", "@testing-library/jest-dom", "node"],
+    "skipLibCheck": true,
     "paths": {
       "@/*": ["./src/*"]
     }
   },
   "include": [
     "next-env.d.ts",
+    "jest.d.ts",
     "**/*.ts",
     ".storybook/**/*.ts",
     "**/*.d.ts",
@@ -39,5 +42,5 @@
     ".next/types/**/*.ts",
     "jest.setup.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "cypress", ".next"]
 }

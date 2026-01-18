@@ -6,6 +6,9 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    // No incluir tipos específicos de frameworks en la config base
+    // Cada app (api, gestion) configura sus propios tipos
+    "types": ["node"]
   }
 }

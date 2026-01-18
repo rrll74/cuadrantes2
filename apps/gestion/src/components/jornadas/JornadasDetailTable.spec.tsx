@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom";
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { JornadasDetailTable } from "./JornadasDetailTable";
@@ -148,7 +149,7 @@ describe("JornadasDetailTable", () => {
       fillStyle: "",
       fillRect: mockFillRect,
       drawImage: mockDrawImage,
-    } as any);
+    } as unknown as CanvasRenderingContext2D);
     jest
       .spyOn(HTMLCanvasElement.prototype, "toDataURL")
       .mockImplementation(mockToDataURL);
@@ -158,9 +159,9 @@ describe("JornadasDetailTable", () => {
     }));
 
     // Mock Image
-    // @ts-ignore
+    // @ts-expect-error - Mock de Image para testing
     global.Image = class {
-      onload: () => void;
+      onload?: () => void;
       set src(val: string) {
         if (this.onload) this.onload();
       }

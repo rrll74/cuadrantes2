@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom";
 import React from "react";
 import {
   render,
@@ -114,7 +115,6 @@ describe("UploadJornadasForm", () => {
     });
 
     // 2. Configurar api.post para simular progreso
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (api.post as jest.Mock).mockImplementation((url, data, config) => {
       // Simulamos eventos de progreso asíncronamente
       setTimeout(() => {
