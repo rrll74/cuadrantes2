@@ -6,11 +6,15 @@ import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 // NOTA: Ajusta este import según el nombre de tu paquete en package.json
 // ej: @cuadrantes/shared-dto
-import type { UploadJornadasResponse } from "@cuadrantes/shared-dto";
+import {
+  INFO_JORNADAS_DIARIAS,
+  type UploadJornadasResponse,
+} from "@cuadrantes/shared-dto";
 import api from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFileUpload, FileKey } from "@/hooks/useFileUpload";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { MonthInfoForm, MonthInfoData } from "./MonthInfoForm";
 
 const FILE_LABELS: Record<FileKey, string> = {
   titulares: "Rutas Titulares (Excel)",
@@ -29,6 +33,15 @@ export const UploadJornadasForm = () => {
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [monthInfo, setMonthInfo] = useState<MonthInfoData>({
+    isHighSeason: true,
+    daysMonFri: 20,
+    shiftsMonFri: INFO_JORNADAS_DIARIAS.ALTA.NRO_LV,
+    daysSatSunHol: 8,
+    shiftsSatSunHol: INFO_JORNADAS_DIARIAS.ALTA.NRO_SDF,
+    discountServices: INFO_JORNADAS_DIARIAS.SERVICIOS_DESCUENTO.join(", "),
+    discountTeams: INFO_JORNADAS_DIARIAS.EQUIPOS_DESCUENTO.join(", "),
+  });
 
   const onDrop = useCallback(
     (acceptedFiles: File[], key: FileKey) => {
@@ -62,6 +75,7 @@ export const UploadJornadasForm = () => {
     if (files.auxiliares) formData.append("auxiliares", files.auxiliares);
     if (files.trabajadores) formData.append("trabajadores", files.trabajadores);
     if (files.fichajes) formData.append("fichajes", files.fichajes);
+    formData.append("monthInfo", JSON.stringify(monthInfo));
 
     try {
       // Ajusta la URL a tu endpoint de backend
@@ -114,6 +128,8 @@ export const UploadJornadasForm = () => {
       </h2>
 
       <form onSubmit={handleSubmit}>
+        <MonthInfoForm value={monthInfo} onChange={setMonthInfo} />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {(Object.keys(files) as FileKey[]).map((key) => (
             <SingleFileDropzone

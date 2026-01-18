@@ -42,10 +42,14 @@ export const CONFIG_JORNADAS = {
  * Se asume que cada jornada de trabajo es de 7 horas.
  */
 export const INFO_JORNADAS_DIARIAS = {
-  NRO_BAJA_LV: 55.47, // Número de trabajadores de lunes a viernes en temporada baja
-  NRO_BAJA_SDF: 25.01, // Número de trabajadores Sáb, Dom y festivos en temporada baja
-  NRO_ALTA_LV: 75.44, // Número de trabajadores de lunes a viernes en temporada alta
-  NRO_ALTA_SDF: 43.59, // Número de trabajadores Sáb, Dom y festivos en temporada alta
+  ALTA: {
+    NRO_LV: 75.44,
+    NRO_SDF: 43.59,
+  },
+  BAJA: {
+    NRO_LV: 55.47,
+    NRO_SDF: 25.01,
+  },
   SERVICIOS_DESCUENTO: ["TALLER"], // Servicios en los que se descuentan las jornadas para cómputo
   EQUIPOS_DESCUENTO: [
     "navidad",

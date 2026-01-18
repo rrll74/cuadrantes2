@@ -32,4 +32,25 @@ export class ImportSession {
 
   @OneToMany(() => PresenceResult, (result) => result.session)
   results: PresenceResult[];
+
+  @Column({ default: false })
+  isHighSeason: boolean;
+
+  @Column({ type: 'int', default: 0 })
+  daysMonFri: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  shiftsMonFri: number;
+
+  @Column({ type: 'int', default: 0 })
+  daysSatSunHol: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  shiftsSatSunHol: number;
+
+  @Column({ type: 'text', nullable: true })
+  discountServices: string;
+
+  @Column({ type: 'text', nullable: true })
+  discountTeams: string;
 }

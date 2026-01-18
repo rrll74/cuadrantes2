@@ -20,6 +20,16 @@ export interface UploadedFiles {
   fichajes: Express.Multer.File[];
 }
 
+export interface MonthInfo {
+  isHighSeason: boolean;
+  daysMonFri: number;
+  shiftsMonFri: number;
+  daysSatSunHol: number;
+  shiftsSatSunHol: number;
+  discountServices: string;
+  discountTeams: string;
+}
+
 @Injectable()
 export class JornadasImportService {
   private readonly logger = new Logger(JornadasImportService.name);
@@ -42,7 +52,11 @@ export class JornadasImportService {
   /**
    * Procesa los archivos Excel subidos (Trabajadores, Fichajes, Rutas Titulares y Auxiliares).
    */
-  async procesarArchivos(files: UploadedFiles, userId?: number) {
+  async procesarArchivos(
+    files: UploadedFiles,
+    userId?: number,
+    monthInfo?: MonthInfo,
+  ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction(); // Iniciar transacción para asegurar integridad de datos
@@ -62,7 +76,10 @@ export class JornadasImportService {
 
     try {
       // 1. Crear Sesión
-      const session = this.sessionRepo.create({ userId });
+      const session = this.sessionRepo.create({
+        userId,
+        ...(monthInfo || {}),
+      });
       await queryRunner.manager.save(session);
 
       // 2. Parsear y Guardar Trabajadores

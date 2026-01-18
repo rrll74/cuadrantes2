@@ -2,10 +2,14 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ImportSession } from './entities/import-session.entity';
-import { EstadoPresencia } from './entities/presence-result.entity';
+import {
+  PresenceResult,
+  EstadoPresencia,
+} from './entities/presence-result.entity';
 import { JornadasExportService } from './services/jornadas-export.service';
 import {
   JornadasImportService,
+  MonthInfo,
   UploadedFiles,
 } from './services/jornadas-import.service';
 import {
@@ -23,6 +27,8 @@ export class JornadasService {
   constructor(
     @InjectRepository(ImportSession, 'new')
     private sessionRepo: Repository<ImportSession>,
+    @InjectRepository(PresenceResult, 'new')
+    private presenceRepo: Repository<PresenceResult>,
     private importService: JornadasImportService,
     private queryService: JornadasQueryService,
     private exportService: JornadasExportService,
@@ -31,14 +37,28 @@ export class JornadasService {
   /**
    * Procesa los archivos Excel subidos (Trabajadores, Fichajes, Rutas Titulares y Auxiliares).
    * Realiza la importación de datos, validación de cabeceras y ejecuta la casación de jornadas.
-   * Todo el proceso se realiza dentro de una transacción de base de datos.
+   * El proceso se realiza dentro de una transacción de base de datos.
    *
    * @param files Objeto con los archivos subidos.
    * @param userId ID del usuario que realiza la importación.
+   * @param monthInfoJson JSON string con la información de la sesión (temporada, jornadas, etc).
    * @returns Un resumen del resultado de la importación.
    */
-  async procesarArchivos(files: UploadedFiles, userId?: number) {
-    return this.importService.procesarArchivos(files, userId);
+  async procesarArchivos(
+    files: UploadedFiles,
+    userId?: number,
+    monthInfoJson?: string,
+  ) {
+    let monthInfo: MonthInfo | undefined;
+    if (monthInfoJson) {
+      try {
+        monthInfo = JSON.parse(monthInfoJson) as MonthInfo;
+      } catch (error) {
+        this.logger.error('Error parsing monthInfo JSON', error);
+      }
+    }
+
+    return this.importService.procesarArchivos(files, userId, monthInfo);
   }
 
   /**
@@ -95,7 +115,21 @@ export class JornadasService {
     return this.queryService.getUnmatchedStats(sessionId);
   }
 
-  // TODO: Crear un nuevo método que muestre la información de todas las jornadas almacenadas de todos los equipos, sumadas y en una tabla con sumatorios finales. Debe recoger que las jornadas sean completas o parciales, siempre en base a la información de los horarios planificados de las hojas de ruta.
+  async getJornadasTableDetail(sessionId: number) {
+    return this.queryService.getJornadasTableDetail(sessionId);
+  }
+
+  async getJornadasByServiceSummary(sessionId: number) {
+    return this.queryService.getJornadasByServiceSummary(sessionId);
+  }
+
+  async getJornadasByEqualAndPuestoSummary(sessionId: number) {
+    return this.queryService.getJornadasByEqualAndPuestoSummary(sessionId);
+  }
+
+  async getJornadasByStatusAndPartsSummary(sessionId: number) {
+    return this.queryService.getJornadasByStatusAndPartsSummary(sessionId);
+  }
 
   /**
    * Incluye contadores de rutas y resultados para mostrar estadísticas en el listado.
@@ -114,11 +148,27 @@ export class JornadasService {
     // Obtener todos los resultados (limit=0)
     const results = await this.getSessionResults(sessionId, 1, 0);
     const unmatched = await this.getUnmatchedResults(sessionId, 1, 0);
-    // TODO: Incluir los datos de información de jornadas por equipo en una tabla en una nueva hoja
+    const session = await this.sessionRepo.findOne({
+      where: { id: sessionId },
+    });
+    const summaryTable =
+      await this.queryService.getJornadasTableDetail(sessionId);
+    const serviceSummary =
+      await this.queryService.getJornadasByServiceSummary(sessionId);
+    const equalPuestoSummary =
+      await this.queryService.getJornadasByEqualAndPuestoSummary(sessionId);
+    const statusPartsSummary =
+      await this.queryService.getJornadasByStatusAndPartsSummary(sessionId);
 
-    // TODO: Incluir una tabla resumen de sumatorio por jornadas y porcentajes de cumplimiento de presencialidad
-
-    return this.exportService.generateExcel(results.data, unmatched.data);
+    return this.exportService.generateExcel(
+      results.data,
+      unmatched.data,
+      session,
+      summaryTable,
+      serviceSummary,
+      equalPuestoSummary,
+      statusPartsSummary,
+    );
   }
 
   /**

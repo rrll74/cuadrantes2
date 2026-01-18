@@ -15,6 +15,7 @@ const mockRow = {
   font: {},
   alignment: {},
   getCell: jest.fn().mockReturnValue(mockCell),
+  eachCell: jest.fn(),
 };
 
 const mockWorksheet = {
@@ -127,6 +128,60 @@ describe('JornadasExportService', () => {
       expect(mockWorksheet.addRow).toHaveBeenCalled();
       // Verificamos que se accede a la celda de estado para darle formato
       expect(mockRow.getCell).toHaveBeenCalledWith('estado');
+    });
+
+    it('debería incluir las hojas de resumen (Servicios, Puesto-Equal, Estado-Partes) si se proporcionan datos', async () => {
+      const mockResults: any[] = [];
+      const mockUnmatched: any[] = [];
+      const mockSession: any = null;
+      const mockSummaryTable: any = null;
+
+      const mockServiceSummary = {
+        rows: [{ servicio: 'S1', jornadas: 10 }],
+        total: 10,
+      };
+      const mockEqualPuestoSummary = {
+        rows: [{ puesto: 'P1', equal: 100, jornadas: 5 }],
+        total: 5,
+      };
+      const mockStatusPartsSummary = {
+        rows: [
+          {
+            estado: 'completo',
+            noPartsCount: 1,
+            noPartsPercent: 50,
+            withPartsCount: 1,
+            withPartsPercent: 50,
+          },
+        ],
+        footer: {
+          estado: 'TOTAL',
+          noPartsCount: 1,
+          noPartsPercent: 50,
+          withPartsCount: 1,
+          withPartsPercent: 50,
+        },
+      };
+
+      await service.generateExcel(
+        mockResults,
+        mockUnmatched,
+        mockSession,
+        mockSummaryTable,
+        mockServiceSummary,
+        mockEqualPuestoSummary,
+        mockStatusPartsSummary,
+      );
+
+      expect(mockWorkbook.addWorksheet).toHaveBeenCalledWith(
+        'Resumen Servicios',
+      );
+      expect(mockWorkbook.addWorksheet).toHaveBeenCalledWith(
+        'Resumen Puesto-Equal',
+      );
+      expect(mockWorkbook.addWorksheet).toHaveBeenCalledWith(
+        'Resumen Estado-Partes',
+      );
     });
   });
 });

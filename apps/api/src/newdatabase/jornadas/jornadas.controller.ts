@@ -13,6 +13,7 @@ import {
   UseGuards,
   Req,
   Query,
+  Body,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JornadasService, PaginatedSessionResults } from './jornadas.service';
@@ -52,6 +53,7 @@ export class JornadasController {
       trabajadores?: Express.Multer.File[];
       fichajes?: Express.Multer.File[];
     },
+    @Body() body: { monthInfo?: string },
     @Req() req: Request & { user: { userId: number } },
   ): Promise<UploadJornadasResponse> {
     // Validación básica de presencia de archivos
@@ -87,6 +89,7 @@ export class JornadasController {
         fichajes: files.fichajes,
       },
       userId,
+      body.monthInfo,
     );
 
     return {
@@ -136,6 +139,30 @@ export class JornadasController {
   @HasPermissions('jornadas:read')
   async getUnmatchedStats(@Param('sessionId') sessionId: string) {
     return this.jornadasService.getUnmatchedStats(+sessionId);
+  }
+
+  @Get(':sessionId/table-detail')
+  @HasPermissions('jornadas:read')
+  async getTableDetail(@Param('sessionId') sessionId: string) {
+    return this.jornadasService.getJornadasTableDetail(+sessionId);
+  }
+
+  @Get(':sessionId/service-summary')
+  @HasPermissions('jornadas:read')
+  async getServiceSummary(@Param('sessionId') sessionId: string) {
+    return this.jornadasService.getJornadasByServiceSummary(+sessionId);
+  }
+
+  @Get(':sessionId/equal-puesto-summary')
+  @HasPermissions('jornadas:read')
+  async getEqualPuestoSummary(@Param('sessionId') sessionId: string) {
+    return this.jornadasService.getJornadasByEqualAndPuestoSummary(+sessionId);
+  }
+
+  @Get(':sessionId/status-parts-summary')
+  @HasPermissions('jornadas:read')
+  async getStatusPartsSummary(@Param('sessionId') sessionId: string) {
+    return this.jornadasService.getJornadasByStatusAndPartsSummary(+sessionId);
   }
 
   @Delete(':id')

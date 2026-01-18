@@ -10,15 +10,13 @@ import { calcularEstado } from './matcher.helper';
 
 // Que trabajador haya realizado un horario de trabajo, sin embargo el horario de ruta es inferior a los fichajes de tolerancia de entrada o salida. Se debe marcar como salida real, la salida marcada en la ruta y se debe crear una nueva entrada a esa hora para que cuando se haga el listado de fichajes sin ruta se gener un estado de completocon el horario restante que el trabajador ha realizado.
 
-// TODO: Agregar un campo horarioInferior del listado de casación que indique el porcentaje de jornada que se ha planificado de trabajo (para valorar el descuento de las jornadas que no sean completas, o dicho de otro modo, el conteo de las jornadas reales realizadas).
-
 /**
  * Ajusta los horarios para trabajadores con múltiples rutas consecutivas.
  */
 export function ajustarHorarios(results: PresenceResult[]) {
   // Obtener tolerancia de continuidad (default 15 min)
   const toleranciaContinuidad =
-    (CONFIG_JORNADAS.TOLERANCIA_CONTINUIDAD_MINUTOS as number) || 15;
+    CONFIG_JORNADAS.TOLERANCIA_CONTINUIDAD_MINUTOS || 15;
 
   // 1. Agrupar todos los resultados por trabajador
   const resultsByWorker = new Map<number, PresenceResult[]>();

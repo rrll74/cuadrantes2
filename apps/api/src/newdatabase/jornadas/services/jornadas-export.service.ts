@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import {
@@ -5,6 +7,9 @@ import {
   EstadoPresencia,
   IResultadoSinRuta,
 } from '@cuadrantes/shared-dto';
+import { ImportSession } from '../entities/import-session.entity';
+
+// FIXME: Arreglar las fechas que se exponen en el excel porque resultan en un día menos y una hora menos
 
 @Injectable()
 export class JornadasExportService {
@@ -14,11 +19,25 @@ export class JornadasExportService {
    *
    * @param results Lista de resultados de presencia a exportar.
    * @param unmatchedResults Lista de fichajes sin ruta a exportar.
+   * @param session Información de la sesión (opcional) para incluir en una hoja resumen.
+   * @param summaryTable Datos de la tabla resumen por equipos (opcional).
+   * @param serviceSummary Datos de la tabla resumen por servicios (opcional).
+   * @param equalPuestoSummary Datos de la tabla resumen por puesto y equal (opcional).
+   * @param statusPartsSummary Datos de la tabla resumen por estado y partes (opcional).
    * @returns Buffer con el contenido del archivo Excel.
    */
   async generateExcel(
     results: IResultadoPresencia[],
     unmatchedResults: IResultadoSinRuta[] = [],
+    session?: ImportSession | null,
+    summaryTable?: {
+      columns: { label: string; key: string }[];
+      rows: any[];
+      footer: any;
+    },
+    serviceSummary?: { rows: any[]; total: number },
+    equalPuestoSummary?: { rows: any[]; total: number },
+    statusPartsSummary?: { rows: any[]; footer: any },
   ): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Resultados');
@@ -163,6 +182,209 @@ export class JornadasExportService {
         row.getCell('fecha').alignment = { horizontal: 'center' };
         row.getCell('estado').alignment = { horizontal: 'center' };
       });
+    }
+
+    // --- HOJA 3: INFORMACIÓN SESIÓN ---
+
+    // TODO: Agregar los datos correspondientes a los cálculos de jornadas mínimas para el cumplimiento
+
+    if (session) {
+      const wsInfo = workbook.addWorksheet('Información Sesión');
+
+      wsInfo.columns = [
+        { header: 'Concepto', key: 'key', width: 35 },
+        { header: 'Valor', key: 'value', width: 50 },
+      ];
+
+      const headerRow = wsInfo.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'left' };
+
+      const rows = [
+        { key: 'ID Sesión', value: session.id },
+        { key: 'Fecha de Importación', value: session.createdAt },
+        { key: 'Temporada', value: session.isHighSeason ? 'Alta' : 'Baja' },
+        { key: 'Días Lunes-Viernes', value: session.daysMonFri },
+        { key: 'Jornadas Lunes-Viernes', value: session.shiftsMonFri },
+        {
+          key: 'Días Sábados-Domingos-Festivos',
+          value: session.daysSatSunHol,
+        },
+        {
+          key: 'Jornadas Sábados-Domingos-Festivos',
+          value: session.shiftsSatSunHol,
+        },
+        {
+          key: 'Servicios a Descontar',
+          value: session.discountServices || '-',
+        },
+        { key: 'Equipos a Descontar', value: session.discountTeams || '-' },
+      ];
+
+      rows.forEach((r) => {
+        const row = wsInfo.addRow(r);
+        if (r.key === 'Fecha de Importación') {
+          row.getCell('value').numFmt = 'dd/mm/yyyy hh:mm';
+        }
+      });
+    }
+
+    // --- HOJA 4: TABLA POR EQUIPOS ---
+    // TODO: Incluir colores en las celdas dependiendo si el horario de fichaje es correcto o tiene deficiencias
+
+    // TODO: Incluir columna y fila final de sumatorio de horas
+
+    if (summaryTable && summaryTable.columns && summaryTable.rows) {
+      const wsSummary = workbook.addWorksheet('Tabla Equipos');
+
+      // Definir columnas
+      const excelColumns = [
+        { header: 'Servicio', key: 'servicio', width: 25 },
+        { header: 'Equipo', key: 'equipo', width: 20 },
+        ...summaryTable.columns.map((col) => ({
+          header: col.label,
+          key: col.key,
+          width: 8,
+        })),
+        { header: 'Total', key: 'total', width: 10 },
+      ];
+
+      wsSummary.columns = excelColumns;
+
+      // Estilar cabecera
+      const headerRow = wsSummary.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+      // Agregar filas
+      summaryTable.rows.forEach((rowData: any) => {
+        wsSummary.addRow(rowData);
+      });
+
+      // Agregar Footer (Totales)
+      if (summaryTable?.footer) {
+        const footerRow = wsSummary.addRow(summaryTable.footer);
+        footerRow.font = { bold: true };
+        footerRow.eachCell((cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFD3D3D3' }, // Gris claro
+          };
+          cell.alignment = { horizontal: 'center' };
+        });
+      }
+    }
+
+    // --- HOJA 5: RESUMEN POR SERVICIOS ---
+    if (serviceSummary && serviceSummary.rows) {
+      const wsService = workbook.addWorksheet('Resumen Servicios');
+
+      wsService.columns = [
+        { header: 'Servicio', key: 'servicio', width: 35 },
+        { header: 'Jornadas (Horas / 7)', key: 'jornadas', width: 20 },
+      ];
+
+      const headerRow = wsService.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+      serviceSummary.rows.forEach((row: any) => {
+        wsService.addRow(row);
+      });
+
+      // Footer (Total)
+      if (serviceSummary.total !== undefined) {
+        const footerRow = wsService.addRow({
+          servicio: 'TOTAL',
+          jornadas: serviceSummary.total,
+        });
+        footerRow.font = { bold: true };
+        footerRow.eachCell((cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFD3D3D3' },
+          };
+        });
+      }
+    }
+
+    // --- HOJA 6: RESUMEN PUESTO/EQUAL ---
+    if (equalPuestoSummary && equalPuestoSummary.rows) {
+      const wsEqual = workbook.addWorksheet('Resumen Puesto-Equal');
+
+      wsEqual.columns = [
+        { header: 'Puesto', key: 'puesto', width: 30 },
+        { header: 'Equal', key: 'equal', width: 10 },
+        { header: 'Jornadas (Horas / 7)', key: 'jornadas', width: 20 },
+      ];
+
+      const headerRow = wsEqual.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+      equalPuestoSummary.rows.forEach((row: any) => {
+        wsEqual.addRow(row);
+      });
+
+      // Footer (Total)
+      if (equalPuestoSummary.total !== undefined) {
+        const footerRow = wsEqual.addRow({
+          puesto: 'TOTAL',
+          equal: '',
+          jornadas: equalPuestoSummary.total,
+        });
+        footerRow.font = { bold: true };
+        footerRow.eachCell((cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFD3D3D3' },
+          };
+        });
+      }
+    }
+
+    // --- HOJA 7: RESUMEN ESTADO/PARTES ---
+    if (statusPartsSummary && statusPartsSummary.rows) {
+      const wsStatus = workbook.addWorksheet('Resumen Estado-Partes');
+
+      wsStatus.columns = [
+        { header: 'Estado', key: 'estado', width: 20 },
+        { header: 'Sin Partes (Cant)', key: 'noPartsCount', width: 18 },
+        { header: 'Sin Partes (%)', key: 'noPartsPercent', width: 15 },
+        { header: 'Con Partes (Cant)', key: 'withPartsCount', width: 18 },
+        { header: 'Con Partes (%)', key: 'withPartsPercent', width: 15 },
+      ];
+
+      const headerRow = wsStatus.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+      statusPartsSummary.rows.forEach((row: any) => {
+        wsStatus.addRow(row);
+      });
+
+      // Footer (Total)
+      if (statusPartsSummary?.footer) {
+        const footerRow = wsStatus.addRow({
+          estado: 'TOTAL',
+          noPartsCount: statusPartsSummary.footer.noPartsCount,
+          noPartsPercent: statusPartsSummary.footer.noPartsPercent,
+          withPartsCount: statusPartsSummary.footer.withPartsCount,
+          withPartsPercent: statusPartsSummary.footer.withPartsPercent,
+        });
+        footerRow.font = { bold: true };
+        footerRow.eachCell((cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFD3D3D3' },
+          };
+          cell.alignment = { horizontal: 'center' };
+        });
+      }
     }
 
     return (await workbook.xlsx.writeBuffer()) as unknown as Buffer;

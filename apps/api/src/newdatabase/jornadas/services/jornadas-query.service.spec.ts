@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
@@ -28,6 +29,7 @@ describe('JornadasQueryService', () => {
   const mockResultRepo = {
     findAndCount: jest.fn(),
     count: jest.fn(),
+    find: jest.fn(),
     createQueryBuilder: jest.fn(),
   };
 
@@ -247,6 +249,136 @@ describe('JornadasQueryService', () => {
         'session',
       );
       expect(mockQueryBuilder.loadRelationCountAndMap).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('getJornadasTableDetail', () => {
+    it('debería generar la tabla detallada agrupando por servicio, equipo y fecha', async () => {
+      const sessionId = 1;
+      const date = new Date('2023-01-01T00:00:00Z');
+      const mockResults = [
+        {
+          route: {
+            servicio: 'S1',
+            equipo: 'E1',
+            fechaGeneral: date,
+            inicio: new Date('2023-01-01T08:00:00Z'),
+            fin: new Date('2023-01-01T15:00:00Z'), // 7h = 1 jornada
+          },
+          estado: EstadoPresencia.COMPLETO,
+        },
+        {
+          route: {
+            servicio: 'S1',
+            equipo: 'E1',
+            fechaGeneral: date,
+            inicio: new Date('2023-01-01T08:00:00Z'),
+            fin: new Date('2023-01-01T11:30:00Z'), // 3.5h = 0.5 jornada
+          },
+          estado: EstadoPresencia.COMPLETO,
+        },
+      ];
+      mockResultRepo.find.mockResolvedValue(mockResults);
+
+      const result = await service.getJornadasTableDetail(sessionId);
+
+      expect(mockResultRepo.find).toHaveBeenCalledWith({
+        where: { sessionId },
+        relations: ['route'],
+      });
+
+      // 7h + 3.5h = 10.5h. 10.5 / 7 = 1.5 jornadas
+      const dateKey = '2023-01-01';
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].servicio).toBe('S1');
+      expect(result.rows[0][dateKey]).toBe(1.5);
+      expect(result.footer.total).toBe(1.5);
+    });
+  });
+
+  describe('getJornadasByServiceSummary', () => {
+    it('debería agrupar por servicio y filtrar rutas sin partes asociados', async () => {
+      const sessionId = 1;
+      const mockResults = [
+        {
+          route: {
+            servicio: 'S1',
+            inicio: new Date('2023-01-01T08:00:00Z'),
+            fin: new Date('2023-01-01T15:00:00Z'), // 1 jornada
+            partesAsociados: 1,
+          },
+        },
+        {
+          route: {
+            servicio: 'S2',
+            inicio: new Date('2023-01-01T08:00:00Z'),
+            fin: new Date('2023-01-01T15:00:00Z'),
+            partesAsociados: 0, // Debe ignorarse
+          },
+        },
+      ];
+      mockResultRepo.find.mockResolvedValue(mockResults);
+
+      const result = await service.getJornadasByServiceSummary(sessionId);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].servicio).toBe('S1');
+      expect(result.rows[0].jornadas).toBe(1);
+      expect(result.total).toBe(1);
+    });
+  });
+
+  describe('getJornadasByEqualAndPuestoSummary', () => {
+    it('debería agrupar por puesto y equal sumando jornadas', async () => {
+      const sessionId = 1;
+      const mockResults = [
+        {
+          route: {
+            workerId: 100,
+            inicio: new Date('2023-01-01T08:00:00Z'),
+            fin: new Date('2023-01-01T15:00:00Z'), // 1 jornada
+            partesAsociados: 1,
+          },
+        },
+      ];
+      mockResultRepo.find.mockResolvedValue(mockResults);
+      mockWorkerRepo.find.mockResolvedValue([
+        { excelId: 100, puesto: 'Conductor', equal: 100 },
+      ]);
+
+      const result =
+        await service.getJornadasByEqualAndPuestoSummary(sessionId);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].puesto).toBe('Conductor');
+      expect(result.rows[0].equal).toBe(100);
+      expect(result.rows[0].jornadas).toBe(1);
+    });
+  });
+
+  describe('getJornadasByStatusAndPartsSummary', () => {
+    it('debería contar estados separando por presencia de partes', async () => {
+      const sessionId = 1;
+      const mockResults = [
+        { estado: EstadoPresencia.COMPLETO, route: { partesAsociados: 1 } },
+        { estado: EstadoPresencia.INCOMPLETO, route: { partesAsociados: 0 } },
+      ];
+      mockResultRepo.find.mockResolvedValue(mockResults);
+
+      const result =
+        await service.getJornadasByStatusAndPartsSummary(sessionId);
+
+      const rowCompleto = result.rows.find(
+        (r) => r.estado === EstadoPresencia.COMPLETO,
+      );
+      expect(rowCompleto?.withPartsCount).toBe(1);
+      expect(rowCompleto?.noPartsCount).toBe(0);
+
+      const rowIncompleto = result.rows.find(
+        (r) => r.estado === EstadoPresencia.INCOMPLETO,
+      );
+      expect(rowIncompleto?.withPartsCount).toBe(0);
+      expect(rowIncompleto?.noPartsCount).toBe(1);
     });
   });
 });
