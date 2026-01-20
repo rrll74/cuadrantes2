@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from "react";
-import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  createColumnHelper,
-} from "@tanstack/react-table";
 import api from "@/lib/api";
+import { createColumnHelper, ColumnDef } from "@tanstack/react-table";
 import { clsx } from "clsx";
 import { Pagination } from "@/components/ui/Pagination";
 import { EstadoPresencia } from "@cuadrantes/shared-dto";
 import { useDebounce } from "@/hooks/useDebounce";
+import { DataTable } from "@/components/ui/DataTable";
 
 interface IUnmatchedResult {
   id: number;
@@ -27,7 +23,8 @@ interface IUnmatchedResult {
 
 const columnHelper = createColumnHelper<IUnmatchedResult>();
 
-const columns = [
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const columns: ColumnDef<IUnmatchedResult, any>[] = [
   columnHelper.accessor("fecha", {
     header: "Fecha",
     cell: (info) => new Date(info.getValue()).toLocaleDateString(),
@@ -188,19 +185,6 @@ export const UnmatchedResultsTable = ({ sessionId }: { sessionId: number }) => {
     }
   };
 
-  const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
-
-  if (loading && data.length === 0)
-    return (
-      <div className="p-4 text-center text-gray-500">
-        Cargando resultados sin ruta...
-      </div>
-    );
-
   return (
     <div className="space-y-4">
       {stats && (
@@ -282,56 +266,12 @@ export const UnmatchedResultsTable = ({ sessionId }: { sessionId: number }) => {
         </div>
       </div>
 
-      <div className="overflow-x-auto border rounded-lg shadow-sm relative">
-        {loading && (
-          <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        )}
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="hover:bg-gray-50">
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className="px-6 py-4 whitespace-nowrap text-sm text-gray-700"
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
-            {table.getRowModel().rows.length === 0 && (
-              <tr>
-                <td
-                  colSpan={columns.length}
-                  className="px-6 py-4 text-center text-gray-500 text-sm"
-                >
-                  No se encontraron resultados sin ruta.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={columns}
+        data={data}
+        isLoading={loading}
+        emptyMessage="No se encontraron resultados sin ruta."
+      />
 
       <Pagination
         currentPage={page}

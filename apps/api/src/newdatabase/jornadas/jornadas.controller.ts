@@ -107,6 +107,7 @@ export class JornadasController {
     @Query('limit') limit = 10,
     @Query('search') search = '',
     @Query('status') status?: EstadoPresencia,
+    @Query('discounted') discounted?: string,
   ): Promise<PaginatedSessionResults> {
     return this.jornadasService.getSessionResults(
       +sessionId,
@@ -114,6 +115,7 @@ export class JornadasController {
       +limit,
       search,
       status,
+      discounted,
     );
   }
 

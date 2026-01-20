@@ -9,10 +9,33 @@ import {
 } from '@cuadrantes/shared-dto';
 import { ImportSession } from '../entities/import-session.entity';
 
-// FIXME: Arreglar las fechas que se exponen en el excel porque resultan en un día menos y una hora menos
-
 @Injectable()
 export class JornadasExportService {
+  /**
+   * Corrige una fecha para su exportación a Excel.
+   * Al pasar un objeto `Date` de JavaScript a `exceljs`, la librería lo trata como UTC.
+   * Esto causa que las fechas se muestren con un desfase horario (ej. una hora antes en CET).
+   * Esta función ajusta la fecha restándole el desfase de la zona horaria local,
+   * "engañando" a `exceljs` para que muestre la hora local correcta.
+   * @param date La fecha a corregir.
+   * @returns La fecha corregida o null si la entrada es null.
+   */
+  private toLocalExcelDate(date: Date | null): Date | null {
+    if (!date) {
+      return null;
+    }
+    // El error 'TypeError: date.getTime is not a function' ocurre si 'date' es un string.
+    // Esto puede pasar si los datos de fecha vienen de la base de datos como texto.
+    // Creamos un nuevo objeto Date para manejar tanto strings como objetos Date.
+    const dateObj = new Date(date);
+
+    // Si el string de entrada no era una fecha válida, `new Date()` crea un objeto
+    // de fecha inválido. Lo comprobamos para evitar errores en el Excel.
+    if (isNaN(dateObj.getTime())) {
+      return null;
+    }
+    return new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000);
+  }
   /**
    * Genera un libro de Excel con los resultados de la casación de jornadas.
    * Aplica formato condicional (colores) según el estado de presencia y formatea fechas/horas.
@@ -34,9 +57,21 @@ export class JornadasExportService {
       columns: { label: string; key: string }[];
       rows: any[];
       footer: any;
+      discountedRows?: any[];
+      discountedFooter?: any;
     },
-    serviceSummary?: { rows: any[]; total: number },
-    equalPuestoSummary?: { rows: any[]; total: number },
+    serviceSummary?: {
+      rows: any[];
+      total: number;
+      discountedRows?: any[];
+      discountedTotal?: number;
+    },
+    equalPuestoSummary?: {
+      rows: any[];
+      total: number;
+      discountedRows?: any[];
+      discountedTotal?: number;
+    },
     statusPartsSummary?: { rows: any[]; footer: any },
   ): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
@@ -59,6 +94,7 @@ export class JornadasExportService {
       { header: 'Duplicado', key: 'duplicado', width: 10 },
       { header: 'Revisar', key: 'revisar', width: 10 },
       { header: 'Parte', key: 'parte', width: 10 },
+      { header: 'Descontado', key: 'descontado', width: 12 },
     ];
 
     // Estilar cabecera (negrita y centrado)
@@ -69,7 +105,7 @@ export class JornadasExportService {
     // Iterar datos y agregar filas
     results.forEach((res: IResultadoPresencia) => {
       const row = worksheet.addRow({
-        fecha: res.ruta.fechaGeneral,
+        fecha: this.toLocalExcelDate(res.ruta.fechaGeneral),
         servicio: res.ruta.servicio,
         turno: res.ruta.turno,
         equipo: res.ruta.equipo,
@@ -78,14 +114,15 @@ export class JornadasExportService {
           : 'Sin asignar',
         puesto: res.trabajador ? `${res.trabajador.puesto}` : 'Sin puesto',
         equal: res.trabajador ? `${res.trabajador.equal}` : '',
-        inicio: res.ruta.inicio,
-        fin: res.ruta.fin,
-        entrada: res.fichajeEntrada,
-        salida: res.fichajeSalida,
+        inicio: this.toLocalExcelDate(res.ruta.inicio),
+        fin: this.toLocalExcelDate(res.ruta.fin),
+        entrada: this.toLocalExcelDate(res.fichajeEntrada),
+        salida: this.toLocalExcelDate(res.fichajeSalida),
         estado: res.estado,
         duplicado: res.esDuplicado ? 'SÍ' : '',
         revisar: res.revisar ? 'SÍ' : '',
         parte: res.ruta.partesAsociados,
+        descontado: (res as any).isDiscounted ? 'Sí' : 'No',
       });
 
       // Aplicar formato de fecha y hora
@@ -122,6 +159,7 @@ export class JornadasExportService {
         'salida',
         'duplicado',
         'revisar',
+        'descontado',
       ].forEach((key) => {
         row.getCell(key).alignment = {
           vertical: 'middle',
@@ -152,13 +190,13 @@ export class JornadasExportService {
 
       unmatchedResults.forEach((res: IResultadoSinRuta) => {
         const row = wsUnmatched.addRow({
-          fecha: res.fecha,
+          fecha: this.toLocalExcelDate(res.fecha),
           trabajador: res.trabajador
             ? `${res.trabajador.apellido1} ${res.trabajador.apellido2}, ${res.trabajador.nombre}`
             : 'Sin asignar',
           puesto: res.trabajador ? res.trabajador.puesto : '',
-          entrada: res.fichajeEntrada,
-          salida: res.fichajeSalida,
+          entrada: this.toLocalExcelDate(res.fichajeEntrada),
+          salida: this.toLocalExcelDate(res.fichajeSalida),
           estado: res.estado,
         });
 
@@ -186,8 +224,6 @@ export class JornadasExportService {
 
     // --- HOJA 3: INFORMACIÓN SESIÓN ---
 
-    // TODO: Agregar los datos correspondientes a los cálculos de jornadas mínimas para el cumplimiento
-
     if (session) {
       const wsInfo = workbook.addWorksheet('Información Sesión');
 
@@ -200,9 +236,16 @@ export class JornadasExportService {
       headerRow.font = { bold: true };
       headerRow.alignment = { vertical: 'middle', horizontal: 'left' };
 
+      const minJornadas =
+        (Number(session.shiftsMonFri) * Number(session.daysMonFri) || 0) +
+        (Number(session.shiftsSatSunHol) * Number(session.daysSatSunHol) || 0);
+
       const rows = [
         { key: 'ID Sesión', value: session.id },
-        { key: 'Fecha de Importación', value: session.createdAt },
+        {
+          key: 'Fecha de Importación',
+          value: this.toLocalExcelDate(session.createdAt),
+        },
         { key: 'Temporada', value: session.isHighSeason ? 'Alta' : 'Baja' },
         { key: 'Días Lunes-Viernes', value: session.daysMonFri },
         { key: 'Jornadas Lunes-Viernes', value: session.shiftsMonFri },
@@ -215,16 +258,37 @@ export class JornadasExportService {
           value: session.shiftsSatSunHol,
         },
         {
+          key: 'Total Jornadas Mínimas para cumplimiento',
+          value: minJornadas,
+        },
+        {
           key: 'Servicios a Descontar',
           value: session.discountServices || '-',
         },
         { key: 'Equipos a Descontar', value: session.discountTeams || '-' },
       ];
 
+      if (serviceSummary) {
+        rows.push({
+          key: 'Total Jornadas Realizadas',
+          value: serviceSummary.total,
+        });
+        rows.push({
+          key: 'Diferencia (Realizado - Mínimo)',
+          value: serviceSummary.total - minJornadas,
+        });
+      }
+
       rows.forEach((r) => {
         const row = wsInfo.addRow(r);
         if (r.key === 'Fecha de Importación') {
           row.getCell('value').numFmt = 'dd/mm/yyyy hh:mm';
+        }
+        if (r.key === 'Diferencia (Realizado - Mínimo)') {
+          const val = Number(r.value);
+          // Azul si >= 0, Rojo si < 0
+          const color = val >= 0 ? 'FF0000FF' : 'FFFF0000';
+          row.getCell('value').font = { color: { argb: color }, bold: true };
         }
       });
     }
@@ -260,59 +324,62 @@ export class JornadasExportService {
       };
 
       // Agregar filas con colores
-      summaryTable.rows.forEach((rowData: any) => {
-        // Transformar datos: mapear ${dateKey}_value a dateKey para que coincida con las columnas
-        const transformedRow: any = {
-          servicio: rowData.servicio,
-          equipo: rowData.equipo,
-          total_value: rowData.total_value,
-        };
+      const addRowsToSheet = (rows: any[]) => {
+        rows.forEach((rowData: any) => {
+          // Transformar datos: mapear ${dateKey}_value a dateKey para que coincida con las columnas
+          const transformedRow: any = {
+            servicio: rowData.servicio,
+            equipo: rowData.equipo,
+            total_value: rowData.total_value,
+          };
 
-        summaryTable.columns.forEach((col) => {
-          transformedRow[col.key] = rowData[`${col.key}_value`];
-        });
+          summaryTable.columns.forEach((col) => {
+            transformedRow[col.key] = rowData[`${col.key}_value`];
+          });
 
-        const excelRow = wsSummary.addRow(transformedRow);
+          const excelRow = wsSummary.addRow(transformedRow);
 
-        // Aplicar colores a las celdas de datos
-        summaryTable.columns.forEach((col) => {
-          const colorKey = `${col.key}_color`;
-          const color = rowData[colorKey] as
+          // Aplicar colores a las celdas de datos
+          summaryTable.columns.forEach((col) => {
+            const colorKey = `${col.key}_color`;
+            const color = rowData[colorKey] as
+              | 'green'
+              | 'yellow'
+              | 'red'
+              | undefined;
+
+            if (color && colorMap[color]) {
+              excelRow.getCell(col.key).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: colorMap[color] },
+              };
+            }
+
+            excelRow.getCell(col.key).alignment = { horizontal: 'center' };
+          });
+
+          // Aplicar color al total de la fila
+          const totalColor = rowData.total_color as
             | 'green'
             | 'yellow'
             | 'red'
             | undefined;
-
-          if (color && colorMap[color]) {
-            excelRow.getCell(col.key).fill = {
+          if (totalColor && colorMap[totalColor]) {
+            excelRow.getCell('total_value').fill = {
               type: 'pattern',
               pattern: 'solid',
-              fgColor: { argb: colorMap[color] },
+              fgColor: { argb: colorMap[totalColor] },
             };
           }
-
-          excelRow.getCell(col.key).alignment = { horizontal: 'center' };
+          excelRow.getCell('total_value').alignment = { horizontal: 'center' };
+          excelRow.getCell('total_value').font = { bold: true };
         });
+      };
 
-        // Aplicar color al total de la fila
-        const totalColor = rowData.total_color as
-          | 'green'
-          | 'yellow'
-          | 'red'
-          | undefined;
-        if (totalColor && colorMap[totalColor]) {
-          excelRow.getCell('total_value').fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: colorMap[totalColor] },
-          };
-        }
-        excelRow.getCell('total_value').alignment = { horizontal: 'center' };
-        excelRow.getCell('total_value').font = { bold: true };
-      });
+      addRowsToSheet(summaryTable.rows);
 
-      // Agregar Footer (Totales) con colores
-      if (summaryTable?.footer) {
+      const addFooterToSheet = (footer: any, isDiscounted = false) => {
         // Transformar datos del footer igual que las filas
         const transformedFooter: any = {
           servicio: summaryTable.footer.servicio,
@@ -322,10 +389,10 @@ export class JornadasExportService {
 
         summaryTable.columns.forEach((col) => {
           transformedFooter[col.key] = summaryTable.footer[`${col.key}_value`];
+          transformedFooter[col.key] = footer[`${col.key}_value`];
         });
 
         const footerRow = wsSummary.addRow(transformedFooter);
-        footerRow.font = { bold: true };
 
         // Aplicar colores específicos al footer
         summaryTable.columns.forEach((col) => {
@@ -353,14 +420,61 @@ export class JornadasExportService {
           | 'yellow'
           | 'red'
           | undefined;
-        if (totalColor && colorMap[totalColor]) {
+        const totalColorToUse = footer.total_color || totalColor;
+
+        if (totalColorToUse && colorMap[totalColorToUse]) {
           footerRow.getCell('total_value').fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: colorMap[totalColor] },
+            fgColor: { argb: colorMap[totalColorToUse] },
           };
         }
         footerRow.getCell('total_value').alignment = { horizontal: 'center' };
+
+        // Estilos específicos para el footer
+        footerRow.font = {
+          bold: true,
+          color: isDiscounted ? { argb: 'FF990000' } : undefined,
+        };
+        if (isDiscounted) {
+          footerRow.eachCell((cell) => {
+            if (!cell.fill) {
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFFFE0E0' },
+              };
+            }
+          });
+        }
+      };
+
+      // Agregar Footer (Totales) con colores
+      if (summaryTable?.footer) {
+        addFooterToSheet(summaryTable.footer);
+      }
+
+      // --- TABLA DESCONTADA (Si existe) ---
+      if (
+        summaryTable.discountedRows &&
+        summaryTable.discountedRows.length > 0
+      ) {
+        wsSummary.addRow([]); // Separador
+        wsSummary.addRow([]); // Separador
+        const headerDiscounted = wsSummary.addRow([
+          'Equipos Descontados (No computan)',
+        ]);
+        headerDiscounted.font = { bold: true, color: { argb: 'FF990000' } };
+
+        // Repetir cabecera de columnas? No es estrictamente necesario si se entiende el contexto,
+        // pero ayuda.
+        // wsSummary.addRow(excelColumns.map(c => c.header)); // Simplificado
+
+        addRowsToSheet(summaryTable.discountedRows);
+
+        if (summaryTable.discountedFooter) {
+          addFooterToSheet(summaryTable.discountedFooter, true);
+        }
       }
     }
 
@@ -395,6 +509,47 @@ export class JornadasExportService {
             fgColor: { argb: 'FFD3D3D3' },
           };
         });
+      }
+
+      // Tabla de Servicios Descontados (si existen)
+      if (
+        serviceSummary.discountedRows &&
+        serviceSummary.discountedRows.length > 0
+      ) {
+        wsService.addRow([]); // Fila vacía separadora
+        wsService.addRow([]); // Fila vacía separadora
+
+        const headerDiscounted = wsService.addRow([
+          'Servicios Descontados (No computan)',
+        ]);
+        headerDiscounted.font = { bold: true, color: { argb: 'FF990000' } }; // Rojo oscuro
+
+        // Cabecera de columnas para la tabla descontada
+        const subHeader = wsService.addRow({
+          servicio: 'Servicio',
+          jornadas: 'Jornadas',
+        });
+        subHeader.font = { bold: true };
+        subHeader.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        serviceSummary.discountedRows.forEach((row: any) => {
+          wsService.addRow(row);
+        });
+
+        if (serviceSummary.discountedTotal !== undefined) {
+          const footerRow = wsService.addRow({
+            servicio: 'TOTAL DESCONTADO',
+            jornadas: serviceSummary.discountedTotal,
+          });
+          footerRow.font = { bold: true, color: { argb: 'FF990000' } };
+          footerRow.eachCell((cell) => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFE0E0' },
+            }; // Fondo rojo claro
+          });
+        }
       }
     }
 
@@ -431,6 +586,49 @@ export class JornadasExportService {
             fgColor: { argb: 'FFD3D3D3' },
           };
         });
+      }
+
+      // Tabla de Puestos Descontados (si existen)
+      if (
+        equalPuestoSummary.discountedRows &&
+        equalPuestoSummary.discountedRows.length > 0
+      ) {
+        wsEqual.addRow([]); // Fila vacía separadora
+        wsEqual.addRow([]); // Fila vacía separadora
+
+        const headerDiscounted = wsEqual.addRow([
+          'Puestos Descontados (No computan)',
+        ]);
+        headerDiscounted.font = { bold: true, color: { argb: 'FF990000' } }; // Rojo oscuro
+
+        // Cabecera de columnas para la tabla descontada
+        const subHeader = wsEqual.addRow({
+          puesto: 'Puesto',
+          equal: 'Equal',
+          jornadas: 'Jornadas',
+        });
+        subHeader.font = { bold: true };
+        subHeader.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        equalPuestoSummary.discountedRows.forEach((row: any) => {
+          wsEqual.addRow(row);
+        });
+
+        if (equalPuestoSummary.discountedTotal !== undefined) {
+          const footerRow = wsEqual.addRow({
+            puesto: 'TOTAL DESCONTADO',
+            equal: '',
+            jornadas: equalPuestoSummary.discountedTotal,
+          });
+          footerRow.font = { bold: true, color: { argb: 'FF990000' } };
+          footerRow.eachCell((cell) => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFE0E0' },
+            }; // Fondo rojo claro
+          });
+        }
       }
     }
 

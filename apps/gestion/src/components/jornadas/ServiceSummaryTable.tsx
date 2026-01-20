@@ -1,8 +1,12 @@
 "use client";
 
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import api from "@/lib/api";
+import {
+  useServiceSummary,
+  ServiceSummaryRow,
+} from "@/hooks/useServiceSummary";
+import { SummaryTable, SummaryTableColumn } from "./SummaryTable";
+import { MinimumJourneysTable } from "./MinimumJourneysTable";
 import {
   BarChart,
   Bar,
@@ -14,16 +18,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-interface ServiceSummaryRow {
-  servicio: string;
-  jornadas: number;
-}
-
-interface ServiceSummaryResponse {
-  rows: ServiceSummaryRow[];
-  total: number;
-}
-
 interface ServiceSummaryTableProps {
   sessionId: number;
 }
@@ -31,13 +25,7 @@ interface ServiceSummaryTableProps {
 export const ServiceSummaryTable = ({
   sessionId,
 }: ServiceSummaryTableProps) => {
-  const { data, isLoading, error } = useQuery<ServiceSummaryResponse>({
-    queryKey: ["jornadas-service-summary", sessionId],
-    queryFn: async () => {
-      const response = await api.get(`/jornadas/${sessionId}/service-summary`);
-      return response.data;
-    },
-  });
+  const { data, isLoading, error, handleExport } = useServiceSummary(sessionId);
 
   if (isLoading) {
     return (
@@ -64,24 +52,22 @@ export const ServiceSummaryTable = ({
     );
   }
 
-  const handleExport = async () => {
-    try {
-      const response = await api.get(`/jornadas/${sessionId}/export`, {
-        responseType: "blob",
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `jornadas_${sessionId}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (error) {
-      console.error("Error exporting:", error);
-    }
-  };
+  const { rows, total, discountedRows, discountedTotal } = data;
 
-  const { rows, total } = data;
+  const columns: SummaryTableColumn<ServiceSummaryRow>[] = [
+    {
+      header: "Servicio",
+      render: (row) => row.servicio,
+      align: "left",
+    },
+    {
+      header: "Jornadas (Horas / 7)",
+      render: (row) => (
+        <span className="font-mono">{row.jornadas.toFixed(2)}</span>
+      ),
+      align: "right",
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -115,11 +101,12 @@ export const ServiceSummaryTable = ({
         </ResponsiveContainer>
       </div>
 
-      <div className="w-full overflow-hidden border border-gray-200 rounded-lg shadow-sm bg-white max-w-3xl mx-auto">
-        <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-          <h3 className="font-semibold text-gray-700">
-            Resumen de Jornadas por Servicio
-          </h3>
+      <SummaryTable
+        title="Resumen de Jornadas por Servicio"
+        columns={columns}
+        data={rows}
+        className="max-w-3xl"
+        headerActions={
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500">
               Total Jornadas: {total.toFixed(2)}
@@ -131,40 +118,51 @@ export const ServiceSummaryTable = ({
               Exportar Excel
             </button>
           </div>
-        </div>
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
+        }
+        footer={
+          <tr>
+            <td className="px-6 py-4 text-gray-900 uppercase">TOTAL</td>
+            <td className="px-6 py-4 text-right text-gray-900 font-mono text-base">
+              {total.toFixed(2)}
+            </td>
+          </tr>
+        }
+      />
+
+      {discountedRows && discountedRows.length > 0 && (
+        <SummaryTable
+          title="Servicios Descontados (No computan)"
+          columns={columns}
+          data={discountedRows}
+          variant="discounted"
+          className="max-w-3xl"
+          headerActions={
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-red-600">
+                Total Descontado: {discountedTotal?.toFixed(2)}
+              </span>
+            </div>
+          }
+          footer={
             <tr>
-              <th className="px-6 py-3 text-left font-semibold text-gray-600 uppercase tracking-wider">
-                Servicio
-              </th>
-              <th className="px-6 py-3 text-right font-semibold text-gray-600 uppercase tracking-wider">
-                Jornadas (Horas / 7)
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {rows.map((row, idx) => (
-              <tr key={idx} className="hover:bg-blue-50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                  {row.servicio}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-gray-700 font-mono">
-                  {row.jornadas.toFixed(2)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot className="bg-gray-100 font-bold border-t-2 border-gray-200">
-            <tr>
-              <td className="px-6 py-4 text-gray-900 uppercase">TOTAL</td>
+              <td className="px-6 py-4 text-gray-900 uppercase">
+                TOTAL DESCONTADO
+              </td>
               <td className="px-6 py-4 text-right text-gray-900 font-mono text-base">
-                {total.toFixed(2)}
+                {discountedTotal?.toFixed(2)}
               </td>
             </tr>
-          </tfoot>
-        </table>
-      </div>
+          }
+        />
+      )}
+
+      {data.session && (
+        <MinimumJourneysTable
+          session={data.session}
+          totalRealized={total}
+          className="max-w-3xl"
+        />
+      )}
     </div>
   );
 };

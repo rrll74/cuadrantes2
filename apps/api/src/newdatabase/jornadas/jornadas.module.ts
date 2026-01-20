@@ -13,6 +13,14 @@ import { JornadasMatchingService } from './services/jornadas-matcher.service';
 import { JornadasExportService } from './services/jornadas-export.service';
 import { JornadasImportService } from './services/jornadas-import.service';
 import { JornadasQueryService } from './services/jornadas-query.service';
+import {
+  SessionQueryHelper,
+  SessionStatsHelper,
+  JornadasTableHelper,
+  JornadasServiceSummaryHelper,
+  JornadasWorkerSummaryHelper,
+  JornadasStatusSummaryHelper,
+} from './services/query-helpers';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { existsSync, mkdirSync } from 'fs';
@@ -62,6 +70,12 @@ import { join } from 'path';
     JornadasExportService,
     JornadasImportService,
     JornadasQueryService,
+    SessionQueryHelper,
+    SessionStatsHelper,
+    JornadasTableHelper,
+    JornadasServiceSummaryHelper,
+    JornadasWorkerSummaryHelper,
+    JornadasStatusSummaryHelper,
   ],
   exports: [JornadasService],
 })

@@ -98,6 +98,7 @@ export class JornadasService {
     limit = 10,
     search?: string,
     status?: EstadoPresencia,
+    discounted?: string,
   ): Promise<PaginatedSessionResults> {
     return this.queryService.getSessionResults(
       sessionId,
@@ -105,6 +106,7 @@ export class JornadasService {
       limit,
       search,
       status,
+      discounted,
     );
   }
 

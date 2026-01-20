@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useRef, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { useStatusPartsSummary } from "@/hooks/useStatusPartsSummary";
 import {
   BarChart,
   Bar,
@@ -13,19 +12,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
-interface StatusPartsSummaryRow {
-  estado: string;
-  noPartsCount: number;
-  noPartsPercent: number;
-  withPartsCount: number;
-  withPartsPercent: number;
-}
-
-interface StatusPartsSummaryResponse {
-  rows: StatusPartsSummaryRow[];
-  footer: StatusPartsSummaryRow;
-}
 
 interface StatusPartsSummaryTableProps {
   sessionId: number;
@@ -70,32 +56,8 @@ export const StatusPartsSummaryTable = ({
     }
   }, [sessionId]);
 
-  const handleExport = async () => {
-    try {
-      const response = await api.get(`/jornadas/${sessionId}/export`, {
-        responseType: "blob",
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `jornadas_${sessionId}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (error) {
-      console.error("Error exporting:", error);
-    }
-  };
-
-  const { data, isLoading, error } = useQuery<StatusPartsSummaryResponse>({
-    queryKey: ["jornadas-status-parts-summary", sessionId],
-    queryFn: async () => {
-      const response = await api.get(
-        `/jornadas/${sessionId}/status-parts-summary`,
-      );
-      return response.data;
-    },
-  });
+  const { data, isLoading, error, handleExport } =
+    useStatusPartsSummary(sessionId);
 
   if (isLoading) {
     return (
