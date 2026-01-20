@@ -230,14 +230,10 @@ export class JornadasExportService {
     }
 
     // --- HOJA 4: TABLA POR EQUIPOS ---
-    // TODO: Incluir colores en las celdas dependiendo si el horario de fichaje es correcto o tiene deficiencias
-
-    // TODO: Incluir columna y fila final de sumatorio de horas
-
     if (summaryTable && summaryTable.columns && summaryTable.rows) {
       const wsSummary = workbook.addWorksheet('Tabla Equipos');
 
-      // Definir columnas
+      // Definir columnas: Servicio, Equipo, fechas con sufijo _value, Total_value
       const excelColumns = [
         { header: 'Servicio', key: 'servicio', width: 25 },
         { header: 'Equipo', key: 'equipo', width: 20 },
@@ -246,7 +242,7 @@ export class JornadasExportService {
           key: col.key,
           width: 8,
         })),
-        { header: 'Total', key: 'total', width: 10 },
+        { header: 'Total', key: 'total_value', width: 10 },
       ];
 
       wsSummary.columns = excelColumns;
@@ -256,23 +252,115 @@ export class JornadasExportService {
       headerRow.font = { bold: true };
       headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-      // Agregar filas
-      summaryTable.rows.forEach((rowData: any) => {
-        wsSummary.addRow(rowData);
-      });
+      // Mapeo de colores a códigos ARGB de Excel
+      const colorMap = {
+        green: 'FFC6EFCE', // Verde claro
+        yellow: 'FFFFEB9C', // Amarillo claro
+        red: 'FFFFC7CE', // Rojo claro
+      };
 
-      // Agregar Footer (Totales)
-      if (summaryTable?.footer) {
-        const footerRow = wsSummary.addRow(summaryTable.footer);
-        footerRow.font = { bold: true };
-        footerRow.eachCell((cell) => {
-          cell.fill = {
+      // Agregar filas con colores
+      summaryTable.rows.forEach((rowData: any) => {
+        // Transformar datos: mapear ${dateKey}_value a dateKey para que coincida con las columnas
+        const transformedRow: any = {
+          servicio: rowData.servicio,
+          equipo: rowData.equipo,
+          total_value: rowData.total_value,
+        };
+
+        summaryTable.columns.forEach((col) => {
+          transformedRow[col.key] = rowData[`${col.key}_value`];
+        });
+
+        const excelRow = wsSummary.addRow(transformedRow);
+
+        // Aplicar colores a las celdas de datos
+        summaryTable.columns.forEach((col) => {
+          const colorKey = `${col.key}_color`;
+          const color = rowData[colorKey] as
+            | 'green'
+            | 'yellow'
+            | 'red'
+            | undefined;
+
+          if (color && colorMap[color]) {
+            excelRow.getCell(col.key).fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: colorMap[color] },
+            };
+          }
+
+          excelRow.getCell(col.key).alignment = { horizontal: 'center' };
+        });
+
+        // Aplicar color al total de la fila
+        const totalColor = rowData.total_color as
+          | 'green'
+          | 'yellow'
+          | 'red'
+          | undefined;
+        if (totalColor && colorMap[totalColor]) {
+          excelRow.getCell('total_value').fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: 'FFD3D3D3' }, // Gris claro
+            fgColor: { argb: colorMap[totalColor] },
           };
-          cell.alignment = { horizontal: 'center' };
+        }
+        excelRow.getCell('total_value').alignment = { horizontal: 'center' };
+        excelRow.getCell('total_value').font = { bold: true };
+      });
+
+      // Agregar Footer (Totales) con colores
+      if (summaryTable?.footer) {
+        // Transformar datos del footer igual que las filas
+        const transformedFooter: any = {
+          servicio: summaryTable.footer.servicio,
+          equipo: summaryTable.footer.equipo,
+          total_value: summaryTable.footer.total_value,
+        };
+
+        summaryTable.columns.forEach((col) => {
+          transformedFooter[col.key] = summaryTable.footer[`${col.key}_value`];
         });
+
+        const footerRow = wsSummary.addRow(transformedFooter);
+        footerRow.font = { bold: true };
+
+        // Aplicar colores específicos al footer
+        summaryTable.columns.forEach((col) => {
+          const colorKey = `${col.key}_color`;
+          const color = summaryTable.footer[colorKey] as
+            | 'green'
+            | 'yellow'
+            | 'red'
+            | undefined;
+
+          if (color && colorMap[color]) {
+            footerRow.getCell(col.key).fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: colorMap[color] },
+            };
+          }
+
+          footerRow.getCell(col.key).alignment = { horizontal: 'center' };
+        });
+
+        // Color del total general
+        const totalColor = summaryTable.footer.total_color as
+          | 'green'
+          | 'yellow'
+          | 'red'
+          | undefined;
+        if (totalColor && colorMap[totalColor]) {
+          footerRow.getCell('total_value').fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: colorMap[totalColor] },
+          };
+        }
+        footerRow.getCell('total_value').alignment = { horizontal: 'center' };
       }
     }
 

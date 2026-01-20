@@ -22,8 +22,9 @@ interface TableColumn {
 interface TableRow {
   servicio: string;
   equipo: string;
-  total: number;
-  [key: string]: string | number;
+  total_value: number;
+  total_color?: "green" | "yellow" | "red";
+  [key: string]: string | number | ("green" | "yellow" | "red") | undefined;
 }
 
 interface TableDetailResponse {
@@ -35,6 +36,24 @@ interface TableDetailResponse {
 interface JornadasDetailTableProps {
   sessionId: number;
 }
+
+/**
+ * Mapea colores a clases de Tailwind
+ */
+const getColorClasses = (
+  color?: "green" | "yellow" | "red",
+): { bg: string; text: string } => {
+  switch (color) {
+    case "green":
+      return { bg: "bg-green-50", text: "text-green-900" };
+    case "yellow":
+      return { bg: "bg-yellow-50", text: "text-yellow-900" };
+    case "red":
+      return { bg: "bg-red-50", text: "text-red-900" };
+    default:
+      return { bg: "bg-white", text: "text-gray-700" };
+  }
+};
 
 export const JornadasDetailTable = ({
   sessionId,
@@ -130,7 +149,7 @@ export const JornadasDetailTable = ({
   // Preparar datos para el gráfico (evolución de totales por día)
   const chartData = columns.map((col) => ({
     date: col.label,
-    total: Number(footer[col.key] || 0),
+    total: Number(footer[`${col.key}_value`] || 0),
   }));
 
   return (
@@ -175,12 +194,28 @@ export const JornadasDetailTable = ({
           <h3 className="font-semibold text-gray-700">
             Tabla Detallada por Equipos
           </h3>
-          <button
-            onClick={handleExport}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
-          >
-            Exportar Excel
-          </button>
+          <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-4 text-xs mr-4">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-green-200 rounded"></div>
+                <span className="text-gray-600">Completo</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-yellow-200 rounded"></div>
+                <span className="text-gray-600">Incompleto</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-red-200 rounded"></div>
+                <span className="text-gray-600">Sin Presencia</span>
+              </div>
+            </div>
+            <button
+              onClick={handleExport}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
+            >
+              Exportar Excel
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto max-h-[75vh]">
           <table className="min-w-full divide-y divide-gray-200 text-sm border-collapse">
@@ -223,16 +258,29 @@ export const JornadasDetailTable = ({
                   >
                     {row.equipo}
                   </td>
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className="px-2 py-2 text-center text-gray-700"
-                    >
-                      {row[col.key] !== undefined ? row[col.key] : "-"}
-                    </td>
-                  ))}
-                  <td className="px-4 py-2 text-center font-bold text-gray-900 bg-gray-50 border-l">
-                    {row.total}
+                  {columns.map((col) => {
+                    const colorClass = getColorClasses(
+                      row[`${col.key}_color`] as
+                        | "green"
+                        | "yellow"
+                        | "red"
+                        | undefined,
+                    );
+                    return (
+                      <td
+                        key={col.key}
+                        className={`px-2 py-2 text-center font-medium ${colorClass.bg} ${colorClass.text}`}
+                      >
+                        {row[`${col.key}_value`] !== undefined
+                          ? row[`${col.key}_value`]
+                          : "-"}
+                      </td>
+                    );
+                  })}
+                  <td
+                    className={`px-4 py-2 text-center font-bold border-l ${getColorClasses(row.total_color).bg} ${getColorClasses(row.total_color).text}`}
+                  >
+                    {row.total_value}
                   </td>
                 </tr>
               ))}
@@ -245,16 +293,29 @@ export const JornadasDetailTable = ({
                 >
                   TOTALES
                 </td>
-                {columns.map((col) => (
-                  <td
-                    key={col.key}
-                    className="px-2 py-3 text-center text-gray-900 border-t"
-                  >
-                    {footer[col.key] !== undefined ? footer[col.key] : "-"}
-                  </td>
-                ))}
-                <td className="px-4 py-3 text-center text-gray-900 border-t border-l bg-gray-200">
-                  {footer.total}
+                {columns.map((col) => {
+                  const colorClass = getColorClasses(
+                    footer[`${col.key}_color`] as
+                      | "green"
+                      | "yellow"
+                      | "red"
+                      | undefined,
+                  );
+                  return (
+                    <td
+                      key={col.key}
+                      className={`px-2 py-3 text-center text-gray-900 border-t font-bold ${colorClass.bg} ${colorClass.text}`}
+                    >
+                      {footer[`${col.key}_value`] !== undefined
+                        ? footer[`${col.key}_value`]
+                        : "-"}
+                    </td>
+                  );
+                })}
+                <td
+                  className={`px-4 py-3 text-center text-gray-900 border-t border-l font-bold ${getColorClasses(footer.total_color).bg} ${getColorClasses(footer.total_color).text}`}
+                >
+                  {footer.total_value}
                 </td>
               </tr>
             </tfoot>

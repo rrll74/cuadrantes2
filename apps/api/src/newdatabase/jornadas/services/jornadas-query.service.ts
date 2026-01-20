@@ -324,27 +324,51 @@ export class JornadasQueryService {
 
   // TODO: Realizar separación de alguna forma de las jornadas que se pueden contabilizar de las que no. Las que no, son las que incluyen los datos de palabras clave en servicios y equipos en la configuración de sesión.
 
+  // TODO: Arreglar error de salida de fechas porque resultan en, al menos, 1 hora menos que la que está almacenada en base de datos.
+
   /**
    * Genera una tabla detallada de jornadas por servicio y equipo.
    * Calcula las jornadas (horas planificadas / 7) para cada día.
    */
+  /**
+   * Determina el color de una celda en la tabla de jornadas.
+   * - Verde: todas las rutas tienen COMPLETO
+   * - Amarillento: hay alguna ruta con INCOMPLETO (pero sin SIN_PRESENCIA)
+   * - Rojizo: hay alguna ruta con SIN_PRESENCIA
+   */
+  private getCellColor(results: PresenceResult[]): 'green' | 'yellow' | 'red' {
+    if (results.length === 0) return 'green';
+
+    const hasWithoutPresence = results.some(
+      (r) => r.estado === EstadoPresencia.SIN_PRESENCIA,
+    );
+    if (hasWithoutPresence) return 'red';
+
+    const hasIncomplete = results.some(
+      (r) => r.estado === EstadoPresencia.INCOMPLETO,
+    );
+    if (hasIncomplete) return 'yellow';
+
+    return 'green';
+  }
+
   async getJornadasTableDetail(sessionId: number) {
-    // 1. Obtener resultados con la relación de ruta
-    const results = await this.presenceRepo.find({
+    // 1. Obtener todos los resultados con la relación de ruta
+    const allResults = await this.presenceRepo.find({
       where: { sessionId },
       relations: ['route'],
     });
 
-    // 2. Filtrar solo jornadas realizadas (excluir SIN_PRESENCIA)
-    const validResults = results.filter(
-      (r) => r.estado !== EstadoPresencia.SIN_PRESENCIA,
-    );
-
-    // 3. Agrupar datos: Servicio -> Equipo -> Fecha -> Horas
-    const grouped = new Map<string, Map<string, Map<string, number>>>();
+    // 2. Crear estructuras de datos para tracking de colores por celda
+    // Estructura: Servicio -> Equipo -> Fecha -> { valor, color, results }
+    const grouped = new Map<
+      string,
+      Map<string, Map<string, { hours: number; results: PresenceResult[] }>>
+    >();
     const dateSet = new Set<string>();
 
-    validResults.forEach((res) => {
+    // 3. Agrupar datos por Servicio, Equipo, Fecha y Estado de los resultados
+    allResults.forEach((res) => {
       const route = res.route;
       const servicio = route.servicio || 'Sin Servicio';
       const equipo = route.equipo || 'Sin Equipo';
@@ -366,8 +390,13 @@ export class JornadasQueryService {
       }
       const teamMap = serviceMap.get(equipo)!;
 
-      const currentHours = teamMap.get(dateKey) || 0;
-      teamMap.set(dateKey, currentHours + hours);
+      if (!teamMap.has(dateKey)) {
+        teamMap.set(dateKey, { hours: 0, results: [] });
+      }
+
+      const cellData = teamMap.get(dateKey)!;
+      cellData.hours += hours;
+      cellData.results.push(res);
     });
 
     // 4. Generar Columnas (Ordenadas por fecha)
@@ -383,13 +412,23 @@ export class JornadasQueryService {
       };
     });
 
-    // 5. Generar Filas y Totales
+    // 5. Generar Filas con información de color
     const rows: any[] = [];
     const colTotals: Record<string, number> = {}; // Acumulador de horas por columna
+    const colColors: Record<
+      string,
+      Map<'green' | 'yellow' | 'red', number>
+    > = {}; // Tracking de colores por columna para totales
     let grandTotalHours = 0;
 
     // Inicializar totales de columna
-    sortedDates.forEach((d) => (colTotals[d] = 0));
+    sortedDates.forEach((d) => {
+      colTotals[d] = 0;
+      colColors[d] = new Map<'green' | 'yellow' | 'red', number>();
+      colColors[d].set('green', 0);
+      colColors[d].set('yellow', 0);
+      colColors[d].set('red', 0);
+    });
 
     // Ordenar por Servicio y luego por Equipo
     const sortedServices = Array.from(grouped.keys()).sort();
@@ -404,29 +443,64 @@ export class JornadasQueryService {
         let rowTotalHours = 0;
 
         sortedDates.forEach((dateKey) => {
-          const hours = teamMap.get(dateKey) || 0;
+          const cellData = teamMap.get(dateKey);
+          const hours = cellData?.hours || 0;
+          const cellResults = cellData?.results || [];
+          const color = this.getCellColor(cellResults);
+
           // Valor celda: jornadas = horas / 7
-          row[dateKey] = Number((hours / 7).toFixed(2));
+          row[`${dateKey}_value`] = Number((hours / 7).toFixed(2));
+          row[`${dateKey}_color`] = color;
 
           // Acumular totales en horas
           rowTotalHours += hours;
           colTotals[dateKey] += hours;
+
+          // Contar color para totales
+          const count = colColors[dateKey].get(color) || 0;
+          colColors[dateKey].set(color, count + 1);
         });
 
         // Total fila: suma de horas / 7
-        row.total = Number((rowTotalHours / 7).toFixed(2));
+        row.total_value = Number((rowTotalHours / 7).toFixed(2));
         grandTotalHours += rowTotalHours;
 
         rows.push(row);
       });
     });
 
-    // 6. Generar Footer con totales de columna
+    // 6. Generar Footer con totales de columna y color predominante
     const footer: any = { servicio: 'TOTAL', equipo: '' };
     sortedDates.forEach((d) => {
-      footer[d] = Number((colTotals[d] / 7).toFixed(2));
+      footer[`${d}_value`] = Number((colTotals[d] / 7).toFixed(2));
+
+      // Determinar color predominante para la columna (rojo > amarillo > verde)
+      const colorCounts = colColors[d];
+      let dominantColor: 'green' | 'yellow' | 'red' = 'green';
+      if ((colorCounts.get('red') || 0) > 0) {
+        dominantColor = 'red';
+      } else if ((colorCounts.get('yellow') || 0) > 0) {
+        dominantColor = 'yellow';
+      }
+
+      footer[`${d}_color`] = dominantColor;
     });
-    footer.total = Number((grandTotalHours / 7).toFixed(2));
+
+    footer.total_value = Number((grandTotalHours / 7).toFixed(2));
+
+    // Determinar color del total general
+    let totalGrandColor: 'green' | 'yellow' | 'red' = 'green';
+    Object.values(colColors).forEach((colorMap) => {
+      if ((colorMap.get('red') || 0) > 0) {
+        totalGrandColor = 'red';
+      } else if (
+        (colorMap.get('yellow') || 0) > 0 &&
+        totalGrandColor !== 'red'
+      ) {
+        totalGrandColor = 'yellow';
+      }
+    });
+    footer.total_color = totalGrandColor;
 
     return {
       columns,

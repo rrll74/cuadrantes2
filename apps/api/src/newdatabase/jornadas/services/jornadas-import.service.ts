@@ -296,7 +296,7 @@ export class JornadasImportService {
     );
 
     if (missingColumns.length > 0) {
-      const detectedHeaders = Object.keys(firstRow).join(', ');
+      const detectedHeaders = Object.keys(firstRow as object).join(', ');
       throw new BadRequestException(
         `El archivo ${fileName} no contiene la(s) columna(s) requerida(s): "${missingColumns.join(
           ', ',
