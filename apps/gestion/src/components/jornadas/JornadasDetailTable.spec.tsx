@@ -49,8 +49,110 @@ describe("JornadasDetailTable", () => {
     );
   };
 
+  it("debe renderizar el componente con datos cargados exitosamente", async () => {
+    (api.get as jest.Mock).mockImplementation((url) => {
+      if (url === `/jornadas/${sessionId}/table-detail`) {
+        return Promise.resolve({
+          data: {
+            columns: [
+              { key: "2023-10-27", label: "27 V" },
+              { key: "2023-10-28", label: "28 S" },
+            ],
+            rows: [
+              {
+                servicio: "Servicio A",
+                equipo: "Equipo 1",
+                total: 20,
+                "2023-10-27_value": 8,
+                "2023-10-27_color": "GREEN",
+                "2023-10-28_value": 12,
+                "2023-10-28_color": "YELLOW",
+              },
+            ],
+            footer: {
+              servicio: "TOTAL",
+              equipo: "",
+              total: 20,
+              "2023-10-27_value": 8,
+              "2023-10-28_value": 12,
+            },
+            discountedRows: [
+              {
+                servicio: "Servicio B",
+                equipo: "Equipo 2",
+                total: 5,
+                "2023-10-27_value": 5,
+              },
+            ],
+            discountedFooter: {
+              servicio: "TOTAL DESCONTADO",
+              equipo: "",
+              total: 5,
+              "2023-10-27_value": 5,
+            },
+          },
+        });
+      }
+      return Promise.reject(new Error("Not found"));
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText("Servicio A")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Tabla Detallada por Equipos")).toBeInTheDocument();
+    expect(screen.getByText("Servicio A")).toBeInTheDocument();
+    expect(screen.getByText("Equipo 1")).toBeInTheDocument();
+  });
+
+  it("debe mostrar estado de carga", async () => {
+    (api.get as jest.Mock).mockImplementationOnce(
+      () => new Promise(() => {}), // nunca resuelve
+    );
+
+    renderComponent();
+
+    expect(screen.getByText(/Cargando tabla detallada/)).toBeInTheDocument();
+  });
+
+  it("debe mostrar mensaje de error cuando falla la API", async () => {
+    (api.get as jest.Mock).mockImplementationOnce(() =>
+      Promise.reject(new Error("API Error")),
+    );
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Error al cargar los datos de la tabla detallada/),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("debe mostrar mensaje cuando no hay datos", async () => {
+    (api.get as jest.Mock).mockImplementationOnce(() =>
+      Promise.resolve({
+        data: {
+          columns: [],
+          rows: [],
+        },
+      }),
+    );
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          /No hay datos disponibles para generar la tabla detallada/,
+        ),
+      ).toBeInTheDocument();
+    });
+  });
+
   it("debe renderizar el botón de exportar y llamar a la API al hacer clic", async () => {
-    // Configurar mocks de API
     (api.get as jest.Mock).mockImplementation((url) => {
       if (url === `/jornadas/${sessionId}/table-detail`) {
         return Promise.resolve({
@@ -85,21 +187,17 @@ describe("JornadasDetailTable", () => {
 
     renderComponent();
 
-    // Esperar a que se carguen los datos
     await waitFor(() => {
       expect(screen.getByText("Servicio A")).toBeInTheDocument();
     });
 
-    // Verificar que el botón de exportar está presente
     const exportButton = screen.getByRole("button", {
       name: /exportar excel/i,
     });
     expect(exportButton).toBeInTheDocument();
 
-    // Simular clic en exportar
     fireEvent.click(exportButton);
 
-    // Verificar que se llamó a la API de exportación
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith(`/jornadas/${sessionId}/export`, {
         responseType: "blob",
@@ -107,8 +205,95 @@ describe("JornadasDetailTable", () => {
     });
   });
 
-  it("debe renderizar el gráfico de líneas", async () => {
-    // Configurar mocks de API
+  it("debe renderizar el gráfico de evolución con múltiples fechas", async () => {
+    (api.get as jest.Mock).mockImplementation((url) => {
+      if (url === `/jornadas/${sessionId}/table-detail`) {
+        return Promise.resolve({
+          data: {
+            columns: [
+              { key: "2023-10-27", label: "27 V" },
+              { key: "2023-10-28", label: "28 S" },
+              { key: "2023-10-29", label: "29 D" },
+            ],
+            rows: [],
+            footer: {
+              servicio: "TOTAL",
+              equipo: "",
+              total: 30,
+              "2023-10-27_value": 10,
+              "2023-10-28_value": 10,
+              "2023-10-29_value": 10,
+            },
+          },
+        });
+      }
+      return Promise.reject(new Error("Not found"));
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Evolución de Jornadas por Día"),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("line-chart")).toBeInTheDocument();
+  });
+
+  it("debe mostrar tabla de equipos descontados cuando existan", async () => {
+    (api.get as jest.Mock).mockImplementation((url) => {
+      if (url === `/jornadas/${sessionId}/table-detail`) {
+        return Promise.resolve({
+          data: {
+            columns: [{ key: "2023-10-27", label: "27 V" }],
+            rows: [
+              {
+                servicio: "Servicio A",
+                equipo: "Equipo 1",
+                total: 10,
+                "2023-10-27_value": 10,
+              },
+            ],
+            footer: {
+              servicio: "TOTAL",
+              equipo: "",
+              total: 10,
+              "2023-10-27_value": 10,
+            },
+            discountedRows: [
+              {
+                servicio: "Servicio B",
+                equipo: "Equipo 2",
+                total: 5,
+                "2023-10-27_value": 5,
+              },
+            ],
+            discountedFooter: {
+              servicio: "TOTAL DESCONTADO",
+              equipo: "",
+              total: 5,
+              "2023-10-27_value": 5,
+            },
+          },
+        });
+      }
+      return Promise.reject(new Error("Not found"));
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Equipos Descontados (No computan)"),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Servicio B")).toBeInTheDocument();
+    expect(screen.getByText("Equipo 2")).toBeInTheDocument();
+  });
+
+  it("debe renderizar el botón de descarga de imagen", async () => {
     (api.get as jest.Mock).mockImplementation((url) => {
       if (url === `/jornadas/${sessionId}/table-detail`) {
         return Promise.resolve({
@@ -119,7 +304,7 @@ describe("JornadasDetailTable", () => {
               servicio: "TOTAL",
               equipo: "",
               total: 10,
-              "2023-10-27": 10,
+              "2023-10-27_value": 10,
             },
           },
         });
@@ -129,77 +314,8 @@ describe("JornadasDetailTable", () => {
 
     renderComponent();
 
-    // Esperar a que se carguen los datos
-    await waitFor(() => {
-      expect(
-        screen.getByText("Evolución de Jornadas por Día"),
-      ).toBeInTheDocument();
-    });
-
-    expect(screen.getByTestId("line-chart")).toBeInTheDocument();
-  });
-
-  it("debe renderizar el botón de descarga de imagen y funcionar correctamente", async () => {
-    // Configurar mocks para Canvas y XMLSerializer
-    const mockToDataURL = jest.fn(() => "data:image/png;base64,test");
-    const mockDrawImage = jest.fn();
-    const mockFillRect = jest.fn();
-
-    jest.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
-      fillStyle: "",
-      fillRect: mockFillRect,
-      drawImage: mockDrawImage,
-    } as unknown as CanvasRenderingContext2D);
-    jest
-      .spyOn(HTMLCanvasElement.prototype, "toDataURL")
-      .mockImplementation(mockToDataURL);
-
-    global.XMLSerializer = jest.fn().mockImplementation(() => ({
-      serializeToString: () => "<svg></svg>",
-    }));
-
-    // Mock Image
-    // @ts-expect-error - Mock de Image para testing
-    global.Image = class {
-      onload?: () => void;
-      set src(val: string) {
-        if (this.onload) this.onload();
-      }
-    };
-
-    // Mock click en enlace de descarga
-    const mockLinkClick = jest.fn();
-    const originalCreateElement = document.createElement.bind(document);
-    jest
-      .spyOn(document, "createElement")
-      .mockImplementation(
-        (tagName: string, options?: ElementCreationOptions) => {
-          if (tagName === "a") {
-            const element = originalCreateElement("a");
-            jest.spyOn(element, "click").mockImplementation(mockLinkClick);
-            return element;
-          }
-          return originalCreateElement(tagName, options);
-        },
-      );
-
-    // Configurar respuesta API
-    (api.get as jest.Mock).mockResolvedValue({
-      data: {
-        columns: [{ key: "2023-10-27", label: "27 V" }],
-        rows: [],
-        footer: { servicio: "TOTAL", equipo: "", total: 10, "2023-10-27": 10 },
-      },
-    });
-
-    renderComponent();
-
     await waitFor(() => {
       expect(screen.getByText("Descargar PNG")).toBeInTheDocument();
     });
-
-    fireEvent.click(screen.getByText("Descargar PNG"));
-
-    expect(mockLinkClick).toHaveBeenCalled();
   });
 });

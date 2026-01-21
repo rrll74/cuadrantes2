@@ -1,0 +1,102 @@
+# Quick Reference - Tests Frontend Jornadas
+
+## 📦 Archivos Generados
+
+### Jest Tests (Unitarios)
+- `EqualAndPuestosSummaryTable.spec.tsx` - 7 tests, 239 líneas
+- `JornadasDetailTable.spec.tsx` - 8 tests, 290 líneas
+- `ServiceSummaryTable.spec.tsx` - 7 tests, 237 líneas
+- `StatusPartsSummaryTable.spec.tsx` - 9 tests, 275 líneas
+- `ResultsTable.spec.tsx` - 9 tests, 318 líneas [NEW]
+- `UnmatchedResultsTable.spec.tsx` - 11 tests, 407 líneas [NEW]
+
+**Total Jest**: 51 tests en 1,766 líneas
+
+### Cypress Tests (E2E)
+- `jornadas-query.cy.ts` - 22 tests, 644 líneas [NEW]
+- `jornadas-query-filters.cy.ts` - 17 tests, 737 líneas [NEW]
+
+**Total Cypress**: 39 tests en 1,381 líneas
+
+### Total
+- **90+ Tests**
+- **3,147 líneas de código de test**
+
+---
+
+## 🚀 Comandos Rápidos
+
+```bash
+# Tests unitarios
+npm run test:gestion
+
+# Tests E2E (headless)
+npm run cypress:run:gestion
+
+# Tests E2E (interactivo)
+npm run cypress:open:gestion
+
+# Con coverage
+npm run test:gestion -- --coverage
+```
+
+---
+
+## ✅ Checklist de Componentes
+
+- [x] EqualAndPuestosSummaryTable - Actualizado (1→7 tests)
+- [x] JornadasDetailTable - Actualizado (3→8 tests)
+- [x] ServiceSummaryTable - Actualizado (1→7 tests)
+- [x] StatusPartsSummaryTable - Actualizado (1→9 tests)
+- [x] ResultsTable - Creado (9 tests)
+- [x] UnmatchedResultsTable - Creado (11 tests)
+- [x] E2E Query - Creado (22 tests)
+- [x] E2E Filters - Creado (17 tests)
+
+---
+
+## 🎯 Cobertura de Funcionalidad
+
+**Tabla de Resultados**: 8 features ✅
+**Tabla Sin Asignar**: 6 features ✅
+**Tabla Detallada**: 7 features ✅
+**Resumen Servicio**: 6 features ✅
+**Resumen Puesto/Equal**: 5 features ✅
+**Resumen Estados/Partes**: 5 features ✅
+
+---
+
+## 📊 Mejoras
+
+| Métrica | Antes | Después | Cambio |
+|---------|-------|---------|--------|
+| Tests Jest | 6 | 51 | +750% |
+| Tests E2E | 0 | 39 | +∞ |
+| Líneas test | ~500 | 3,147 | +530% |
+| Componentes cubiertos | 4/6 | 6/6 | 100% |
+
+---
+
+## 🔗 Referencia Rápida
+
+### Por Funcionalidad
+- **Filtros**: `jornadas-query-filters.cy.ts`
+- **Carga de datos**: Todos los `.spec.tsx`
+- **Exportación**: `jornadas-query.cy.ts` (línea 345+)
+- **Gráficos**: Todos los `.spec.tsx` y `.cy.ts`
+
+### Por Componente
+- **EqualAndPuestosSummaryTable**: 7 tests
+- **JornadasDetailTable**: 8 tests
+- **ServiceSummaryTable**: 7 tests
+- **StatusPartsSummaryTable**: 9 tests
+- **ResultsTable**: 9 tests
+- **UnmatchedResultsTable**: 11 tests
+
+---
+
+## 📝 Estado: ✅ COMPLETADO
+
+Fecha: 21 de Enero de 2026
+Todos los componentes de jornadas tienen cobertura de tests.
+Listo para producción.
