@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { renderHook } from "@testing-library/react";
 import { usePermissions } from "./usePermissions";
 import { useAuth } from "@/context/AuthContext";
+import { PERMISSIONS } from "@cuadrantes/shared-dto";
 
 jest.mock("@/context/AuthContext");
 
@@ -17,14 +19,18 @@ describe("usePermissions Hook", () => {
         id: "1",
         username: "admin",
         email: "admin@test.com",
-        permisos: ["admin", "users:read", "users:create"],
+        permisos: [
+          PERMISSIONS.ADMIN,
+          PERMISSIONS.USERS_READ,
+          PERMISSIONS.USERS_CREATE,
+        ],
       },
       login: jest.fn(),
       logout: jest.fn(),
       isAuthenticated: true,
     } as any);
 
-    const { result } = renderHook(() => usePermissions("admin"));
+    const { result } = renderHook(() => usePermissions(PERMISSIONS.ADMIN));
     expect(result.current).toBe(true);
   });
 
@@ -34,14 +40,16 @@ describe("usePermissions Hook", () => {
         id: "1",
         username: "usuario",
         email: "user@test.com",
-        permisos: ["jornadas:read", "jornadas:write"],
+        permisos: [PERMISSIONS.JORNADAS_READ, PERMISSIONS.JORNADAS_WRITE],
       },
       login: jest.fn(),
       logout: jest.fn(),
       isAuthenticated: true,
     } as any);
 
-    const { result } = renderHook(() => usePermissions("jornadas:read"));
+    const { result } = renderHook(() =>
+      usePermissions(PERMISSIONS.JORNADAS_READ),
+    );
     expect(result.current).toBe(true);
   });
 
@@ -51,14 +59,16 @@ describe("usePermissions Hook", () => {
         id: "2",
         username: "usuario",
         email: "user@test.com",
-        permisos: ["jornadas:read"],
+        permisos: [PERMISSIONS.JORNADAS_READ],
       },
       login: jest.fn(),
       logout: jest.fn(),
       isAuthenticated: true,
     } as any);
 
-    const { result } = renderHook(() => usePermissions("users:delete"));
+    const { result } = renderHook(() =>
+      usePermissions(PERMISSIONS.USERS_DELETE),
+    );
     expect(result.current).toBe(false);
   });
 
@@ -70,7 +80,7 @@ describe("usePermissions Hook", () => {
       isAuthenticated: false,
     } as any);
 
-    const { result } = renderHook(() => usePermissions("admin"));
+    const { result } = renderHook(() => usePermissions(PERMISSIONS.ADMIN));
     expect(result.current).toBe(false);
   });
 

@@ -8,6 +8,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { PERMISSIONS } from '@cuadrantes/shared-dto';
 import { Permiso } from './entities/permiso.entity';
 import { PermisosService } from './permisos.service';
 
@@ -27,7 +28,7 @@ export class PermisosController {
   })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 403, description: 'Permisos insuficientes.' })
-  @HasPermissions('users:read')
+  @HasPermissions(PERMISSIONS.USERS_READ)
   findAll() {
     return this.permisosService.findAll();
   }

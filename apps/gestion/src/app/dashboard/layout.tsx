@@ -24,6 +24,7 @@ import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { usePermissions } from "@/hooks/usePermissions";
 import { SocketProvider } from "@/context/SocketContext";
+import { PERMISSIONS } from "@cuadrantes/shared-dto";
 
 const drawerWidth = 240;
 
@@ -34,14 +35,14 @@ export default function DashboardLayout({
 }) {
   const { isAuthenticated, isLoading, logout } = useAuth();
   const router = useRouter();
-  const isAdmin = usePermissions("admin");
-  const canReadUsers = usePermissions("users:read") || isAdmin;
-  const canCreateUsers = usePermissions("users:create") || isAdmin;
-  const canUpdateUsers = usePermissions("users:update") || isAdmin;
-  const canDeleteUsers = usePermissions("users:delete") || isAdmin;
+  const isAdmin = usePermissions(PERMISSIONS.ADMIN);
+  const canReadUsers = usePermissions(PERMISSIONS.USERS_READ) || isAdmin;
+  const canCreateUsers = usePermissions(PERMISSIONS.USERS_CREATE) || isAdmin;
+  const canUpdateUsers = usePermissions(PERMISSIONS.USERS_UPDATE) || isAdmin;
+  const canDeleteUsers = usePermissions(PERMISSIONS.USERS_DELETE) || isAdmin;
   const canCRUD =
     canReadUsers || canCreateUsers || canUpdateUsers || canDeleteUsers;
-  const canReadJornadas = usePermissions("jornadas:read");
+  const canReadJornadas = usePermissions(PERMISSIONS.JORNADAS_READ);
   const showJornadas = canReadJornadas || isAdmin;
 
   useEffect(() => {

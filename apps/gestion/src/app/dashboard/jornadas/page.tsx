@@ -4,11 +4,12 @@ import React from "react";
 import { UploadJornadasForm } from "@/components/jornadas/UploadJornadasForm";
 import { SessionsList } from "@/components/jornadas/SessionsList";
 import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@cuadrantes/shared-dto";
 
 export default function JornadasPage() {
-  const canRead = usePermissions("jornadas:read");
-  const canWrite = usePermissions("jornadas:write");
-  const isAdmin = usePermissions("admin");
+  const canRead = usePermissions(PERMISSIONS.JORNADAS_READ);
+  const canWrite = usePermissions(PERMISSIONS.JORNADAS_WRITE);
+  const isAdmin = usePermissions(PERMISSIONS.ADMIN);
 
   const hasReadAccess = canRead || isAdmin;
   const hasWriteAccess = canWrite || isAdmin;

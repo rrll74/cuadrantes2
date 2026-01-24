@@ -32,6 +32,7 @@ import UserForm from "@/app/dashboard/users/components/userForm";
 import { UserRow } from "@/app/dashboard/users/components/UserRow";
 import { useUserHandlers } from "./components/userHandlers";
 import { useSocket } from "@/context/SocketContext";
+import { PERMISSIONS } from "@cuadrantes/shared-dto";
 
 // Función para obtener los datos (sin cambios)
 const fetchUsers = async (): Promise<User[]> => {
@@ -63,10 +64,10 @@ export default function UsersListPage() {
   } = useUserHandlers();
 
   // Permisos
-  const canRead = usePermissions("users:read");
-  const canCreate = usePermissions("users:create");
-  const canUpdate = usePermissions("users:update"); // Usaremos este permiso también para desconectar
-  const canDelete = usePermissions("users:delete");
+  const canRead = usePermissions(PERMISSIONS.USERS_READ);
+  const canCreate = usePermissions(PERMISSIONS.USERS_CREATE);
+  const canUpdate = usePermissions(PERMISSIONS.USERS_UPDATE); // Usaremos este permiso también para desconectar
+  const canDelete = usePermissions(PERMISSIONS.USERS_DELETE);
 
   const {
     data: users,

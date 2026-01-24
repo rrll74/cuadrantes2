@@ -246,9 +246,9 @@ describe('JornadasMatchingService', () => {
     expect(res1?.esDuplicado).toBe(true);
     expect(res2?.esDuplicado).toBe(true);
 
-    // Al ser del mismo equipo, la lógica de negocio determina que NO requieren revisión manual
-    expect(res1?.revisar).toBe(false);
-    expect(res2?.revisar).toBe(false);
+    // Al ser del mismo equipo y tener Overlap (horario coincidente), la lógica de negocio determina que SÍ requieren revisión manual
+    expect(res1?.revisar).toBe(true);
+    expect(res2?.revisar).toBe(true);
   });
 
   it('debería detectar rutas duplicadas conflictivas (diferente equipo) y marcar revisar: true', () => {

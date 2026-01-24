@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { JornadasController } from './jornadas.controller';
 import { JornadasService } from './jornadas.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -52,6 +54,7 @@ describe('JornadasController (Integration)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
+    jest.clearAllMocks();
     jornadasService = moduleFixture.get<JornadasService>(JornadasService);
     await app.init();
   });
@@ -121,6 +124,7 @@ describe('JornadasController (Integration)', () => {
       50, // limit
       search,
       status,
+      undefined, // discounted
     );
   });
 });

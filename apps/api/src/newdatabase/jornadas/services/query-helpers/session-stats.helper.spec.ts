@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken, getDataSourceToken } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
 import { SessionStatsHelper } from './session-stats.helper';
 import { ImportSession } from '../../entities/import-session.entity';
 import { RawWorker } from '../../entities/raw-worker.entity';
@@ -9,10 +9,6 @@ import { EstadoPresencia } from '../../entities/presence-result.entity';
 
 describe('SessionStatsHelper', () => {
   let helper: SessionStatsHelper;
-  let sessionRepo: Repository<ImportSession>;
-  let workerRepo: Repository<RawWorker>;
-  let unmatchedRepo: Repository<UnmatchedResult>;
-  let dataSource: DataSource;
 
   const mockSessionRepo = {
     createQueryBuilder: jest.fn(),
@@ -67,12 +63,9 @@ describe('SessionStatsHelper', () => {
     }).compile();
 
     helper = module.get<SessionStatsHelper>(SessionStatsHelper);
-    sessionRepo = module.get(getRepositoryToken(ImportSession, 'new'));
-    workerRepo = module.get(getRepositoryToken(RawWorker, 'new'));
-    unmatchedRepo = module.get(getRepositoryToken(UnmatchedResult, 'new'));
-    dataSource = module.get(getDataSourceToken('new'));
 
     jest.clearAllMocks();
+    mockSessionRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
     mockUnmatchedRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
     mockDataSource.createQueryBuilder.mockReturnValue(mockQueryBuilder);
   });
@@ -236,8 +229,8 @@ describe('SessionStatsHelper', () => {
 
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe(1);
-      expect(result[0].totalRutas).toBe(10);
-      expect(result[0].totalResultados).toBe(50);
+      expect((result[0] as any).totalRutas).toBe(10);
+      expect((result[0] as any).totalResultados).toBe(50);
     });
 
     it('debería crear query builder con alias "session"', async () => {
@@ -293,7 +286,9 @@ describe('SessionStatsHelper', () => {
 
       const result = await helper.findAllSessions();
 
-      expect(result[0].createdAt).toTime.isAfter(result[1].createdAt);
+      expect(result[0].createdAt.getTime()).toBeGreaterThan(
+        result[1].createdAt.getTime(),
+      );
     });
 
     it('debería retornar array vacío cuando no hay sesiones', async () => {

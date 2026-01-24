@@ -23,6 +23,7 @@ import { AuthLockdownService } from './auth-lockdown.service';
 import { StatusGateway } from '@/status/status.gateway';
 import { AuthModel } from './auth.model';
 import { Public } from './decorators/public.decorator';
+import { PERMISSIONS } from '@cuadrantes/shared-dto';
 
 // El JwtAuthGuard ya es global, por lo que solo necesitamos aplicar el
 // PermissionsGuard a nivel de controlador para que verifique los permisos
@@ -100,7 +101,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Acceso concedido.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 403, description: 'Permisos insuficientes.' })
-  @HasPermissions('admin')
+  @HasPermissions(PERMISSIONS.ADMIN)
   @Get('admin-area')
   getAdminArea(@Request() req: { user: UserPayload }) {
     return {
@@ -119,7 +120,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 403, description: 'Permisos insuficientes.' })
   @Get('lockdown-status')
-  @HasPermissions('users:update') // Solo usuarios con este permiso pueden ver el estado
+  @HasPermissions(PERMISSIONS.USERS_UPDATE) // Solo usuarios con este permiso pueden ver el estado
   getLockdownStatus() {
     return this.lockdownService.getStatus();
   }
@@ -138,7 +139,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 403, description: 'Permisos insuficientes.' })
   @Post('toggle-lockdown')
-  @HasPermissions('users:update') // Solo usuarios con este permiso pueden cambiar el estado
+  @HasPermissions(PERMISSIONS.USERS_UPDATE) // Solo usuarios con este permiso pueden cambiar el estado
   toggleLockdown() {
     const isLocked = this.lockdownService.toggleLockdown();
 

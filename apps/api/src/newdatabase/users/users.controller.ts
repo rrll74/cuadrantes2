@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
   Body,
   Controller,
@@ -13,6 +15,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { HasPermissions } from '@/auth/decorators/permissions.decorator';
 import { HasAnyPermission } from '@/auth/decorators/any-permissions.decorator';
 import { PermissionsGuard } from '@/auth/guards/permissions.guard';
+import { PERMISSIONS } from '@cuadrantes/shared-dto';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -43,10 +46,11 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 403, description: 'Permisos insuficientes.' })
   @HasAnyPermission(
-    'users:read',
-    'users:create',
-    'users:update',
-    'users:delete',
+    PERMISSIONS.ADMIN,
+    PERMISSIONS.USERS_READ,
+    PERMISSIONS.USERS_CREATE,
+    PERMISSIONS.USERS_UPDATE,
+    PERMISSIONS.USERS_DELETE,
   )
   findAllUsers(): Promise<UserResponseDto[]> {
     return this.usersService.findAll();
@@ -63,7 +67,7 @@ export class UsersController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 403, description: 'Permisos insuficientes.' })
-  @HasPermissions('users:create')
+  @HasPermissions(PERMISSIONS.USERS_CREATE)
   createUser(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
@@ -81,7 +85,7 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 403, description: 'Permisos insuficientes.' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
-  @HasPermissions('users:update')
+  @HasPermissions(PERMISSIONS.USERS_UPDATE)
   updateUser(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
@@ -96,7 +100,7 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 403, description: 'Permisos insuficientes.' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
-  @HasPermissions('users:delete')
+  @HasPermissions(PERMISSIONS.USERS_DELETE)
   deleteUser(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);
   }

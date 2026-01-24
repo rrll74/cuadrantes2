@@ -123,6 +123,18 @@ function aplicarAjusteContinuidad(group: PresenceResult[]) {
 }
 
 /**
+ * Detecta si dos períodos de tiempo se superponen
+ */
+function tienenOverlap(
+  inicio1: Date,
+  fin1: Date,
+  inicio2: Date,
+  fin2: Date,
+): boolean {
+  return inicio1 < fin2 && inicio2 < fin1;
+}
+
+/**
  * Detecta rutas duplicadas y aplica reglas de negocio.
  */
 export function detectarDuplicados(results: PresenceResult[]) {
@@ -144,13 +156,33 @@ export function detectarDuplicados(results: PresenceResult[]) {
     ).length;
     const equiposUnicos = new Set(group.map((r) => r.route.equipo)).size;
 
+    // Detectar si hay overlap entre los horarios
+    let hayOverlap = false;
+    for (let i = 0; i < group.length - 1; i++) {
+      for (let j = i + 1; j < group.length; j++) {
+        if (
+          tienenOverlap(
+            group[i].route.inicio,
+            group[i].route.fin,
+            group[j].route.inicio,
+            group[j].route.fin,
+          )
+        ) {
+          hayOverlap = true;
+          break;
+        }
+      }
+      if (hayOverlap) break;
+    }
+
     // 3. Lógica de Conflicto: Decidimos si requiere revisión manual
     let revisar = true;
     // Excepción 1: Rutas "vacías". Si hay 2 rutas y una no tiene partes (carga de trabajo),
     // asumimos que la válida es la que tiene partes.
     if (group.length === 2 && partesAsociadosCero > 0) revisar = false;
-    // Excepción 2: Mismo Equipo. Si son del mismo equipo, es una organización interna válida.
-    else if (equiposUnicos === 1) revisar = false;
+    // Excepción 2: Mismo Equipo sin overlap. Si son del mismo equipo y NO hay overlap,
+    // es una organización interna válida (continuidad).
+    else if (equiposUnicos === 1 && !hayOverlap) revisar = false;
     // Excepción 3: Diferentes equipos pero sin carga. Si son equipos distintos (conflicto)
     // pero una ruta está vacía, se ignora el conflicto.
     else if (equiposUnicos === 2 && partesAsociadosCero > 0) revisar = false;

@@ -9,13 +9,14 @@ import { ServiceSummaryTable } from "@/components/jornadas/ServiceSummaryTable";
 import { EqualAndPuestosSummaryTable } from "@/components/jornadas/EqualAndPuestosSummaryTable";
 import { StatusPartsSummaryTable } from "@/components/jornadas/StatusPartsSummaryTable";
 import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@cuadrantes/shared-dto";
 import { clsx } from "clsx";
 
 export default function JornadaResultsPage() {
   const params = useParams();
   const sessionId = Number(params.id);
-  const canRead = usePermissions("jornadas:read");
-  const isAdmin = usePermissions("admin");
+  const canRead = usePermissions(PERMISSIONS.JORNADAS_READ);
+  const isAdmin = usePermissions(PERMISSIONS.ADMIN);
   const [activeTab, setActiveTab] = useState<
     | "matched"
     | "unmatched"

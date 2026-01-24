@@ -1,8 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { SeederService } from './seeder.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { AVAILABLE_PERMISSIONS } from '@cuadrantes/shared-dto';
 import { User } from './users/entities/user.entity';
 import { Permiso } from './permisos/entities/permiso.entity';
 
@@ -23,6 +29,7 @@ describe('SeederService', () => {
     create: jest.fn(),
     save: jest.fn(),
     find: jest.fn(),
+    findOne: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -60,27 +67,32 @@ describe('SeederService', () => {
     it('should seed permissions if none exist', async () => {
       // Arrange: Simulamos que no hay permisos en la BD
       mockPermisoRepository.count.mockResolvedValue(0);
-      const createdPermisos = [{ tipo: 'admin' }]; // Dummy data
+      const createdPermisos = []; // Dummy data
       mockPermisoRepository.create.mockReturnValue(createdPermisos);
 
       // Act: Ejecutamos el método
       await service.seedPermissions();
 
       // Assert: Verificamos que los métodos del repo fueron llamados
-      expect(permisoRepository.count).toHaveBeenCalledTimes(1);
-      expect(permisoRepository.create).toHaveBeenCalledTimes(1);
+      expect(permisoRepository.findOne).toHaveBeenCalled();
+      expect(permisoRepository.create).toHaveBeenCalled();
       expect(permisoRepository.save).toHaveBeenCalledWith(createdPermisos);
     });
 
     it('should NOT seed permissions if they already exist', async () => {
       // Arrange: Simulamos que ya existen permisos
-      mockPermisoRepository.count.mockResolvedValue(5);
+      mockPermisoRepository.findOne.mockResolvedValue(1);
+      const createdPermisos = [{ tipo: 'admin' }]; // Dummy data
+      mockPermisoRepository.create.mockReturnValue(createdPermisos);
 
       // Act
       await service.seedPermissions();
 
       // Assert: Verificamos que los métodos de creación NO fueron llamados
-      expect(permisoRepository.count).toHaveBeenCalledTimes(1);
+      // findOne debe ser llamado una vez por cada permiso en AVAILABLE_PERMISSIONS
+      expect(permisoRepository.findOne).toHaveBeenCalledTimes(
+        AVAILABLE_PERMISSIONS.length,
+      );
       expect(permisoRepository.create).not.toHaveBeenCalled();
       expect(permisoRepository.save).not.toHaveBeenCalled();
     });
@@ -90,7 +102,9 @@ describe('SeederService', () => {
     it('should seed admin user if it does not exist', async () => {
       // Arrange: Simulamos que el admin no existe y que hay permisos
       mockUserRepository.findOne.mockResolvedValue(null);
-      const allPermisos = [{ tipo: 'admin' }, { tipo: 'users:read' }];
+      const allPermisos = AVAILABLE_PERMISSIONS.map((p) => ({
+        ...p,
+      }));
       mockPermisoRepository.find.mockResolvedValue(allPermisos);
       const createdAdmin = { username: 'admin' }; // Dummy data
       mockUserRepository.create.mockReturnValue(createdAdmin);
@@ -101,6 +115,7 @@ describe('SeederService', () => {
       // Assert
       expect(userRepository.findOne).toHaveBeenCalledWith({
         where: { username: 'admin' },
+        relations: ['permisos'],
       });
       expect(permisoRepository.find).toHaveBeenCalledTimes(1);
       expect(userRepository.create).toHaveBeenCalledWith(
@@ -110,15 +125,22 @@ describe('SeederService', () => {
     });
 
     it('should NOT seed admin user if it already exists', async () => {
-      // Arrange: Simulamos que el admin ya existe
-      mockUserRepository.findOne.mockResolvedValue({ username: 'admin' });
+      // Arrange: Simulamos que el admin ya existe con todos los permisos
+      mockUserRepository.findOne.mockResolvedValue({
+        username: 'admin',
+        permisos: AVAILABLE_PERMISSIONS.map((p) => ({ ...p })),
+      });
+      // El find retorna todos los permisos (simulando que ya están en la BD)
+      mockPermisoRepository.find.mockResolvedValue(
+        AVAILABLE_PERMISSIONS.map((p) => ({ ...p })),
+      );
 
       // Act
       await service.seedAdminUser();
 
       // Assert
       expect(userRepository.findOne).toHaveBeenCalledTimes(1);
-      expect(permisoRepository.find).not.toHaveBeenCalled();
+      // find puede ser llamado para obtener permisos
       expect(userRepository.create).not.toHaveBeenCalled();
       expect(userRepository.save).not.toHaveBeenCalled();
     });

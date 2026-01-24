@@ -20,9 +20,16 @@ describe('PostProcessHelper', () => {
   }): PresenceResult => {
     const start = new Date(opts.start);
     const end = new Date(opts.end);
-    const fechaGeneral = opts.fechaGeneral
-      ? new Date(opts.fechaGeneral)
-      : start;
+
+    // fechaGeneral debe ser solo la fecha (sin hora)
+    let fechaGeneral: Date;
+    if (opts.fechaGeneral) {
+      fechaGeneral = new Date(opts.fechaGeneral);
+    } else {
+      // Extraer solo la fecha del start (set time to 00:00:00)
+      fechaGeneral = new Date(start);
+      fechaGeneral.setHours(0, 0, 0, 0);
+    }
 
     const route = {
       workerId: opts.workerId ?? 1,
@@ -114,7 +121,7 @@ describe('PostProcessHelper', () => {
       expect(r2.fichajeEntrada).toBeNull();
     });
 
-    it('no debería agrupar si son de equipos diferentes', () => {
+    it('debería agrupar aún siendo de equipos diferentes', () => {
       const r1 = createResult({
         start: '2023-10-25T08:00:00',
         end: '2023-10-25T14:00:00',
@@ -130,8 +137,8 @@ describe('PostProcessHelper', () => {
 
       ajustarHorarios([r1, r2]);
 
-      expect(r1.fichajeSalida).toBeNull();
-      expect(r2.fichajeEntrada).toBeNull();
+      expect(r1.fichajeSalida).not.toBeNull();
+      expect(r2.fichajeEntrada).not.toBeNull();
     });
 
     it('no debería modificar rutas sin horario (inicio=fin) aunque sean consecutivas', () => {
@@ -161,16 +168,77 @@ describe('PostProcessHelper', () => {
   });
 
   describe('detectarDuplicados', () => {
-    it('debería marcar duplicados y pedir revisión por defecto', () => {
+    it('no debería marcar duplicados si no hay coincidencias', () => {
       const r1 = createResult({
         start: '2023-10-25T08:00:00',
         end: '2023-10-25T14:00:00',
         turno: 'M',
       });
       const r2 = createResult({
+        start: '2023-10-25T15:00:00',
+        end: '2023-10-25T20:00:00',
+        turno: 'T',
+      });
+
+      detectarDuplicados([r1, r2]);
+
+      expect(r1.esDuplicado).toBe(false);
+      expect(r2.esDuplicado).toBe(false);
+    });
+    it('debería marcar duplicados dos registros con mismo equipo, turno y fecha, pero con horarios no coincidentes, pero no marcar revisión', () => {
+      const r1 = createResult({
+        start: '2023-10-25T08:00:00',
+        end: '2023-10-25T10:00:00',
+        turno: 'M',
+        equipo: 'A',
+      });
+      const r2 = createResult({
+        start: '2023-10-25T10:00:01',
+        end: '2023-10-25T15:00:00',
+        turno: 'M',
+        equipo: 'A',
+      });
+
+      detectarDuplicados([r1, r2]);
+
+      expect(r1.esDuplicado).toBe(true);
+      expect(r2.esDuplicado).toBe(true);
+      expect(r1.revisar).toBe(false);
+      expect(r2.revisar).toBe(false);
+    });
+    it('debería marcar duplicados dos registros con mismo equipo, turno y fecha, y con horarios que tengan periodo de tiempo en común y también pedir revisión', () => {
+      const r1 = createResult({
         start: '2023-10-25T08:00:00',
         end: '2023-10-25T14:00:00',
         turno: 'M',
+        equipo: 'A',
+      });
+      const r2 = createResult({
+        start: '2023-10-25T09:00:00',
+        end: '2023-10-25T15:00:00',
+        turno: 'M',
+        equipo: 'A',
+      });
+
+      detectarDuplicados([r1, r2]);
+
+      expect(r1.esDuplicado).toBe(true);
+      expect(r2.esDuplicado).toBe(true);
+      expect(r1.revisar).toBe(true);
+      expect(r2.revisar).toBe(true);
+    });
+    it('debería pedir revisión si hay 2 duplicados con mismo turno y diferente equipo', () => {
+      const r1 = createResult({
+        start: '2023-10-25T08:00:00',
+        end: '2023-10-25T14:00:00',
+        turno: 'M',
+        equipo: 'A',
+      });
+      const r2 = createResult({
+        start: '2023-10-25T08:00:00',
+        end: '2023-10-25T14:00:00',
+        turno: 'M',
+        equipo: 'B',
       });
 
       detectarDuplicados([r1, r2]);
@@ -193,26 +261,6 @@ describe('PostProcessHelper', () => {
         end: '2023-10-25T14:00:00',
         turno: 'M',
         partes: 0,
-      });
-
-      detectarDuplicados([r1, r2]);
-
-      expect(r1.esDuplicado).toBe(true);
-      expect(r1.revisar).toBe(false);
-    });
-
-    it('no debería pedir revisión si todos pertenecen al mismo equipo (equiposUnicos = 1)', () => {
-      const r1 = createResult({
-        start: '2023-10-25T08:00:00',
-        end: '2023-10-25T14:00:00',
-        turno: 'M',
-        equipo: 'A',
-      });
-      const r2 = createResult({
-        start: '2023-10-25T08:00:00',
-        end: '2023-10-25T14:00:00',
-        turno: 'M',
-        equipo: 'A',
       });
 
       detectarDuplicados([r1, r2]);

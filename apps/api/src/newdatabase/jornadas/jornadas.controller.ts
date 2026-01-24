@@ -17,7 +17,7 @@ import {
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JornadasService, PaginatedSessionResults } from './jornadas.service';
-import { UploadJornadasResponse } from '@cuadrantes/shared-dto';
+import { UploadJornadasResponse, PERMISSIONS } from '@cuadrantes/shared-dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { HasPermissions } from '../../auth/decorators/permissions.decorator';
@@ -29,14 +29,14 @@ export class JornadasController {
   constructor(private readonly jornadasService: JornadasService) {}
 
   @Get()
-  @HasPermissions('jornadas:read')
+  @HasPermissions(PERMISSIONS.JORNADAS_READ)
   async findAll() {
     console.log('findAll');
     return this.jornadasService.findAllSessions();
   }
 
   @Post('upload')
-  @HasPermissions('jornadas:write')
+  @HasPermissions(PERMISSIONS.JORNADAS_WRITE)
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'titulares', maxCount: 1 },
@@ -100,7 +100,7 @@ export class JornadasController {
   }
 
   @Get(':sessionId')
-  @HasPermissions('jornadas:read')
+  @HasPermissions(PERMISSIONS.JORNADAS_READ)
   async getSessionResults(
     @Param('sessionId') sessionId: string,
     @Query('page') page = 1,
@@ -120,7 +120,7 @@ export class JornadasController {
   }
 
   @Get(':sessionId/unmatched')
-  @HasPermissions('jornadas:read')
+  @HasPermissions(PERMISSIONS.JORNADAS_READ)
   async getUnmatchedResults(
     @Param('sessionId') sessionId: string,
     @Query('page') page = 1,
@@ -138,43 +138,43 @@ export class JornadasController {
   }
 
   @Get(':sessionId/unmatched/stats')
-  @HasPermissions('jornadas:read')
+  @HasPermissions(PERMISSIONS.JORNADAS_READ)
   async getUnmatchedStats(@Param('sessionId') sessionId: string) {
     return this.jornadasService.getUnmatchedStats(+sessionId);
   }
 
   @Get(':sessionId/table-detail')
-  @HasPermissions('jornadas:read')
+  @HasPermissions(PERMISSIONS.JORNADAS_READ)
   async getTableDetail(@Param('sessionId') sessionId: string) {
     return this.jornadasService.getJornadasTableDetail(+sessionId);
   }
 
   @Get(':sessionId/service-summary')
-  @HasPermissions('jornadas:read')
+  @HasPermissions(PERMISSIONS.JORNADAS_READ)
   async getServiceSummary(@Param('sessionId') sessionId: string) {
     return this.jornadasService.getJornadasByServiceSummary(+sessionId);
   }
 
   @Get(':sessionId/equal-puesto-summary')
-  @HasPermissions('jornadas:read')
+  @HasPermissions(PERMISSIONS.JORNADAS_READ)
   async getEqualPuestoSummary(@Param('sessionId') sessionId: string) {
     return this.jornadasService.getJornadasByEqualAndPuestoSummary(+sessionId);
   }
 
   @Get(':sessionId/status-parts-summary')
-  @HasPermissions('jornadas:read')
+  @HasPermissions(PERMISSIONS.JORNADAS_READ)
   async getStatusPartsSummary(@Param('sessionId') sessionId: string) {
     return this.jornadasService.getJornadasByStatusAndPartsSummary(+sessionId);
   }
 
   @Delete(':id')
-  @HasPermissions('jornadas:write')
+  @HasPermissions(PERMISSIONS.JORNADAS_WRITE)
   async deleteSession(@Param('id') id: string) {
     return this.jornadasService.deleteSession(+id);
   }
 
   @Get(':sessionId/export')
-  @HasPermissions('jornadas:read')
+  @HasPermissions(PERMISSIONS.JORNADAS_READ)
   async exportSession(
     @Param('sessionId') sessionId: string,
     @Res({ passthrough: true }) res: Response,

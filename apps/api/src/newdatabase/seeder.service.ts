@@ -1,6 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { AVAILABLE_PERMISSIONS } from '@cuadrantes/shared-dto';
 import { User } from './users/entities/user.entity';
 import { Permiso } from './permisos/entities/permiso.entity';
 
@@ -18,18 +21,9 @@ export class SeederService implements OnModuleInit {
   }
 
   async seedPermissions() {
-    const permisosData = [
-      { tipo: 'admin', descripcion: 'Permisos de administrador' },
-      { tipo: 'users:create', descripcion: 'Crear usuarios' },
-      { tipo: 'users:read', descripcion: 'Leer usuarios' },
-      { tipo: 'users:update', descripcion: 'Actualizar usuarios' },
-      { tipo: 'users:delete', descripcion: 'Eliminar usuarios' },
-      { tipo: 'jornadas:read', descripcion: 'Jornadas: Leer' },
-      { tipo: 'jornadas:write', descripcion: 'Jornadas: Escribir' },
-    ];
-
-    for (const permisoData of permisosData) {
+    for (const permisoData of AVAILABLE_PERMISSIONS) {
       const exists = await this.permisoRepository.findOne({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         where: { tipo: permisoData.tipo },
       });
       if (!exists) {

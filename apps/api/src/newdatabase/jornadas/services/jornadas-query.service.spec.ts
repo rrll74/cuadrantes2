@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { JornadasQueryService } from './jornadas-query.service';
@@ -98,7 +96,11 @@ describe('JornadasQueryService', () => {
     const sessionId = 1;
 
     it('debería delegar a sessionQueryHelper', async () => {
-      const mockData = { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 }, stats: {} };
+      const mockData = {
+        data: [],
+        meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+        stats: {},
+      };
       mockSessionQueryHelper.getSessionResults.mockResolvedValue(mockData);
 
       const result = await service.getSessionResults(sessionId, 1, 10);
@@ -153,9 +155,17 @@ describe('JornadasQueryService', () => {
 
     it('debería retornar resultado del helper sin modificación', async () => {
       const mockData = {
-        data: [{ ruta: {}, trabajador: null, estado: EstadoPresencia.COMPLETO }],
+        data: [
+          { ruta: {}, trabajador: null, estado: EstadoPresencia.COMPLETO },
+        ],
         meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
-        stats: { total: 1, completo: 1, incompleto: 0, sinPresencia: 0, revisar: 0 },
+        stats: {
+          total: 1,
+          completo: 1,
+          incompleto: 0,
+          sinPresencia: 0,
+          revisar: 0,
+        },
       };
       mockSessionQueryHelper.getSessionResults.mockResolvedValue(mockData);
 
@@ -170,7 +180,10 @@ describe('JornadasQueryService', () => {
     const sessionId = 1;
 
     it('debería delegar a sessionQueryHelper', async () => {
-      const mockData = { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
+      const mockData = {
+        data: [],
+        meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+      };
       mockSessionQueryHelper.getUnmatchedResults.mockResolvedValue(mockData);
 
       const result = await service.getUnmatchedResults(sessionId);
@@ -215,14 +228,19 @@ describe('JornadasQueryService', () => {
 
       const result = await service.getUnmatchedStats(sessionId);
 
-      expect(mockSessionStatsHelper.getUnmatchedStats).toHaveBeenCalledWith(sessionId);
+      expect(mockSessionStatsHelper.getUnmatchedStats).toHaveBeenCalledWith(
+        sessionId,
+      );
       expect(result).toEqual(mockData);
     });
 
     it('debería retornar estadísticas sin modificación', async () => {
       const mockData = {
-        byStatus: { [EstadoPresencia.COMPLETO]: 5, [EstadoPresencia.INCOMPLETO]: 3 },
-        byPuesto: { 'Conductor': 6, 'Ayudante': 2 },
+        byStatus: {
+          [EstadoPresencia.COMPLETO]: 5,
+          [EstadoPresencia.INCOMPLETO]: 3,
+        },
+        byPuesto: { Conductor: 6, Ayudante: 2 },
       };
       mockSessionStatsHelper.getUnmatchedStats.mockResolvedValue(mockData);
 
@@ -235,9 +253,7 @@ describe('JornadasQueryService', () => {
 
   describe('findAllSessions', () => {
     it('debería delegar a sessionStatsHelper', async () => {
-      const mockSessions = [
-        { id: 1, createdAt: new Date(), totalRutas: 10 },
-      ];
+      const mockSessions = [{ id: 1, createdAt: new Date(), totalRutas: 10 }];
       mockSessionStatsHelper.findAllSessions.mockResolvedValue(mockSessions);
 
       const result = await service.findAllSessions();
@@ -271,11 +287,15 @@ describe('JornadasQueryService', () => {
         discountedRows: [],
         discountedFooter: {},
       };
-      mockJornadasTableHelper.getJornadasTableDetail.mockResolvedValue(mockTable);
+      mockJornadasTableHelper.getJornadasTableDetail.mockResolvedValue(
+        mockTable,
+      );
 
       const result = await service.getJornadasTableDetail(sessionId);
 
-      expect(mockJornadasTableHelper.getJornadasTableDetail).toHaveBeenCalledWith(sessionId);
+      expect(
+        mockJornadasTableHelper.getJornadasTableDetail,
+      ).toHaveBeenCalledWith(sessionId);
       expect(result).toEqual(mockTable);
     });
 
@@ -287,7 +307,9 @@ describe('JornadasQueryService', () => {
         discountedRows: [],
         discountedFooter: {},
       };
-      mockJornadasTableHelper.getJornadasTableDetail.mockResolvedValue(mockTable);
+      mockJornadasTableHelper.getJornadasTableDetail.mockResolvedValue(
+        mockTable,
+      );
 
       const result = await service.getJornadasTableDetail(sessionId);
 
@@ -313,9 +335,9 @@ describe('JornadasQueryService', () => {
 
       const result = await service.getJornadasByServiceSummary(sessionId);
 
-      expect(mockJornadasServiceSummaryHelper.getJornadasByServiceSummary).toHaveBeenCalledWith(
-        sessionId,
-      );
+      expect(
+        mockJornadasServiceSummaryHelper.getJornadasByServiceSummary,
+      ).toHaveBeenCalledWith(sessionId);
       expect(result).toEqual(mockSummary);
     });
 
@@ -356,7 +378,8 @@ describe('JornadasQueryService', () => {
         mockSummary,
       );
 
-      const result = await service.getJornadasByEqualAndPuestoSummary(sessionId);
+      const result =
+        await service.getJornadasByEqualAndPuestoSummary(sessionId);
 
       expect(
         mockJornadasWorkerSummaryHelper.getJornadasByEqualAndPuestoSummary,
@@ -379,7 +402,8 @@ describe('JornadasQueryService', () => {
         mockSummary,
       );
 
-      const result = await service.getJornadasByEqualAndPuestoSummary(sessionId);
+      const result =
+        await service.getJornadasByEqualAndPuestoSummary(sessionId);
 
       expect(result.rows).toHaveLength(2);
       expect(result.rows[0].puesto).toBe('Conductor');
@@ -412,7 +436,8 @@ describe('JornadasQueryService', () => {
         mockSummary,
       );
 
-      const result = await service.getJornadasByStatusAndPartsSummary(sessionId);
+      const result =
+        await service.getJornadasByStatusAndPartsSummary(sessionId);
 
       expect(
         mockJornadasStatusSummaryHelper.getJornadasByStatusAndPartsSummary,
@@ -450,45 +475,12 @@ describe('JornadasQueryService', () => {
         mockSummary,
       );
 
-      const result = await service.getJornadasByStatusAndPartsSummary(sessionId);
+      const result =
+        await service.getJornadasByStatusAndPartsSummary(sessionId);
 
       expect(result.rows).toHaveLength(2);
       expect(result.footer.estado).toBe('TOTAL');
       expect(result.footer.withPartsCount).toBe(60);
-    });
-  });
-});
-
-      expect(result.rows).toHaveLength(1);
-      expect(result.rows[0].puesto).toBe('Conductor');
-      expect(result.rows[0].equal).toBe(100);
-      expect(result.rows[0].jornadas).toBe(1);
-    });
-  });
-
-  describe('getJornadasByStatusAndPartsSummary', () => {
-    it('debería contar estados separando por presencia de partes', async () => {
-      const sessionId = 1;
-      const mockResults = [
-        { estado: EstadoPresencia.COMPLETO, route: { partesAsociados: 1 } },
-        { estado: EstadoPresencia.INCOMPLETO, route: { partesAsociados: 0 } },
-      ];
-      mockResultRepo.find.mockResolvedValue(mockResults);
-
-      const result =
-        await service.getJornadasByStatusAndPartsSummary(sessionId);
-
-      const rowCompleto = result.rows.find(
-        (r) => r.estado === EstadoPresencia.COMPLETO,
-      );
-      expect(rowCompleto?.withPartsCount).toBe(1);
-      expect(rowCompleto?.noPartsCount).toBe(0);
-
-      const rowIncompleto = result.rows.find(
-        (r) => r.estado === EstadoPresencia.INCOMPLETO,
-      );
-      expect(rowIncompleto?.withPartsCount).toBe(0);
-      expect(rowIncompleto?.noPartsCount).toBe(1);
     });
   });
 });
