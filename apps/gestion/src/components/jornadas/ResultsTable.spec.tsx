@@ -71,8 +71,10 @@ describe("ResultsTable", () => {
           sinPresencia: 0,
         },
         page: 1,
-        totalPages: 1,
-        totalRecords: 1,
+        meta: {
+          total: 1,
+          totalPages: 1,
+        },
       },
     });
 
@@ -94,16 +96,19 @@ describe("ResultsTable", () => {
           sinPresencia: 0,
         },
         page: 1,
-        totalPages: 1,
-        totalRecords: 0,
+        meta: {
+          total: 0,
+          totalPages: 0,
+        },
       },
     });
 
     renderComponent();
 
     await waitFor(() => {
+      expect(screen.getByText(/Buscar Trabajador/)).toBeInTheDocument();
       expect(
-        screen.getByPlaceholderText(/Buscar Trabajador/),
+        screen.getByPlaceholderText(/Nombre, apellido, equipo.../),
       ).toBeInTheDocument();
     });
 
@@ -132,8 +137,10 @@ describe("ResultsTable", () => {
           sinPresencia: 0,
         },
         page: 1,
-        totalPages: 1,
-        totalRecords: 1,
+        meta: {
+          total: 1,
+          totalPages: 1,
+        },
       },
     });
 
@@ -164,16 +171,19 @@ describe("ResultsTable", () => {
           sinPresencia: 0,
         },
         page: 1,
-        totalPages: 1,
-        totalRecords: 0,
+        meta: {
+          total: 0,
+          totalPages: 0,
+        },
       },
     });
 
     renderComponent();
 
     await waitFor(() => {
+      expect(screen.getByText(/Buscar Trabajador/)).toBeInTheDocument();
       expect(
-        screen.getByPlaceholderText(/Buscar Trabajador/),
+        screen.getByPlaceholderText(/Nombre, apellido, equipo.../),
       ).toBeInTheDocument();
     });
 
@@ -196,14 +206,18 @@ describe("ResultsTable", () => {
           sinPresencia: 0,
         },
         page: 1,
-        totalPages: 1,
-        totalRecords: 0,
+        meta: {
+          total: 0,
+          totalPages: 0,
+        },
       },
     });
 
     renderComponent();
 
-    const searchInput = screen.getByPlaceholderText(/Buscar Trabajador/);
+    const searchInput = screen.getByPlaceholderText(
+      /Nombre, apellido, equipo.../,
+    ) as HTMLInputElement;
     fireEvent.change(searchInput, { target: { value: "Juan" } });
 
     await waitFor(() => {
@@ -231,10 +245,13 @@ describe("ResultsTable", () => {
           completo: 1,
           incompleto: 1,
           sinPresencia: 0,
+          revisar: 0,
+        },
+        meta: {
+          total: 2,
+          totalPages: 1,
         },
         page: 1,
-        totalPages: 1,
-        totalRecords: 2,
       },
     });
 
@@ -245,7 +262,8 @@ describe("ResultsTable", () => {
     });
 
     // Verifica que las stats se muestran correctamente
-    expect(screen.getByText("2")).toBeInTheDocument(); // total
+    const allWithTotal = screen.getAllByText("2");
+    expect(allWithTotal.length).toBeGreaterThan(0);
   });
 
   it("debe renderizar paginación cuando hay múltiples páginas", async () => {
@@ -264,9 +282,11 @@ describe("ResultsTable", () => {
           incompleto: 0,
           sinPresencia: 0,
         },
+        meta: {
+          total: 25,
+          totalPages: 3,
+        },
         page: 1,
-        totalPages: 3,
-        totalRecords: 25,
       },
     });
 
@@ -296,8 +316,10 @@ describe("ResultsTable", () => {
           sinPresencia: 0,
         },
         page: 1,
-        totalPages: 1,
-        totalRecords: 1,
+        meta: {
+          total: 1,
+          totalPages: 1,
+        },
       },
     });
 
@@ -314,8 +336,10 @@ describe("ResultsTable", () => {
           data: [],
           stats: { total: 0, completo: 0, incompleto: 0, sinPresencia: 0 },
           page: 1,
-          totalPages: 1,
-          totalRecords: 0,
+          meta: {
+            total: 0,
+            totalPages: 1,
+          },
         },
       });
     });

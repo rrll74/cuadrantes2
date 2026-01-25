@@ -95,7 +95,8 @@ describe("UploadJornadasForm", () => {
         expect(toast).toHaveAttribute("data-type", "error");
         expect(toast.textContent).toMatch(errorRegex);
       } else {
-        expect(screen.getByText(errorRegex)).toBeInTheDocument();
+        const errorElement = screen.queryAllByText(errorRegex);
+        expect(errorElement.length).toBeGreaterThan(1); // El botón procesar archivos también contiene "archivos"
       }
     });
   });
