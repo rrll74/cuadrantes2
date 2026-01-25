@@ -16,7 +16,13 @@ export const ProgressBar = ({
   const percentage = Math.max(0, Math.min(100, progress));
 
   return (
-    <div className={clsx("w-full bg-gray-200 rounded-full h-2.5", className)}>
+    <div
+      className={clsx("w-full bg-gray-200 rounded-full h-2.5", className)}
+      role="progressbar"
+      aria-valuenow={percentage}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
       <div
         className={clsx(
           "h-2.5 rounded-full transition-all duration-300 ease-out",

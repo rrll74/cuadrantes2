@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository, In, Like, Brackets } from 'typeorm';
+import { Repository, In, Like } from 'typeorm';
 import { SessionQueryHelper } from './session-query.helper';
 import {
   PresenceResult,
@@ -12,9 +12,13 @@ import { UnmatchedResult } from '../../entities/unmatched-result.entity';
 
 describe('SessionQueryHelper', () => {
   let helper: SessionQueryHelper;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let workerRepo: Repository<RawWorker>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let resultRepo: Repository<PresenceResult>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let sessionRepo: Repository<ImportSession>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let unmatchedRepo: Repository<UnmatchedResult>;
 
   const mockWorkerRepo = {

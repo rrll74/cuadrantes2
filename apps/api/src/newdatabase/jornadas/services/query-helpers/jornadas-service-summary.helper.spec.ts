@@ -7,7 +7,9 @@ import { ImportSession } from '../../entities/import-session.entity';
 
 describe('JornadasServiceSummaryHelper', () => {
   let helper: JornadasServiceSummaryHelper;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let presenceRepo: Repository<PresenceResult>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let sessionRepo: Repository<ImportSession>;
 
   const mockPresenceRepo = {

@@ -120,12 +120,10 @@ describe("Jornadas Query - Filtros y Búsqueda E2E", () => {
     it("Debe buscar con debounce para no hacer muchas peticiones", () => {
       cy.visit(`/dashboard/jornadas/${sessionId}/session-results`);
 
-      let requestCount = 0;
       cy.intercept(
         "GET",
         `**/jornadas/${sessionId}/session-results*`,
         (req) => {
-          requestCount++;
           req.reply({
             statusCode: 200,
             body: {
@@ -413,21 +411,19 @@ describe("Jornadas Query - Filtros y Búsqueda E2E", () => {
         `**/jornadas/${sessionId}/session-results*`,
         (req) => {
           // Delay larga para ver el loader
-          req.reply((res) => {
-            res.delay(1000);
-            res.send({
-              statusCode: 200,
-              body: {
-                data: [],
-                stats: {
-                  total: 0,
-                  completo: 0,
-                  incompleto: 0,
-                  sinPresencia: 0,
-                },
-                meta: { page: 1, limit: 10, total: 0, totalPages: 1 },
+          req.reply({
+            statusCode: 200,
+            delay: 1000,
+            body: {
+              data: [],
+              stats: {
+                total: 0,
+                completo: 0,
+                incompleto: 0,
+                sinPresencia: 0,
               },
-            });
+              meta: { page: 1, limit: 10, total: 0, totalPages: 1 },
+            },
           });
         },
       ).as("getWithDelay");

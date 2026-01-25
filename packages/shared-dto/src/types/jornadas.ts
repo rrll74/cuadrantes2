@@ -61,3 +61,16 @@ export interface IResultadoSinRuta {
   trabajador: ITrabajador | null;
   workerId: number;
 }
+
+export interface TableDetailRowDto {
+  id: string;
+  data: (string | number)[];
+}
+
+export interface TableDetailResponseDto {
+  columns: TableDetailRowDto[];
+  rows: TableDetailRowDto[];
+  footer: TableDetailRowDto;
+  discountedRows?: TableDetailRowDto[];
+  discountedFooter?: TableDetailRowDto;
+}

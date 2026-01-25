@@ -40,7 +40,6 @@ describe('LocalStrategy', () => {
 
       authService.validateUser.mockResolvedValue(mockUser);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const result = await strategy.validate('test', 'password');
 
       expect(authService.validateUser).toHaveBeenCalledWith('test', 'password');

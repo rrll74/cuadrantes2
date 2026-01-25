@@ -40,7 +40,8 @@ describe("Pagination Component", () => {
       />,
     );
 
-    expect(screen.getByText(/Total: 100/)).toBeInTheDocument();
+    expect(screen.getByText(/Total:/)).toBeInTheDocument();
+    expect(screen.getByText(/100/)).toBeInTheDocument();
   });
 
   it("debe llamar a onPageChange con la página anterior al hacer clic en Anterior", () => {

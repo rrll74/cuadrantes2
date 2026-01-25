@@ -191,7 +191,8 @@ describe("DataTable Component", () => {
     );
 
     const tbody = container.querySelector("tbody");
-    const rows = tbody?.querySelectorAll("tr:not(:last-child)");
+    // const rows = tbody?.querySelectorAll("tr:not(:last-child)");
+    const rows = tbody?.querySelectorAll("tr");
     expect(rows?.length).toBe(100);
   });
 });

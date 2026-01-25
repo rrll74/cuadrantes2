@@ -52,8 +52,8 @@ describe("EqualAndPuestosSummaryTable", () => {
         return Promise.resolve({
           data: {
             rows: [
-              { puesto: "Puesto A", equal: 100, jornadas: 10.5 },
-              { puesto: "Puesto B", equal: 50, jornadas: 5.25 },
+              { puesto: "Puesto A", equal: 1, jornadas: 10.5 },
+              { puesto: "Puesto B", equal: 0, jornadas: 5.25 },
             ],
             total: 15.75,
             discountedRows: [{ puesto: "Puesto C", equal: 200, jornadas: 2.5 }],
@@ -78,8 +78,10 @@ describe("EqualAndPuestosSummaryTable", () => {
     });
 
     // Verificar tabla principal
-    expect(screen.getByText("Equal")).toBeInTheDocument();
-    expect(screen.getByText("Jornadas (Horas / 7)")).toBeInTheDocument();
+    const equalCells = screen.getAllByText("Equal");
+    expect(equalCells.length).toBe(2);
+    const jornadasTitleCells = screen.getAllByText("Jornadas (Horas / 7)");
+    expect(jornadasTitleCells.length).toBe(2);
 
     // Verificar totales
     expect(screen.getByText(/Total Jornadas: 15.75/)).toBeInTheDocument();

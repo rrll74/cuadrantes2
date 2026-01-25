@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SessionsList } from "./SessionsList";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 
 // Mock de las dependencias externas
 jest.mock("@tanstack/react-query", () => ({
@@ -16,9 +17,24 @@ jest.mock("@/context/AuthContext", () => ({
   useAuth: jest.fn(),
 }));
 
+jest.mock("@/hooks/usePermissions", () => ({
+  usePermissions: jest.fn(),
+}));
+
 jest.mock("@/lib/api", () => ({
   delete: jest.fn(),
   get: jest.fn(),
+}));
+
+jest.mock("@/components/ui/ConfirmationDialog", () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ConfirmationDialog: ({ isOpen, onConfirm, onCancel }: any) =>
+    isOpen ? (
+      <div role="dialog">
+        <button onClick={onConfirm}>Confirmar</button>
+        <button onClick={onCancel}>Cancelar</button>
+      </div>
+    ) : null,
 }));
 
 // Mock de Next/Link para evitar errores de renderizado fuera del router
@@ -51,6 +67,9 @@ describe("SessionsList Component", () => {
     (useMutation as jest.Mock).mockReturnValue({
       mutateAsync: mockMutateAsync,
     });
+
+    // Mockear permisos para que devuelva true por defecto
+    (usePermissions as jest.Mock).mockReturnValue(true);
   });
 
   it("debe llamar a la función de borrado cuando el usuario confirma", async () => {
@@ -70,22 +89,16 @@ describe("SessionsList Component", () => {
       isError: false,
     });
 
-    // 2. Mockear window.confirm para que devuelva true (usuario acepta)
-    const confirmSpy = jest
-      .spyOn(window, "confirm")
-      .mockImplementation(() => true);
-
     // 3. Renderizar el componente
     render(<SessionsList />);
 
     // 4. Buscar el botón de eliminar y hacer clic
-    const deleteButton = screen.getByTitle("Eliminar sesión");
+    const deleteButton = screen.getByLabelText("Eliminar sesión");
     fireEvent.click(deleteButton);
 
-    // 5. Verificar que se pidió confirmación
-    expect(confirmSpy).toHaveBeenCalledWith(
-      expect.stringContaining("¿Estás seguro"),
-    );
+    // 5. Confirmar en el diálogo
+    const confirmButton = screen.getByText("Confirmar");
+    fireEvent.click(confirmButton);
 
     // 6. Verificar que se llamó a la mutación con el ID correcto
     await waitFor(() => {
@@ -109,15 +122,12 @@ describe("SessionsList Component", () => {
       isError: false,
     });
 
-    // Mockear window.confirm para que devuelva false (usuario cancela)
-    const confirmSpy = jest
-      .spyOn(window, "confirm")
-      .mockImplementation(() => false);
-
     render(<SessionsList />);
-    fireEvent.click(screen.getByTitle("Eliminar sesión"));
+    fireEvent.click(screen.getByLabelText("Eliminar sesión"));
 
-    expect(confirmSpy).toHaveBeenCalled();
+    const cancelButton = screen.getByText("Cancelar");
+    fireEvent.click(cancelButton);
+
     expect(mockMutateAsync).not.toHaveBeenCalled();
   });
 });

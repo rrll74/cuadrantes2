@@ -9,6 +9,7 @@ import {
 
 describe('JornadasStatusSummaryHelper', () => {
   let helper: JornadasStatusSummaryHelper;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let presenceRepo: Repository<PresenceResult>;
 
   const mockPresenceRepo = {

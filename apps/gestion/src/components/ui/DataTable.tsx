@@ -13,6 +13,7 @@ interface DataTableProps<TData> {
   isLoading?: boolean;
   emptyMessage?: string;
   options?: Omit<TableOptions<TData>, "data" | "columns" | "getCoreRowModel">;
+  className?: string;
 }
 
 export function DataTable<TData>({
@@ -21,6 +22,7 @@ export function DataTable<TData>({
   isLoading = false,
   emptyMessage = "No se encontraron resultados.",
   options,
+  className,
 }: DataTableProps<TData>) {
   const table = useReactTable({
     data,
@@ -30,7 +32,11 @@ export function DataTable<TData>({
   });
 
   return (
-    <div className="overflow-x-auto border rounded-lg shadow-sm relative">
+    <div
+      className={
+        className || "overflow-x-auto border rounded-lg shadow-sm relative"
+      }
+    >
       {isLoading && (
         <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

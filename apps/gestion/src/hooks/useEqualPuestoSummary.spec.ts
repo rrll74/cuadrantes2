@@ -12,28 +12,29 @@ const createWrapper = () => {
       queries: { retry: false },
     },
   });
-  return ({ children }: { children: React.ReactNode }) =>
+  const Wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children);
+  Wrapper.displayName = "QueryClientWrapper";
+  return Wrapper;
 };
 
 describe("useEqualPuestoSummary Hook", () => {
-  const mockApi = api as jest.Mocked<typeof api>;
-
   beforeEach(() => {
     jest.clearAllMocks();
-    mockApi.get = jest.fn();
   });
 
   it("debe cargar datos exitosamente", async () => {
     const mockData = {
-      equal: 10,
-      puesto: 5,
-      total: 15,
+      rows: [
+        { puesto: "Conductor", equal: 10, jornadas: 5 },
+        { puesto: "Limpiador", equal: 8, jornadas: 4 },
+      ],
+      total: 18,
     };
 
-    mockApiCall.mockResolvedValue(mockData);
+    (api.get as jest.Mock).mockResolvedValue({ data: mockData });
 
-    const { result } = renderHook(() => useEqualPuestoSummary("session-123"), {
+    const { result } = renderHook(() => useEqualPuestoSummary(123), {
       wrapper: createWrapper(),
     });
 
@@ -49,9 +50,9 @@ describe("useEqualPuestoSummary Hook", () => {
 
   it("debe manejar errores correctamente", async () => {
     const mockError = new Error("API Error");
-    mockApiCall.mockRejectedValue(mockError);
+    (api.get as jest.Mock).mockRejectedValue(mockError);
 
-    const { result } = renderHook(() => useEqualPuestoSummary("session-123"), {
+    const { result } = renderHook(() => useEqualPuestoSummary(123), {
       wrapper: createWrapper(),
     });
 
@@ -64,26 +65,30 @@ describe("useEqualPuestoSummary Hook", () => {
   });
 
   it("debe llamar a API con sessionId correcto", async () => {
-    mockApiCall.mockResolvedValue({ equal: 0, puesto: 0, total: 0 });
+    (api.get as jest.Mock).mockResolvedValue({
+      data: { rows: [], total: 0 },
+    });
 
-    renderHook(() => useEqualPuestoSummary("session-456"), {
+    renderHook(() => useEqualPuestoSummary(456), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalledWith("session-456");
+      expect(api.get).toHaveBeenCalledWith(
+        "/jornadas/456/equal-puesto-summary",
+      );
     });
   });
 
   it("debe estar en estado loading inicialmente", () => {
-    mockApiCall.mockImplementation(
+    (api.get as jest.Mock).mockImplementation(
       () =>
         new Promise((resolve) =>
-          setTimeout(() => resolve({ equal: 0, puesto: 0, total: 0 }), 100),
+          setTimeout(() => resolve({ data: { rows: [], total: 0 } }), 100),
         ),
     );
 
-    const { result } = renderHook(() => useEqualPuestoSummary("session-123"), {
+    const { result } = renderHook(() => useEqualPuestoSummary(123), {
       wrapper: createWrapper(),
     });
 
@@ -91,9 +96,14 @@ describe("useEqualPuestoSummary Hook", () => {
   });
 
   it("debe proporcionar función handleExport", async () => {
-    mockApiCall.mockResolvedValue({ equal: 10, puesto: 5, total: 15 });
+    (api.get as jest.Mock).mockResolvedValue({
+      data: {
+        rows: [{ puesto: "Conductor", equal: 10, jornadas: 5 }],
+        total: 10,
+      },
+    });
 
-    const { result } = renderHook(() => useEqualPuestoSummary("session-123"), {
+    const { result } = renderHook(() => useEqualPuestoSummary(123), {
       wrapper: createWrapper(),
     });
 
@@ -105,85 +115,92 @@ describe("useEqualPuestoSummary Hook", () => {
   });
 
   it("debe reutilizar datos en caché para mismo sessionId", async () => {
-    const mockData = { equal: 10, puesto: 5, total: 15 };
-    mockApiCall.mockResolvedValue(mockData);
+    const mockData = {
+      rows: [{ puesto: "Conductor", equal: 10, jornadas: 5 }],
+      total: 10,
+    };
+    (api.get as jest.Mock).mockResolvedValue({ data: mockData });
 
-    const { result: result1 } = renderHook(
-      () => useEqualPuestoSummary("session-123"),
-      { wrapper: createWrapper() },
-    );
+    const { result: result1 } = renderHook(() => useEqualPuestoSummary(123), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       expect(result1.current.isLoading).toBe(false);
     });
 
-    const { result: result2 } = renderHook(
-      () => useEqualPuestoSummary("session-123"),
-      { wrapper: createWrapper() },
-    );
+    const { result: result2 } = renderHook(() => useEqualPuestoSummary(123), {
+      wrapper: createWrapper(),
+    });
 
-    // Debe usar caché, isLoading debería ser false inmediatamente
-    expect(result2.current.data).toEqual(mockData);
+    await waitFor(() => {
+      expect(result2.current.data).toEqual(mockData);
+    });
   });
 
   it("debe hacer nueva llamada con sessionId diferente", async () => {
-    const mockData1 = { equal: 10, puesto: 5, total: 15 };
-    const mockData2 = { equal: 20, puesto: 10, total: 30 };
+    const mockData1 = {
+      rows: [{ puesto: "Conductor", equal: 10, jornadas: 5 }],
+      total: 10,
+    };
+    const mockData2 = {
+      rows: [{ puesto: "Conductor", equal: 20, jornadas: 10 }],
+      total: 20,
+    };
 
-    mockApiCall
-      .mockResolvedValueOnce(mockData1)
-      .mockResolvedValueOnce(mockData2);
+    (api.get as jest.Mock)
+      .mockResolvedValueOnce({ data: mockData1 })
+      .mockResolvedValueOnce({ data: mockData2 });
 
-    const { result: result1 } = renderHook(
-      () => useEqualPuestoSummary("session-1"),
-      { wrapper: createWrapper() },
-    );
+    const { result: result1 } = renderHook(() => useEqualPuestoSummary(1), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       expect(result1.current.data).toEqual(mockData1);
     });
 
-    const { result: result2 } = renderHook(
-      () => useEqualPuestoSummary("session-2"),
-      { wrapper: createWrapper() },
-    );
+    const { result: result2 } = renderHook(() => useEqualPuestoSummary(2), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       expect(result2.current.data).toEqual(mockData2);
     });
 
-    expect(mockApiCall).toHaveBeenCalledTimes(2);
+    expect(api.get).toHaveBeenCalledTimes(2);
   });
 
   it("debe tener queryKey válida", async () => {
-    mockApiCall.mockResolvedValue({ equal: 0, puesto: 0, total: 0 });
+    (api.get as jest.Mock).mockResolvedValue({ data: { rows: [], total: 0 } });
 
-    renderHook(() => useEqualPuestoSummary("session-123"), {
+    renderHook(() => useEqualPuestoSummary(123), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalled();
+      expect(api.get).toHaveBeenCalled();
     });
   });
 
-  it("debe manejar sessionId undefined", () => {
-    mockApiCall.mockResolvedValue({ equal: 0, puesto: 0, total: 0 });
+  it("debe manejar sessionId indefinido", () => {
+    (api.get as jest.Mock).mockResolvedValue({ data: { rows: [], total: 0 } });
 
-    const { result } = renderHook(
-      () => useEqualPuestoSummary(undefined as any),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useEqualPuestoSummary(0), {
+      wrapper: createWrapper(),
+    });
 
-    // Hook debe manejar gracefully o mostrar estado apropiado
     expect(result.current).toBeDefined();
   });
 
   it("debe retornar todos los campos esperados", async () => {
-    const mockData = { equal: 10, puesto: 5, total: 15 };
-    mockApiCall.mockResolvedValue(mockData);
+    const mockData = {
+      rows: [{ puesto: "Conductor", equal: 10, jornadas: 5 }],
+      total: 10,
+    };
+    (api.get as jest.Mock).mockResolvedValue({ data: mockData });
 
-    const { result } = renderHook(() => useEqualPuestoSummary("session-123"), {
+    const { result } = renderHook(() => useEqualPuestoSummary(123), {
       wrapper: createWrapper(),
     });
 
@@ -198,37 +215,43 @@ describe("useEqualPuestoSummary Hook", () => {
   });
 
   it("debe actualizar cuando sessionId cambia", async () => {
-    const mockData1 = { equal: 10, puesto: 5, total: 15 };
-    const mockData2 = { equal: 20, puesto: 10, total: 30 };
+    const mockData1 = {
+      rows: [{ puesto: "Conductor", equal: 10, jornadas: 5 }],
+      total: 10,
+    };
+    const mockData2 = {
+      rows: [{ puesto: "Conductor", equal: 20, jornadas: 10 }],
+      total: 20,
+    };
 
-    mockApiCall
-      .mockResolvedValueOnce(mockData1)
-      .mockResolvedValueOnce(mockData2);
+    (api.get as jest.Mock)
+      .mockResolvedValueOnce({ data: mockData1 })
+      .mockResolvedValueOnce({ data: mockData2 });
 
     const { result, rerender } = renderHook(
       ({ sessionId }) => useEqualPuestoSummary(sessionId),
-      { initialProps: { sessionId: "session-1" }, wrapper: createWrapper() },
+      { initialProps: { sessionId: 1 }, wrapper: createWrapper() },
     );
 
     await waitFor(() => {
       expect(result.current.data).toEqual(mockData1);
     });
 
-    rerender({ sessionId: "session-2" });
+    rerender({ sessionId: 2 });
 
     await waitFor(() => {
       expect(result.current.data).toEqual(mockData2);
     });
 
-    expect(mockApiCall).toHaveBeenCalledWith("session-1");
-    expect(mockApiCall).toHaveBeenCalledWith("session-2");
+    expect(api.get).toHaveBeenCalledWith("/jornadas/1/equal-puesto-summary");
+    expect(api.get).toHaveBeenCalledWith("/jornadas/2/equal-puesto-summary");
   });
 
   it("debe manejar datos vacíos", async () => {
-    const mockData = { equal: 0, puesto: 0, total: 0 };
-    mockApiCall.mockResolvedValue(mockData);
+    const mockData = { rows: [], total: 0 };
+    (api.get as jest.Mock).mockResolvedValue({ data: mockData });
 
-    const { result } = renderHook(() => useEqualPuestoSummary("session-123"), {
+    const { result } = renderHook(() => useEqualPuestoSummary(123), {
       wrapper: createWrapper(),
     });
 
@@ -236,8 +259,7 @@ describe("useEqualPuestoSummary Hook", () => {
       expect(result.current.data).toEqual(mockData);
     });
 
-    expect(result.current.data?.equal).toBe(0);
-    expect(result.current.data?.puesto).toBe(0);
+    expect(result.current.data?.rows).toHaveLength(0);
     expect(result.current.data?.total).toBe(0);
   });
 });

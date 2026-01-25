@@ -66,7 +66,7 @@ describe("Icon Component", () => {
     const { container } = render(<Icon path="M5 10h14" />);
 
     const svg = container.querySelector("svg");
-    expect(svg).toHaveClass("w-5", "h-5");
+    expect(svg).toHaveClass("w-5 h-5");
   });
 
   it("debe permitir className personalizado", () => {
@@ -75,7 +75,7 @@ describe("Icon Component", () => {
     );
 
     const svg = container.querySelector("svg");
-    expect(svg).toHaveClass("w-10", "h-10", "text-red-500");
+    expect(svg).toHaveClass("w-10 h-10 text-red-500");
   });
 
   it("debe pasar propiedades SVG adicionales", () => {

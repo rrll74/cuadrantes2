@@ -136,7 +136,7 @@ describe("useDebounce Hook", () => {
   });
 
   it("debe limpiar timer al desmontar", () => {
-    const { result, rerender, unmount } = renderHook(
+    const { rerender, unmount } = renderHook(
       ({ value }) => useDebounce(value, 500),
       { initialProps: { value: "inicial" } },
     );
@@ -180,8 +180,9 @@ describe("useDebounce Hook", () => {
 
   it("debe manejar valores null", () => {
     const { result, rerender } = renderHook(
-      ({ value }) => useDebounce<string | null>(value, 200),
-      { initialProps: { value: "inicial" } },
+      ({ value }: { value: string | null }) =>
+        useDebounce<string | null>(value, 200),
+      { initialProps: { value: "inicial" as string | null } },
     );
 
     rerender({ value: null });
@@ -194,8 +195,9 @@ describe("useDebounce Hook", () => {
 
   it("debe manejar valores undefined", () => {
     const { result, rerender } = renderHook(
-      ({ value }) => useDebounce<string | undefined>(value, 200),
-      { initialProps: { value: "inicial" } },
+      ({ value }: { value: string | undefined }) =>
+        useDebounce<string | undefined>(value, 200),
+      { initialProps: { value: "inicial" as string | undefined } },
     );
 
     rerender({ value: undefined });

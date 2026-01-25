@@ -12,30 +12,33 @@ const createWrapper = () => {
       queries: { retry: false },
     },
   });
-  return ({ children }: { children: React.ReactNode }) =>
+  const Wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children);
+  Wrapper.displayName = "QueryClientWrapper";
+  return Wrapper;
 };
 
 describe("useJornadasDetail Hook", () => {
-    typeof api.getJornadasDetail
-  >;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let mockApiCall: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockApi.get = jest.fn();
+    mockApiCall = jest.fn();
+    (api.get as jest.Mock).mockClear();
   });
 
   it("debe cargar detalles de jornadas exitosamente", async () => {
     const mockData = {
-      sessionId: "session-123",
+      sessionId: 123,
       date: "2024-01-01",
       totalWorkers: 50,
       details: [{ workerId: 1, name: "Worker 1", status: "present" }],
     };
 
-    mockApiCall.mockResolvedValue(mockData);
+    (api.get as jest.Mock).mockResolvedValue({ data: mockData });
 
-    const { result } = renderHook(() => useJornadasDetail("session-123"), {
+    const { result } = renderHook(() => useJornadasDetail(123), {
       wrapper: createWrapper(),
     });
 
@@ -51,9 +54,9 @@ describe("useJornadasDetail Hook", () => {
 
   it("debe manejar errores de API", async () => {
     const mockError = new Error("Failed to fetch jornadas detail");
-    mockApiCall.mockRejectedValue(mockError);
+    (api.get as jest.Mock).mockRejectedValue(mockError);
 
-    const { result } = renderHook(() => useJornadasDetail("session-123"), {
+    const { result } = renderHook(() => useJornadasDetail(123), {
       wrapper: createWrapper(),
     });
 
@@ -66,40 +69,44 @@ describe("useJornadasDetail Hook", () => {
   });
 
   it("debe llamar API con sessionId correcto", async () => {
-    mockApiCall.mockResolvedValue({
-      sessionId: "session-456",
-      date: "2024-01-02",
-      totalWorkers: 30,
-      details: [],
+    (api.get as jest.Mock).mockResolvedValue({
+      data: {
+        sessionId: 456,
+        date: "2024-01-02",
+        totalWorkers: 30,
+        details: [],
+      },
     });
 
-    renderHook(() => useJornadasDetail("session-456"), {
+    renderHook(() => useJornadasDetail(456), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalledWith("session-456");
+      expect(api.get).toHaveBeenCalledWith("/jornadas/456/table-detail");
     });
   });
 
   it("debe estar en estado loading inicialmente", () => {
-    mockApiCall.mockImplementation(
+    (api.get as jest.Mock).mockImplementation(
       () =>
         new Promise((resolve) =>
           setTimeout(
             () =>
               resolve({
-                sessionId: "session-123",
-                date: "2024-01-01",
-                totalWorkers: 50,
-                details: [],
+                data: {
+                  sessionId: 123,
+                  date: "2024-01-01",
+                  totalWorkers: 50,
+                  details: [],
+                },
               }),
             100,
           ),
         ),
     );
 
-    const { result } = renderHook(() => useJornadasDetail("session-123"), {
+    const { result } = renderHook(() => useJornadasDetail(123), {
       wrapper: createWrapper(),
     });
 
@@ -108,15 +115,15 @@ describe("useJornadasDetail Hook", () => {
 
   it("debe retornar todos los campos esperados", async () => {
     const mockData = {
-      sessionId: "session-123",
+      sessionId: 123,
       date: "2024-01-01",
       totalWorkers: 50,
       details: [],
     };
 
-    mockApiCall.mockResolvedValue(mockData);
+    (api.get as jest.Mock).mockResolvedValue({ data: mockData });
 
-    const { result } = renderHook(() => useJornadasDetail("session-123"), {
+    const { result } = renderHook(() => useJornadasDetail(123), {
       wrapper: createWrapper(),
     });
 
@@ -131,93 +138,98 @@ describe("useJornadasDetail Hook", () => {
 
   it("debe actualizar cuando sessionId cambia", async () => {
     const mockData1 = {
-      sessionId: "session-1",
+      sessionId: 1,
       date: "2024-01-01",
       totalWorkers: 50,
       details: [],
     };
     const mockData2 = {
-      sessionId: "session-2",
+      sessionId: 2,
       date: "2024-01-02",
       totalWorkers: 40,
       details: [],
     };
 
-    mockApiCall
-      .mockResolvedValueOnce(mockData1)
-      .mockResolvedValueOnce(mockData2);
+    (api.get as jest.Mock)
+      .mockResolvedValueOnce({ data: mockData1 })
+      .mockResolvedValueOnce({ data: mockData2 });
 
     const { result, rerender } = renderHook(
       ({ sessionId }) => useJornadasDetail(sessionId),
-      { initialProps: { sessionId: "session-1" }, wrapper: createWrapper() },
+      { initialProps: { sessionId: 1 }, wrapper: createWrapper() },
     );
 
     await waitFor(() => {
       expect(result.current.data).toEqual(mockData1);
     });
 
-    rerender({ sessionId: "session-2" });
+    rerender({ sessionId: 2 });
 
     await waitFor(() => {
       expect(result.current.data).toEqual(mockData2);
     });
 
-    expect(mockApiCall).toHaveBeenCalledWith("session-1");
-    expect(mockApiCall).toHaveBeenCalledWith("session-2");
+    expect(api.get).toHaveBeenCalledWith("/jornadas/1/table-detail");
+    expect(api.get).toHaveBeenCalledWith("/jornadas/2/table-detail");
   });
 
   it("debe manejar datos con múltiples detalles", async () => {
     const mockData = {
-      sessionId: "session-123",
+      sessionId: 123,
       date: "2024-01-01",
-      totalWorkers: 3,
-      details: [
+      rows: [
         { workerId: 1, name: "Worker 1", status: "present" },
         { workerId: 2, name: "Worker 2", status: "absent" },
         { workerId: 3, name: "Worker 3", status: "present" },
       ],
+      columns: [{ id: "col1", data: ["Header"] }],
+      footer: { id: "footer", data: ["total"] },
+      discountedRows: [{ workerId: 4, name: "Worker 4", status: "discounted" }],
+      discountedFooter: { id: "discountedFooter", data: ["discounted total"] },
     };
 
-    mockApiCall.mockResolvedValue(mockData);
+    (api.get as jest.Mock).mockResolvedValue({ data: mockData });
 
-    const { result } = renderHook(() => useJornadasDetail("session-123"), {
+    const { result } = renderHook(() => useJornadasDetail(123), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => {
+      console.log(result.current.data);
       expect(result.current.data).toEqual(mockData);
+      expect(result.current.data?.rows).toHaveLength(3);
+      expect(result.current.data?.columns).toBeDefined();
     });
-
-    expect(result.current.data?.details).toHaveLength(3);
-    expect(result.current.data?.totalWorkers).toBe(3);
   });
 
   it("debe tener queryKey válida", async () => {
-    mockApiCall.mockResolvedValue({
-      sessionId: "session-123",
-      date: "2024-01-01",
-      totalWorkers: 50,
-      details: [],
+    (api.get as jest.Mock).mockResolvedValue({
+      data: {
+        columns: [{ id: "col1", data: ["Header"] }],
+        rows: [{ id: "row1", data: ["value"] }],
+        footer: { id: "footer", data: ["total"] },
+      },
     });
 
-    renderHook(() => useJornadasDetail("session-123"), {
+    renderHook(() => useJornadasDetail(123), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalled();
+      expect(api.get).toHaveBeenCalled();
     });
   });
 
-  it("debe manejar sessionId undefined", () => {
-    mockApiCall.mockResolvedValue({
-      sessionId: "session-123",
-      date: "2024-01-01",
-      totalWorkers: 50,
-      details: [],
+  it("debe manejar sessionId indefinido", () => {
+    (api.get as jest.Mock).mockResolvedValue({
+      data: {
+        columns: [{ id: "col1", data: ["Header"] }],
+        rows: [{ id: "row1", data: ["value"] }],
+        footer: { id: "footer", data: ["total"] },
+      },
     });
 
-    const { result } = renderHook(() => useJornadasDetail(undefined as any), {
+    const { result } = renderHook(() => useJornadasDetail(0), {
       wrapper: createWrapper(),
     });
 
@@ -226,81 +238,93 @@ describe("useJornadasDetail Hook", () => {
 
   it("debe reutilizar datos en caché para mismo sessionId", async () => {
     const mockData = {
-      sessionId: "session-123",
+      sessionId: 123,
       date: "2024-01-01",
       totalWorkers: 50,
       details: [],
     };
 
-    mockApiCall.mockResolvedValue(mockData);
+    (api.get as jest.Mock).mockResolvedValue({ data: mockData });
 
-    const { result: result1 } = renderHook(
-      () => useJornadasDetail("session-123"),
-      { wrapper: createWrapper() },
-    );
+    // Usar el mismo QueryClient para ambos hooks
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        children,
+      );
+
+    const { result: result1 } = renderHook(() => useJornadasDetail(123), {
+      wrapper,
+    });
 
     await waitFor(() => {
       expect(result1.current.data).toEqual(mockData);
     });
 
-    const { result: result2 } = renderHook(
-      () => useJornadasDetail("session-123"),
-      { wrapper: createWrapper() },
-    );
+    // Segunda llamada con el mismo sessionId y mismo QueryClient
+    const { result: result2 } = renderHook(() => useJornadasDetail(123), {
+      wrapper,
+    });
 
+    // Debería usar datos en caché, así que data está disponible inmediatamente
     expect(result2.current.data).toEqual(mockData);
   });
 
   it("debe hacer nueva llamada con sessionId diferente", async () => {
     const mockData1 = {
-      sessionId: "session-1",
+      sessionId: 1,
       date: "2024-01-01",
       totalWorkers: 50,
       details: [],
     };
     const mockData2 = {
-      sessionId: "session-2",
+      sessionId: 2,
       date: "2024-01-02",
       totalWorkers: 40,
       details: [],
     };
 
-    mockApiCall
-      .mockResolvedValueOnce(mockData1)
-      .mockResolvedValueOnce(mockData2);
+    (api.get as jest.Mock)
+      .mockResolvedValueOnce({ data: mockData1 })
+      .mockResolvedValueOnce({ data: mockData2 });
 
-    const { result: result1 } = renderHook(
-      () => useJornadasDetail("session-1"),
-      { wrapper: createWrapper() },
-    );
+    const { result: result1 } = renderHook(() => useJornadasDetail(1), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       expect(result1.current.data).toEqual(mockData1);
     });
 
-    const { result: result2 } = renderHook(
-      () => useJornadasDetail("session-2"),
-      { wrapper: createWrapper() },
-    );
+    const { result: result2 } = renderHook(() => useJornadasDetail(2), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       expect(result2.current.data).toEqual(mockData2);
     });
 
-    expect(mockApiCall).toHaveBeenCalledTimes(2);
+    expect(api.get).toHaveBeenCalledTimes(2);
   });
 
   it("debe manejar lista de detalles vacía", async () => {
     const mockData = {
-      sessionId: "session-123",
+      sessionId: 123,
       date: "2024-01-01",
       totalWorkers: 0,
-      details: [],
+      rows: [],
     };
 
-    mockApiCall.mockResolvedValue(mockData);
+    (api.get as jest.Mock).mockResolvedValue({ data: mockData });
 
-    const { result } = renderHook(() => useJornadasDetail("session-123"), {
+    const { result } = renderHook(() => useJornadasDetail(123), {
       wrapper: createWrapper(),
     });
 
@@ -308,20 +332,20 @@ describe("useJornadasDetail Hook", () => {
       expect(result.current.data).toEqual(mockData);
     });
 
-    expect(result.current.data?.details).toHaveLength(0);
+    expect(result.current.data?.rows).toHaveLength(0);
   });
 
   it("debe mantener estructura de datos consistente", async () => {
     const mockData = {
-      sessionId: "session-123",
+      sessionId: 123,
       date: "2024-01-01",
       totalWorkers: 1,
       details: [{ workerId: 1, name: "Test", status: "present" }],
     };
 
-    mockApiCall.mockResolvedValue(mockData);
+    (api.get as jest.Mock).mockResolvedValue({ data: mockData });
 
-    const { result } = renderHook(() => useJornadasDetail("session-123"), {
+    const { result } = renderHook(() => useJornadasDetail(123), {
       wrapper: createWrapper(),
     });
 
@@ -330,7 +354,7 @@ describe("useJornadasDetail Hook", () => {
     });
 
     expect(result.current.data).toMatchObject({
-      sessionId: expect.any(String),
+      sessionId: expect.any(Number),
       date: expect.any(String),
       totalWorkers: expect.any(Number),
       details: expect.any(Array),
