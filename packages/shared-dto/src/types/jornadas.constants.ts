@@ -47,8 +47,8 @@ export const INFO_JORNADAS_DIARIAS = {
     NRO_SDF: 43.59,
   },
   BAJA: {
-    NRO_LV: 55.47,
-    NRO_SDF: 25.01,
+    NRO_LV: 59.47,
+    NRO_SDF: 26.01,
   },
   SERVICIOS_DESCUENTO: ["TALLER"], // Servicios en los que se descuentan las jornadas para cómputo
   EQUIPOS_DESCUENTO: [
