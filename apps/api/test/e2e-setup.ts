@@ -1,4 +1,5 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
+import { join } from 'path';
 import { User } from '@/newdatabase/users/entities/user.entity';
 import { Permiso } from '@/newdatabase/permisos/entities/permiso.entity';
 
@@ -15,9 +16,16 @@ const PERMISSIONS = {
 
 // 2. Centralizar la configuración de la base de datos de prueba
 export const getTestDbOptions = (): DataSourceOptions => ({
+  // Se usa la conexión 'new' (misma que en AppModule)
+  name: 'new',
   type: 'sqlite',
   database: process.env.E2E_DB_PATH || './test.sqlite', // Lee del .env con un fallback
-  entities: [User, Permiso],
+  // Incluimos todos los entities del módulo newdatabase para evitar errores de metadatos
+  entities: [
+    join(__dirname, '../src/newdatabase/**/*.entity{.ts,.js}'),
+    User,
+    Permiso,
+  ],
   synchronize: true, // `true` es necesario para que el schema se cree en el setup
 });
 export const seedDatabase = async (dataSource: DataSource) => {

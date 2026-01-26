@@ -31,13 +31,12 @@ describe('Jornadas Service Summary (e2e)', () => {
     await app.init();
 
     dataSource = app.get(getDataSourceToken('new'));
+    await dataSource.synchronize(true);
+    await seedDatabase(dataSource);
+
     sessionRepo = app.get(getRepositoryToken(ImportSession, 'new'));
     routeRepo = app.get(getRepositoryToken(ScheduledRoute, 'new'));
     resultRepo = app.get(getRepositoryToken(PresenceResult, 'new'));
-
-    // Limpiar y sembrar usuarios base (admin para login)
-    await dataSource.synchronize(true);
-    await seedDatabase(dataSource);
 
     // Login como admin
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -48,7 +47,12 @@ describe('Jornadas Service Summary (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    try {
+      await app.close();
+    } catch (error) {
+      // Ignora errores de cierre de la aplicación (problema común con TypeORM)
+      console.warn('Error closing app:', (error as Error).message);
+    }
   });
 
   it('/jornadas/:sessionId/service-summary (GET) - devuelve el resumen correcto por servicio', async () => {

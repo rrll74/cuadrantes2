@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
@@ -34,16 +36,16 @@ describe('Jornadas Query Module (e2e)', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
+    // Limpiar y sembrar usuarios base (admin para login)
     dataSource = app.get(getDataSourceToken('new'));
+    await dataSource.synchronize(true);
+    await seedDatabase(dataSource);
+
     sessionRepo = app.get(getRepositoryToken(ImportSession, 'new'));
     routeRepo = app.get(getRepositoryToken(ScheduledRoute, 'new'));
     workerRepo = app.get(getRepositoryToken(RawWorker, 'new'));
     resultRepo = app.get(getRepositoryToken(PresenceResult, 'new'));
     unmatchedRepo = app.get(getRepositoryToken(UnmatchedResult, 'new'));
-
-    // Limpiar y sembrar usuarios base (admin para login)
-    await dataSource.synchronize(true);
-    await seedDatabase(dataSource);
 
     // Login como admin
     const loginRes = await request(app.getHttpServer())
@@ -53,7 +55,12 @@ describe('Jornadas Query Module (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    try {
+      await app.close();
+    } catch (error) {
+      // Ignora errores de cierre de la aplicación (problema común con TypeORM)
+      console.warn('Error closing app:', (error as Error).message);
+    }
   });
 
   describe('GET /jornadas/:sessionId/session-results', () => {
@@ -103,7 +110,7 @@ describe('Jornadas Query Module (e2e)', () => {
       );
 
       const response = await request(app.getHttpServer())
-        .get(`/jornadas/${session.id}/session-results`)
+        .get(`/jornadas/${session.id}`)
         .set('Authorization', `Bearer ${token}`)
         .query({ page: 1, limit: 10 });
 
@@ -196,7 +203,7 @@ describe('Jornadas Query Module (e2e)', () => {
 
       // Buscar solo a Juan
       const response = await request(app.getHttpServer())
-        .get(`/jornadas/${session.id}/session-results`)
+        .get(`/jornadas/${session.id}`)
         .set('Authorization', `Bearer ${token}`)
         .query({ search: 'Juan', page: 1, limit: 10 });
 
@@ -273,7 +280,7 @@ describe('Jornadas Query Module (e2e)', () => {
 
       // Filtrar solo COMPLETO
       const response = await request(app.getHttpServer())
-        .get(`/jornadas/${session.id}/session-results`)
+        .get(`/jornadas/${session.id}`)
         .set('Authorization', `Bearer ${token}`)
         .query({ status: EstadoPresencia.COMPLETO, page: 1, limit: 10 });
 
@@ -374,7 +381,7 @@ describe('Jornadas Query Module (e2e)', () => {
       );
 
       const response = await request(app.getHttpServer())
-        .get(`/jornadas/${session.id}/session-results`)
+        .get(`/jornadas/${session.id}`)
         .set('Authorization', `Bearer ${token}`)
         .query({ page: 1, limit: 10 });
 
@@ -386,7 +393,7 @@ describe('Jornadas Query Module (e2e)', () => {
     });
   });
 
-  describe('GET /jornadas/:sessionId/unmatched-results', () => {
+  describe('GET /jornadas/:sessionId/unmatched', () => {
     it('debería devolver resultados sin ruta paginados', async () => {
       const session = await sessionRepo.save(sessionRepo.create({ userId: 1 }));
 
@@ -413,7 +420,7 @@ describe('Jornadas Query Module (e2e)', () => {
       );
 
       const response = await request(app.getHttpServer())
-        .get(`/jornadas/${session.id}/unmatched-results`)
+        .get(`/jornadas/${session.id}/unmatched`)
         .set('Authorization', `Bearer ${token}`)
         .query({ page: 1, limit: 10 });
 
@@ -423,7 +430,7 @@ describe('Jornadas Query Module (e2e)', () => {
     });
   });
 
-  describe('GET /jornadas/:sessionId/unmatched-stats', () => {
+  describe('GET /jornadas/:sessionId/unmatched/stats', () => {
     it('debería retornar estadísticas de resultados sin ruta', async () => {
       const session = await sessionRepo.save(sessionRepo.create({ userId: 1 }));
 
@@ -471,7 +478,7 @@ describe('Jornadas Query Module (e2e)', () => {
       );
 
       const response = await request(app.getHttpServer())
-        .get(`/jornadas/${session.id}/unmatched-stats`)
+        .get(`/jornadas/${session.id}/unmatched/stats`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -482,7 +489,7 @@ describe('Jornadas Query Module (e2e)', () => {
     });
   });
 
-  describe('GET /jornadas/all-sessions', () => {
+  describe('GET /jornadas', () => {
     it('debería retornar todas las sesiones con contadores', async () => {
       const session = await sessionRepo.save(sessionRepo.create({ userId: 1 }));
 
@@ -524,7 +531,7 @@ describe('Jornadas Query Module (e2e)', () => {
       );
 
       const response = await request(app.getHttpServer())
-        .get('/jornadas/all-sessions')
+        .get('/jornadas')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);

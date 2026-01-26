@@ -32,14 +32,15 @@ describe('Jornadas Equal Puesto Summary (e2e)', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
+    // Limpieza completa antes de usar los repositorios
     dataSource = app.get(getDataSourceToken('new'));
+    await dataSource.synchronize(true);
+    await seedDatabase(dataSource);
+
     sessionRepo = app.get(getRepositoryToken(ImportSession, 'new'));
     routeRepo = app.get(getRepositoryToken(ScheduledRoute, 'new'));
     workerRepo = app.get(getRepositoryToken(RawWorker, 'new'));
     resultRepo = app.get(getRepositoryToken(PresenceResult, 'new'));
-
-    await dataSource.synchronize(true);
-    await seedDatabase(dataSource);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const loginRes = await request(app.getHttpServer())
@@ -49,7 +50,12 @@ describe('Jornadas Equal Puesto Summary (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    try {
+      await app.close();
+    } catch (error) {
+      // Ignora errores de cierre de la aplicación (problema común con TypeORM)
+      console.warn('Error closing app:', (error as Error).message);
+    }
   });
 
   it('/jornadas/:sessionId/equal-puesto-summary (GET) - devuelve el resumen correcto por puesto y equal', async () => {

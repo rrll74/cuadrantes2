@@ -4,7 +4,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { getDataSourceToken } from '@nestjs/typeorm';
-import * as request from 'supertest';
+import request from 'supertest';
 import { seedDatabase } from './e2e-setup';
 import { AppModule } from '../src/app.module';
 
@@ -35,7 +35,12 @@ describe('AuthController (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    try {
+      await app.close();
+    } catch (error) {
+      // Ignora errores de cierre de la aplicación (problema común con TypeORM)
+      console.warn('Error closing app:', (error as Error).message);
+    }
   });
 
   describe('POST /auth/login', () => {

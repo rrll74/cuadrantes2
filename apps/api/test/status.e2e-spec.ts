@@ -6,7 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 // import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { getDataSourceToken } from '@nestjs/typeorm';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { io, Socket } from 'socket.io-client';
 import { AddressInfo } from 'net';
@@ -88,7 +88,12 @@ describe('StatusGateway (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    try {
+      await app.close();
+    } catch (error) {
+      // Ignora errores de cierre de la aplicación (problema común con TypeORM)
+      console.warn('Error closing app:', (error as Error).message);
+    }
   });
 
   describe('WebSocket Connection Flow', () => {
