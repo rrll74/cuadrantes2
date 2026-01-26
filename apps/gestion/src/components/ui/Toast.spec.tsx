@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { Toast } from "./Toast";
 
 // Mock timer
@@ -119,7 +119,7 @@ describe("Toast Component", () => {
     );
 
     const toast = container.querySelector('[role="alert"]');
-    expect(toast).toHaveClass("fixed", "bottom-5", "right-5", "z-50");
+    expect(toast).toHaveClass("fixed bottom-5 right-5 z-50");
   });
 
   it("debe tener estilos de transición", () => {
@@ -128,7 +128,7 @@ describe("Toast Component", () => {
     );
 
     const toast = container.querySelector('[role="alert"]');
-    expect(toast).toHaveClass("transition-opacity", "duration-300");
+    expect(toast).toHaveClass("transition-opacity duration-300");
   });
 
   it("debe renderizar múltiples toasts de manera independiente", () => {

@@ -13,7 +13,8 @@ describe("DataTable Component", () => {
 
   const columnHelper = createColumnHelper<TestData>();
 
-  const columns: ColumnDef<TestData, unknown>[] = [
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const columns: ColumnDef<TestData, any>[] = [
     columnHelper.accessor("id", {
       header: "ID",
       cell: (info) => info.getValue(),
@@ -133,9 +134,12 @@ describe("DataTable Component", () => {
       amount: number;
     }
 
-    const complexColumns: ColumnDef<ComplexData, unknown>[] = [
-      columnHelper.accessor("id", { header: "ID" }),
-      columnHelper.accessor("status", {
+    const complexColumnHelper = createColumnHelper<ComplexData>();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const complexColumns: ColumnDef<ComplexData, any>[] = [
+      complexColumnHelper.accessor("id", { header: "ID" }),
+      complexColumnHelper.accessor("status", {
         header: "Estado",
         cell: (info) => (
           <span className={`status-${info.getValue()}`}>
@@ -143,7 +147,7 @@ describe("DataTable Component", () => {
           </span>
         ),
       }),
-      columnHelper.accessor("amount", {
+      complexColumnHelper.accessor("amount", {
         header: "Monto",
         cell: (info) => `$${info.getValue()}`,
       }),
