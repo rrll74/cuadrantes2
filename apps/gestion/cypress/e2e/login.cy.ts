@@ -44,12 +44,5 @@ describe("Login Page", () => {
     // Ahora usamos las credenciales correctas que coinciden con e2e-setup.ts
     // O simplemente `cy.login()` ya que hemos actualizado los valores por defecto.
     cy.login("testadmin", "adminpass");
-
-    // El comando `cy.login` ya verifica la redirección, pero podemos
-    // añadir una verificación extra en el propio test si queremos.
-    cy.url().should("include", "/dashboard");
-
-    // Como una verificación extra, podemos comprobar que ya no estamos en la página de login
-    cy.get("h1").contains("Iniciar Sesión").should("not.exist");
   });
 });

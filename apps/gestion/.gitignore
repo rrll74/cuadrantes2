@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/cypress/downloads
 
 # next.js
 /.next/

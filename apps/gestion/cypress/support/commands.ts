@@ -34,6 +34,8 @@ Cypress.Commands.add(
       cy.get("#password").type(password);
       cy.get('button[type="submit"]').click();
       cy.url().should("include", "/dashboard"); // Verificamos que el login fue exitoso
+      // Como una verificación extra, podemos comprobar que ya no estamos en la página de login
+      cy.get("h1").contains("Iniciar Sesión").should("not.exist");
     });
   },
 );
