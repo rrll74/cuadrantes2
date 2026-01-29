@@ -20,9 +20,11 @@ describe("Jornadas Query - Filtros y Búsqueda E2E", () => {
               trabajador: {
                 nombre: "Juan",
                 apellido1: "Pérez",
+              },
+              ruta: {
                 equipo: "Equipo A",
               },
-              estado: "COMPLETO",
+              estado: "completo",
               discounted: false,
             },
           ],
@@ -48,7 +50,7 @@ describe("Jornadas Query - Filtros y Búsqueda E2E", () => {
             .map((_, i) => ({
               id: i,
               trabajador: { nombre: `Worker ${i}`, apellido1: "Last" },
-              estado: "COMPLETO",
+              estado: "completo",
             })),
           meta: { page: 1, limit: 10, total: 25, totalPages: 3 },
         },
@@ -62,7 +64,7 @@ describe("Jornadas Query - Filtros y Búsqueda E2E", () => {
             .map((_, i) => ({
               id: i + 10,
               trabajador: { nombre: `Worker ${i + 10}`, apellido1: "Last" },
-              estado: "COMPLETO",
+              estado: "completo",
             })),
           meta: { page: 2, limit: 10, total: 25, totalPages: 3 },
         },

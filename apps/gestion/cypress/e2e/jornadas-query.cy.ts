@@ -8,10 +8,10 @@ describe("Jornadas Query - E2E Tests", () => {
 
   describe("Tabla de Resultados de Sesión", () => {
     it("Debe cargar y mostrar resultados de sesión con paginación", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/session-results`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       // Esperar a que cargue la tabla
-      cy.intercept("GET", `**/jornadas/${sessionId}/session-results*`, {
+      cy.intercept("GET", `**/jornadas/${sessionId}*`, {
         statusCode: 200,
         body: {
           data: [
@@ -20,9 +20,11 @@ describe("Jornadas Query - E2E Tests", () => {
               trabajador: {
                 nombre: "Juan",
                 apellido1: "Pérez",
-                puesto: "Conductor",
               },
-              estado: "COMPLETO",
+              ruta: {
+                equipo: "Equipo A",
+              },
+              estado: "completo",
               fichajeEntrada: "2024-01-01T08:00:00Z",
               fichajeSalida: "2024-01-01T16:00:00Z",
               discounted: false,
@@ -34,59 +36,51 @@ describe("Jornadas Query - E2E Tests", () => {
 
       cy.wait("@getResults");
       cy.contains("Juan").should("be.visible");
-      cy.contains("Conductor").should("be.visible");
+      cy.contains("Equipo A").should("be.visible");
     });
 
     it("Debe filtrar resultados por estado", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/session-results`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       // Filtrar por COMPLETO
-      cy.intercept(
-        "GET",
-        `**/jornadas/${sessionId}/session-results?*estado=COMPLETO*`,
-        {
-          statusCode: 200,
-          body: {
-            data: [
-              {
-                id: 1,
-                trabajador: { nombre: "Juan", apellido1: "Pérez" },
-                estado: "COMPLETO",
-              },
-            ],
-            meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
-          },
+      cy.intercept("GET", `**/jornadas/${sessionId}?*status=completo*`, {
+        statusCode: 200,
+        body: {
+          data: [
+            {
+              id: 1,
+              trabajador: { nombre: "Juan", apellido1: "Pérez" },
+              estado: "completo",
+            },
+          ],
+          meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
         },
-      ).as("filterByEstado");
+      }).as("filterByEstado");
 
-      cy.get("select").contains("Estado").parent().select("COMPLETO");
+      cy.get("select").contains("Completo").parent().select("Completo");
       cy.wait("@filterByEstado", { timeout: 5000 }).then(() => {
         cy.contains("Juan").should("be.visible");
       });
     });
 
     it("Debe buscar trabajadores por nombre", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/session-results`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
-      cy.intercept(
-        "GET",
-        `**/jornadas/${sessionId}/session-results?*search=Juan*`,
-        {
-          statusCode: 200,
-          body: {
-            data: [
-              {
-                id: 1,
-                trabajador: { nombre: "Juan", apellido1: "Pérez" },
-                estado: "COMPLETO",
-              },
-            ],
-            meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
-          },
+      cy.intercept("GET", `**/jornadas/${sessionId}?*search=Juan*`, {
+        statusCode: 200,
+        body: {
+          data: [
+            {
+              id: 1,
+              trabajador: { nombre: "Juan", apellido1: "Pérez" },
+              estado: "completo",
+            },
+          ],
+          meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
         },
-      ).as("search");
+      }).as("search");
 
-      cy.get("input[placeholder*='Buscar']").type("Juan");
+      cy.get("input[placeholder*='Nombre, apellido, equipo...']").type("Juan");
       cy.wait("@search", { timeout: 5000 });
       cy.contains("Juan").should("be.visible");
     });
@@ -94,7 +88,7 @@ describe("Jornadas Query - E2E Tests", () => {
 
   describe("Tabla de Resultados Sin Asignar", () => {
     it("Debe mostrar fichas sin trabajador asignado", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/unmatched-results`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/unmatched*`, {
         statusCode: 200,
@@ -105,7 +99,7 @@ describe("Jornadas Query - E2E Tests", () => {
               fecha: "2024-01-01",
               fichajeEntrada: "2024-01-01T08:00:00Z",
               fichajeSalida: null,
-              estado: "INCOMPLETO",
+              estado: "incompleto",
               trabajador: null,
             },
           ],
@@ -113,12 +107,14 @@ describe("Jornadas Query - E2E Tests", () => {
         },
       }).as("getUnmatched");
 
+      cy.contains("Fichajes sin Ruta").click();
+
       cy.wait("@getUnmatched");
       cy.contains("Sin asignar").should("be.visible");
     });
 
     it("Debe filtrar fichas sin asignar por estado", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/unmatched-results`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/unmatched*`, {
         statusCode: 200,
@@ -128,7 +124,9 @@ describe("Jornadas Query - E2E Tests", () => {
         },
       }).as("getUnmatchedEmpty");
 
-      cy.get("select").select("SIN_PRESENCIA");
+      cy.contains("Fichajes sin Ruta").click();
+
+      cy.get("select").select("Sin Presencia");
       cy.wait("@getUnmatchedEmpty");
     });
   });
@@ -478,9 +476,9 @@ describe("Jornadas Query - E2E Tests", () => {
 
   describe("Exportación de datos", () => {
     it("Debe exportar Excel desde tabla de resultados", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/session-results`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
-      cy.intercept("GET", `**/jornadas/${sessionId}/session-results*`, {
+      cy.intercept("GET", `**/jornadas/${sessionId}*`, {
         statusCode: 200,
         body: {
           data: [{ id: 1, trabajador: { nombre: "Juan" }, estado: "COMPLETO" }],
@@ -541,10 +539,10 @@ describe("Jornadas Query - E2E Tests", () => {
     });
 
     it("Debe mantener filtros al navegar entre vistas", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/session-results`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       // Aplicar filtro
-      cy.intercept("GET", `**/jornadas/${sessionId}/session-results*`, {
+      cy.intercept("GET", `**/jornadas/${sessionId}*`, {
         statusCode: 200,
         body: {
           data: [],
