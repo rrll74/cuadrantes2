@@ -1,9 +1,8 @@
 describe("Gestión de Jornadas", () => {
   beforeEach(() => {
-    // Iniciamos sesión y navegamos a la sección de jornadas
+    // Iniciamos sesión
     // Asumimos que el comando cy.login ya está configurado (como se ve en login.cy.ts)
     cy.login("testadmin", "adminpass");
-    cy.visit("/dashboard/jornadas");
   });
 
   it("Debe permitir subir archivos, ver la sesión en la lista y eliminarla", () => {
@@ -13,9 +12,12 @@ describe("Gestión de Jornadas", () => {
       body: [],
     }).as("getSessionsInitial");
 
+    // Visitamos tras definir el intercept para capturar la petición inicial
+    cy.visit("/dashboard/jornadas");
+
     // Esperar a que la página cargue y haga la primera petición
     cy.wait("@getSessionsInitial");
-    cy.contains("No hay sesiones registradas").should("be.visible");
+    cy.contains("No hay sesiones registradas.").should("be.visible");
 
     // 2. Preparar intercept para la subida de archivos
     // Simulamos una respuesta exitosa del backend
@@ -53,12 +55,23 @@ describe("Gestión de Jornadas", () => {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     };
 
-    // Simulamos la selección de archivos en los inputs
-    // (Asumimos que los inputs tienen estos nombres basados en el controlador del backend)
-    cy.get('input[name="titulares"]').selectFile(dummyFile, { force: true });
-    cy.get('input[name="auxiliares"]').selectFile(dummyFile, { force: true });
-    cy.get('input[name="trabajadores"]').selectFile(dummyFile, { force: true });
-    cy.get('input[name="fichajes"]').selectFile(dummyFile, { force: true });
+    // Simulamos la selección de archivos en los inputs de cada dropzone
+    cy.contains("label", "Rutas Titulares (Excel)")
+      .parent()
+      .find('input[type="file"]')
+      .selectFile(dummyFile, { force: true });
+    cy.contains("label", "Rutas Auxiliares (Excel)")
+      .parent()
+      .find('input[type="file"]')
+      .selectFile(dummyFile, { force: true });
+    cy.contains("label", "Listado Trabajadores (Excel)")
+      .parent()
+      .find('input[type="file"]')
+      .selectFile(dummyFile, { force: true });
+    cy.contains("label", "Fichajes (Excel)")
+      .parent()
+      .find('input[type="file"]')
+      .selectFile(dummyFile, { force: true });
 
     // Enviamos el formulario
     // Buscamos un botón de tipo submit genérico
@@ -100,16 +113,14 @@ describe("Gestión de Jornadas", () => {
     }).as("getSessionsFinal");
 
     // --- ACCIÓN: ELIMINAR SESIÓN ---
-    // Controlamos el window.confirm del navegador
-    cy.on("window:confirm", (text) => {
-      expect(text).to.include("¿Estás seguro");
-      return true; // Confirmamos la acción
-    });
-
     // Hacemos clic en el botón de eliminar de la fila #101
     cy.contains("tr", "#101")
       .find('button[aria-label="Eliminar sesión"]')
       .click();
+
+    // Confirmamos en el diálogo personalizado
+    cy.contains("Eliminar Sesión").should("be.visible");
+    cy.contains("button", "Eliminar").click();
 
     // Esperamos la llamada a DELETE
     cy.wait("@deleteSession");
@@ -119,6 +130,6 @@ describe("Gestión de Jornadas", () => {
 
     // Verificamos que la sesión ha desaparecido de la UI
     cy.contains("tr", "#101").should("not.exist");
-    cy.contains("No hay sesiones registradas").should("be.visible");
+    cy.contains("No hay sesiones registradas.").should("be.visible");
   });
 });

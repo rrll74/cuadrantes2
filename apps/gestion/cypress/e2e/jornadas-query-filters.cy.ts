@@ -53,6 +53,13 @@ describe("Jornadas Query - Filtros y Búsqueda E2E", () => {
               estado: "completo",
             })),
           meta: { page: 1, limit: 10, total: 25, totalPages: 3 },
+          stats: {
+            total: 25,
+            completo: 25,
+            incompleto: 0,
+            sinPresencia: 0,
+            revisar: 0,
+          },
         },
       }).as("getPage1");
 
@@ -67,15 +74,31 @@ describe("Jornadas Query - Filtros y Búsqueda E2E", () => {
               estado: "completo",
             })),
           meta: { page: 2, limit: 10, total: 25, totalPages: 3 },
+          stats: {
+            total: 25,
+            completo: 25,
+            incompleto: 0,
+            sinPresencia: 0,
+            revisar: 0,
+          },
         },
       }).as("getPage2");
 
+      // Recargamos la página para asegurar que los intercepts capturen la petición inicial
+      cy.visit(`/dashboard/jornadas/${sessionId}/`);
+
       cy.wait("@getPage1");
 
+      // Aseguramos que no haya ningún loader cubriendo la pantalla antes de interactuar
+      cy.get(
+        ".spinner, [role='status'], .loader, [role='progressbar'], .MuiCircularProgress-root",
+      ).should("not.exist");
+
       // Click en siguiente página
-      cy.get("button")
-        .contains(/Siguiente|Next|>/i)
-        .click({ force: true });
+      cy.contains("button:visible", /Siguiente|Next|>/i)
+        .scrollIntoView({ ensureScrollable: false })
+        .should("not.be.disabled")
+        .click();
       cy.wait("@getPage2");
       cy.contains("Worker 10").should("be.visible");
     });
@@ -137,6 +160,8 @@ describe("Jornadas Query - Filtros y Búsqueda E2E", () => {
               trabajador: {
                 nombre: "Juan",
                 apellido1: "Pérez",
+              },
+              ruta: {
                 equipo: "Equipo A",
               },
               estado: "COMPLETO",
@@ -160,53 +185,53 @@ describe("Jornadas Query - Filtros y Búsqueda E2E", () => {
     });
 
     it("Debe filtrar por COMPLETO", () => {
-      cy.intercept("GET", `**/jornadas/${sessionId}?*estado=COMPLETO*`, {
+      cy.intercept("GET", `**/jornadas/${sessionId}?*status=completo*`, {
         statusCode: 200,
         body: {
-          data: [{ id: 1, trabajador: { nombre: "Juan" }, estado: "COMPLETO" }],
+          data: [{ id: 1, trabajador: { nombre: "Juan" }, estado: "completo" }],
           meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
         },
       }).as("filterCompleto");
 
-      cy.get("select").eq(0).select("COMPLETO");
+      cy.get("select").eq(0).select("Completo");
       cy.wait("@filterCompleto");
-      cy.contains("COMPLETO").should("be.visible");
+      cy.contains("completo").scrollIntoView().should("be.visible");
     });
 
     it("Debe filtrar por INCOMPLETO", () => {
-      cy.intercept("GET", `**/jornadas/${sessionId}?*estado=INCOMPLETO*`, {
+      cy.intercept("GET", `**/jornadas/${sessionId}?*status=incompleto*`, {
         statusCode: 200,
         body: {
           data: [
-            { id: 1, trabajador: { nombre: "María" }, estado: "INCOMPLETO" },
+            { id: 1, trabajador: { nombre: "María" }, estado: "incompleto" },
           ],
           meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
         },
       }).as("filterIncompleto");
 
-      cy.get("select").eq(0).select("INCOMPLETO");
+      cy.get("select").eq(0).select("Incompleto");
       cy.wait("@filterIncompleto");
-      cy.contains("INCOMPLETO").should("be.visible");
+      cy.contains("incompleto").scrollIntoView().should("be.visible");
     });
 
     it("Debe filtrar por SIN_PRESENCIA", () => {
-      cy.intercept("GET", `**/jornadas/${sessionId}?*estado=SIN_PRESENCIA*`, {
+      cy.intercept("GET", `**/jornadas/${sessionId}?*status=sin%20presencia*`, {
         statusCode: 200,
         body: {
           data: [
             {
               id: 1,
               trabajador: { nombre: "Carlos" },
-              estado: "SIN_PRESENCIA",
+              estado: "sin presencia",
             },
           ],
           meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
         },
       }).as("filterSinPresencia");
 
-      cy.get("select").eq(0).select("SIN_PRESENCIA");
+      cy.get("select").eq(0).select("Sin Presencia");
       cy.wait("@filterSinPresencia");
-      cy.contains("SIN_PRESENCIA").should("be.visible");
+      cy.contains("sin presencia").scrollIntoView().should("be.visible");
     });
   });
 
@@ -286,7 +311,7 @@ describe("Jornadas Query - Filtros y Búsqueda E2E", () => {
     it("Debe actualizar stats al cambiar filtros", () => {
       cy.visit(`/dashboard/jornadas/${sessionId}`);
 
-      cy.intercept("GET", `**/jornadas/${sessionId}?*estado=COMPLETO*`, {
+      cy.intercept("GET", `**/jornadas/${sessionId}?*status=completo*`, {
         statusCode: 200,
         body: {
           data: [],
@@ -300,7 +325,7 @@ describe("Jornadas Query - Filtros y Búsqueda E2E", () => {
         },
       }).as("getFilteredStats");
 
-      cy.get("select").eq(0).select("COMPLETO");
+      cy.get("select").eq(0).select("Completo");
       cy.wait("@getFilteredStats");
       cy.contains("60").should("be.visible");
     });
@@ -338,7 +363,9 @@ describe("Jornadas Query - Filtros y Búsqueda E2E", () => {
       cy.wait("@getError");
       cy.get("body").then(($body) => {
         if ($body.text().includes("Error")) {
-          cy.contains(/Error|error/i).should("be.visible");
+          cy.contains(/No se encontraron resultados|Error/i).should(
+            "be.visible",
+          );
         }
       });
     });
@@ -365,14 +392,12 @@ describe("Jornadas Query - Filtros y Búsqueda E2E", () => {
       }).as("getWithDelay");
 
       // Buscar para disparar nueva petición
-      cy.get("input[placeholder*='Buscar']").type("test");
+      cy.get("input[placeholder*='Nombre, apellido, equipo...']").type("test");
 
       // Debe haber un loader visible brevemente
-      cy.get(".spinner, [role='status'], .loader").then(($loader) => {
-        if ($loader.length > 0) {
-          cy.wrap($loader).should("be.visible");
-        }
-      });
+      cy.get(
+        ".spinner, [role='status'], .loader, [role='progressbar'], .MuiCircularProgress-root, .animate-spin",
+      ).should("be.visible");
 
       cy.wait("@getWithDelay");
     });

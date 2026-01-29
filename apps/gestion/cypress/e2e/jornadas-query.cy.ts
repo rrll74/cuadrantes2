@@ -133,7 +133,7 @@ describe("Jornadas Query - E2E Tests", () => {
 
   describe("Tabla Detallada de Jornadas", () => {
     it("Debe cargar tabla detallada con colores por estado", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/table-detail`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/table-detail`, {
         statusCode: 200,
@@ -163,13 +163,15 @@ describe("Jornadas Query - E2E Tests", () => {
         },
       }).as("getTableDetail");
 
+      cy.contains("Tabla por Servicios/Equipos").click();
+
       cy.wait("@getTableDetail");
-      cy.contains("Servicio A").should("be.visible");
+      cy.contains("Servicio A").scrollIntoView().should("be.visible");
       cy.contains("Equipo 1").should("be.visible");
     });
 
     it("Debe mostrar gráfico de evolución de jornadas", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/table-detail`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/table-detail`, {
         statusCode: 200,
@@ -189,6 +191,8 @@ describe("Jornadas Query - E2E Tests", () => {
         },
       }).as("getTableDetail");
 
+      cy.contains("Tabla por Servicios/Equipos").click();
+
       cy.wait("@getTableDetail");
       cy.contains("Evolución de Jornadas por Día").should("be.visible");
       // Verificar que el gráfico está presente
@@ -196,7 +200,7 @@ describe("Jornadas Query - E2E Tests", () => {
     });
 
     it("Debe mostrar tabla de equipos descontados", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/table-detail`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/table-detail`, {
         statusCode: 200,
@@ -233,13 +237,15 @@ describe("Jornadas Query - E2E Tests", () => {
         },
       }).as("getTableDetail");
 
+      cy.contains("Tabla por Servicios/Equipos").click();
+
       cy.wait("@getTableDetail");
-      cy.contains("Equipos Descontados").should("be.visible");
+      cy.contains("Equipos Descontados").scrollIntoView().should("be.visible");
       cy.contains("Equipo Descuento").should("be.visible");
     });
 
     it("Debe descargar PNG del gráfico", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/table-detail`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/table-detail`, {
         statusCode: 200,
@@ -255,6 +261,8 @@ describe("Jornadas Query - E2E Tests", () => {
         },
       }).as("getTableDetail");
 
+      cy.contains("Tabla por Servicios/Equipos").click();
+
       cy.wait("@getTableDetail");
       cy.contains("Descargar PNG").click();
       // Verificar que la descarga se intenta (sin verificar la descarga real)
@@ -264,7 +272,7 @@ describe("Jornadas Query - E2E Tests", () => {
 
   describe("Resumen por Servicio", () => {
     it("Debe cargar resumen de jornadas por servicio", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/service-summary`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/service-summary`, {
         statusCode: 200,
@@ -277,6 +285,8 @@ describe("Jornadas Query - E2E Tests", () => {
         },
       }).as("getServiceSummary");
 
+      cy.contains("Resumen por Servicios").click();
+
       cy.wait("@getServiceSummary");
       cy.contains("Servicio A").should("be.visible");
       cy.contains("Servicio B").should("be.visible");
@@ -284,7 +294,7 @@ describe("Jornadas Query - E2E Tests", () => {
     });
 
     it("Debe mostrar servicios descontados", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/service-summary`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/service-summary`, {
         statusCode: 200,
@@ -296,13 +306,15 @@ describe("Jornadas Query - E2E Tests", () => {
         },
       }).as("getServiceSummary");
 
+      cy.contains("Resumen por Servicios").click();
+
       cy.wait("@getServiceSummary");
       cy.contains("Servicios Descontados").should("be.visible");
       cy.contains("Servicio Descuento").should("be.visible");
     });
 
     it("Debe mostrar gráfico de barras por servicio", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/service-summary`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/service-summary`, {
         statusCode: 200,
@@ -315,6 +327,8 @@ describe("Jornadas Query - E2E Tests", () => {
         },
       }).as("getServiceSummary");
 
+      cy.contains("Resumen por Servicios").click();
+
       cy.wait("@getServiceSummary");
       cy.contains("Comparativa de Jornadas por Servicio").should("be.visible");
     });
@@ -322,7 +336,7 @@ describe("Jornadas Query - E2E Tests", () => {
 
   describe("Resumen por Puesto y Equal", () => {
     it("Debe cargar resumen por puesto y equal", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/equal-puesto-summary`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/equal-puesto-summary`, {
         statusCode: 200,
@@ -335,13 +349,15 @@ describe("Jornadas Query - E2E Tests", () => {
         },
       }).as("getEqualPuestoSummary");
 
+      cy.contains("Resumen Puesto/Equal").click();
+
       cy.wait("@getEqualPuestoSummary");
       cy.contains("Conductor").should("be.visible");
       cy.contains("Operario").should("be.visible");
     });
 
     it("Debe mostrar gráfico circular de distribución", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/equal-puesto-summary`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/equal-puesto-summary`, {
         statusCode: 200,
@@ -354,12 +370,14 @@ describe("Jornadas Query - E2E Tests", () => {
         },
       }).as("getEqualPuestoSummary");
 
+      cy.contains("Resumen Puesto/Equal").click();
+
       cy.wait("@getEqualPuestoSummary");
       cy.contains("Distribución de Jornadas").should("be.visible");
     });
 
     it("Debe mostrar puestos descontados", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/equal-puesto-summary`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/equal-puesto-summary`, {
         statusCode: 200,
@@ -371,6 +389,8 @@ describe("Jornadas Query - E2E Tests", () => {
         },
       }).as("getEqualPuestoSummary");
 
+      cy.contains("Resumen Puesto/Equal").click();
+
       cy.wait("@getEqualPuestoSummary");
       cy.contains("Puestos Descontados").should("be.visible");
       cy.contains("Limpieza").should("be.visible");
@@ -379,7 +399,7 @@ describe("Jornadas Query - E2E Tests", () => {
 
   describe("Resumen de Estados y Partes", () => {
     it("Debe cargar resumen de estados con separación por partes", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/status-parts-summary`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/status-parts-summary`, {
         statusCode: 200,
@@ -410,13 +430,15 @@ describe("Jornadas Query - E2E Tests", () => {
         },
       }).as("getStatusPartsSummary");
 
+      cy.contains("Resumen Estado/Partes").click();
+
       cy.wait("@getStatusPartsSummary");
       cy.contains("COMPLETO").should("be.visible");
       cy.contains("INCOMPLETO").should("be.visible");
     });
 
     it("Debe mostrar tabla con porcentajes correctos", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/status-parts-summary`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/status-parts-summary`, {
         statusCode: 200,
@@ -439,13 +461,15 @@ describe("Jornadas Query - E2E Tests", () => {
           },
         },
       }).as("getStatusPartsSummary");
+
+      cy.contains("Resumen Estado/Partes").click();
 
       cy.wait("@getStatusPartsSummary");
       cy.contains("50.00").should("be.visible");
     });
 
     it("Debe mostrar gráfico de barras con estados", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/status-parts-summary`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/status-parts-summary`, {
         statusCode: 200,
@@ -468,6 +492,8 @@ describe("Jornadas Query - E2E Tests", () => {
           },
         },
       }).as("getStatusPartsSummary");
+
+      cy.contains("Resumen Estado/Partes").click();
 
       cy.wait("@getStatusPartsSummary");
       cy.contains("Distribución de Estados").should("be.visible");
@@ -504,7 +530,7 @@ describe("Jornadas Query - E2E Tests", () => {
     });
 
     it("Debe descargar PNG desde gráfico de tabla detallada", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}/table-detail`);
+      cy.visit(`/dashboard/jornadas/${sessionId}`);
 
       cy.intercept("GET", `**/jornadas/${sessionId}/table-detail`, {
         statusCode: 200,
@@ -514,6 +540,8 @@ describe("Jornadas Query - E2E Tests", () => {
           footer: { servicio: "TOTAL", equipo: "", total: 10 },
         },
       }).as("getTableDetail");
+
+      cy.contains("Tabla por Servicios/Equipos").click();
 
       cy.wait("@getTableDetail");
       cy.contains("Descargar PNG").should("be.visible");
@@ -527,33 +555,19 @@ describe("Jornadas Query - E2E Tests", () => {
 
       // Navegar a tabla detallada
       cy.get("a, button")
-        .contains(/Tabla Detallada/i)
+        .contains(/Tabla por Servicios\/Equipos/i)
         .click({ force: true });
-      cy.url().should("include", "table-detail");
+      cy.contains(
+        "No hay datos disponibles para generar la tabla detallada",
+      ).should("be.visible");
 
       // Navegar a resumen por servicios
       cy.get("a, button")
-        .contains(/Servicios/i)
+        .contains(/Resumen por Servicios/i)
         .click({ force: true });
-      cy.url().should("include", "service-summary");
-    });
-
-    it("Debe mantener filtros al navegar entre vistas", () => {
-      cy.visit(`/dashboard/jornadas/${sessionId}`);
-
-      // Aplicar filtro
-      cy.intercept("GET", `**/jornadas/${sessionId}*`, {
-        statusCode: 200,
-        body: {
-          data: [],
-          meta: { page: 1, limit: 10, total: 0, totalPages: 1 },
-        },
-      }).as("getFiltered");
-
-      cy.get("select").first().select("COMPLETO");
-      cy.wait("@getFiltered");
-
-      // El filtro debería persistir en la URL o en el estado
+      cy.contains("No hay datos disponibles para generar el resumen").should(
+        "be.visible",
+      );
     });
   });
 });

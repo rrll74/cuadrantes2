@@ -31,16 +31,26 @@ describe("Gestión de Jornadas (Solo Lectura)", () => {
 
   it("No muestra botones de eliminación en el listado de sesiones", () => {
     // Simulamos que hay datos para verificar las acciones por fila
-    cy.intercept("GET", "**/jornadas", {
-      statusCode: 200,
-      body: [
-        {
-          id: 999,
-          createdAt: new Date().toISOString(),
-          totalRutas: 15,
-          totalResultados: 15,
-        },
-      ],
+    cy.intercept("GET", "**/jornadas", (req) => {
+      // Evitamos interceptar la carga de la página (documento HTML) para que no muestre el JSON en pantalla
+      if (
+        req.headers.accept &&
+        String(req.headers.accept).includes("text/html")
+      ) {
+        req.continue();
+      } else {
+        req.reply({
+          statusCode: 200,
+          body: [
+            {
+              id: 999,
+              createdAt: new Date().toISOString(),
+              totalRutas: 15,
+              totalResultados: 15,
+            },
+          ],
+        });
+      }
     }).as("getSessionsWithData");
 
     // Recargamos para que tome el nuevo intercept
@@ -48,12 +58,14 @@ describe("Gestión de Jornadas (Solo Lectura)", () => {
     cy.wait("@getSessionsWithData");
 
     // Verificamos la fila
-    cy.contains("tr", "#999").within(() => {
-      // Debe ver el botón de "Ver resultados" (ojo)
-      cy.get('a[aria-label="Ver resultados"]').should("be.visible");
+    cy.contains("tr", "#999")
+      .scrollIntoView()
+      .within(() => {
+        // Debe ver el botón de "Ver resultados" (ojo)
+        cy.get('a[aria-label="Ver resultados"]').should("be.visible");
 
-      // NO debe ver el botón de "Eliminar sesión" (basura)
-      cy.get('button[aria-label="Eliminar sesión"]').should("not.exist");
-    });
+        // NO debe ver el botón de "Eliminar sesión" (basura)
+        cy.get('button[aria-label="Eliminar sesión"]').should("not.exist");
+      });
   });
 });
