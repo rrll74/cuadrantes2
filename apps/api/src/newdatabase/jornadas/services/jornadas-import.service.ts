@@ -213,7 +213,16 @@ export class JornadasImportService {
       };
 
       const routesEntities = [
-        ...titularesData.map((r) => mapRoute(r, true)),
+        ...titularesData
+          .filter((r) => {
+            const equipo = r[EXCEL_COLUMNS.RUTATITULAR.EQUIPO];
+            return (
+              equipo !== null &&
+              equipo !== undefined &&
+              String(equipo).trim() !== ''
+            );
+          })
+          .map((r) => mapRoute(r, true)),
         ...auxiliaresData.map((r) => mapRoute(r, false)),
       ];
       const savedRoutes = await queryRunner.manager.save(routesEntities);
