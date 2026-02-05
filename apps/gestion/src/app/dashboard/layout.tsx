@@ -148,7 +148,7 @@ export default function DashboardLayout({
                       <ListItemIcon>
                         <DescriptionIcon />
                       </ListItemIcon>
-                      <ListItemText primary="Generar Parte de Trabajo" />
+                      <ListItemText primary="Generar Orden de Trabajo" />
                     </ListItemButton>
                   </ListItem>
                 )}

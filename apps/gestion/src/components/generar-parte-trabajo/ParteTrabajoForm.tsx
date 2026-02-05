@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useForm, Controller } from "react-hook-form";
 import { generatePDFFromData } from "@/lib/pdf-generator";
 import axios from "axios";
@@ -49,7 +50,7 @@ export default function ParteTrabajoForm() {
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
-  const { control, handleSubmit, watch, formState } = useForm({
+  const { control, handleSubmit, watch, formState, reset } = useForm({
     defaultValues: {
       fecha: new Date().toISOString().split("T")[0],
       numeroDocumento: "",
@@ -116,6 +117,12 @@ export default function ParteTrabajoForm() {
     setImagenes(imagenes.filter((_, i) => i !== index));
   };
 
+  const handleReset = () => {
+    reset();
+    setImagenes([]);
+    setShowPreview(false);
+  };
+
   const onSubmit = async (data: FormData) => {
     try {
       setGeneratingPDF(true);
@@ -161,7 +168,7 @@ export default function ParteTrabajoForm() {
         {/* Formulario */}
         <Box>
           <Card>
-            <CardHeader title="Formulario de Parte de Trabajo" />
+            <CardHeader title="Formulario de Orden de Trabajo" />
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)}>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -406,24 +413,43 @@ export default function ParteTrabajoForm() {
                   )}
 
                   {/* Botones de Acción */}
-                  <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      color="primary"
-                      fullWidth
-                      startIcon={<FileDownloadIcon />}
-                      disabled={generatingPDF}
-                    >
-                      {generatingPDF ? "Generando PDF..." : "Generar PDF"}
-                    </Button>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: 2,
+                      mt: 3,
+                      flexDirection: "column",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", gap: 2 }}>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        fullWidth
+                        startIcon={<FileDownloadIcon />}
+                        disabled={generatingPDF}
+                      >
+                        {generatingPDF ? "Generando PDF..." : "Generar PDF"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outlined"
+                        fullWidth
+                        onClick={() => setShowPreview(!showPreview)}
+                      >
+                        {showPreview ? "Cerrar Vista Previa" : "Vista Previa"}
+                      </Button>
+                    </Box>
                     <Button
                       type="button"
                       variant="outlined"
+                      color="error"
                       fullWidth
-                      onClick={() => setShowPreview(!showPreview)}
+                      startIcon={<DeleteOutlineIcon />}
+                      onClick={handleReset}
                     >
-                      {showPreview ? "Cerrar Vista Previa" : "Vista Previa"}
+                      Limpiar Formulario
                     </Button>
                   </Box>
                 </Box>

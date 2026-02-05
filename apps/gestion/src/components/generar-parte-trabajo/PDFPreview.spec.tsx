@@ -21,8 +21,8 @@ describe("PDFPreview", () => {
       />,
     );
 
-    expect(screen.getByText(/parte de trabajo/i)).toBeInTheDocument();
+    expect(screen.getByText(/orden de trabajo/i)).toBeInTheDocument();
     expect(screen.getByText(/Servicio A/)).toBeInTheDocument();
-    expect(screen.getByAltText("trabajo-0")).toBeInTheDocument();
+    expect(screen.getByAltText("foto-0")).toBeInTheDocument();
   });
 });

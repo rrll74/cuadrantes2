@@ -23,6 +23,10 @@ jest.mock("jspdf", () => {
       setLineWidth: jest.fn(),
       line: jest.fn(),
       rect: jest.fn(),
+      getImageProperties: jest.fn(() => ({
+        width: 1600,
+        height: 1200,
+      })),
     };
 
     pdfInstances.push(instance);
@@ -138,5 +142,83 @@ describe("pdf-generator", () => {
       expect.stringContaining("Parte-Trabajo-PT-456-2"),
     );
     expect(pdfInstances[0].addImage).toHaveBeenCalled();
+  }, 10000);
+
+  it("mantiene el aspecto de las imágenes sin deformarlas", async () => {
+    jest.useFakeTimers();
+
+    class MockImage {
+      width = 120;
+      height = 60;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_value: string) {
+        if (this.onload) {
+          this.onload();
+        }
+      }
+    }
+
+    global.Image = MockImage as unknown as typeof Image;
+
+    createElementSpy = jest
+      .spyOn(document, "createElement")
+      .mockImplementation((tagName) => {
+        if (tagName === "canvas") {
+          return {
+            width: 0,
+            height: 0,
+            getContext: () => ({ drawImage: jest.fn() }),
+            toDataURL: () => "data:image/jpeg;base64,logo",
+          } as unknown as HTMLCanvasElement;
+        }
+        return originalCreateElement(tagName);
+      });
+
+    const data: ParteTrabajo = {
+      fecha: "2026-02-05",
+      numeroDocumento: "PT-789",
+      tieneDocumentacion: true,
+      solicitante: "Pedro",
+      servicios: ["Servicio Test"],
+      direccion: "Calle Test",
+      descripcion: "Trabajo",
+      imagenes: [
+        "data:image/jpeg;base64,horizontal",
+        "data:image/jpeg;base64,vertical",
+      ],
+      observaciones: "",
+      fechaEjecucion: "",
+    };
+
+    const promise = generatePDFFromData(data);
+    await jest.runAllTimersAsync();
+    await promise;
+
+    // Verificar que se llamó getImageProperties para cada imagen
+    expect(pdfInstances[0].getImageProperties).toHaveBeenCalledTimes(2);
+
+    // Verificar que addImage fue llamado con las dimensiones apropiadas
+    const addImageCalls = pdfInstances[0].addImage.mock.calls;
+    // Filtrar solo las imagenes de fotos (las que tienen las fuentes de datos de prueba)
+    const imageCalls = addImageCalls.filter(
+      (call) =>
+        call[0] &&
+        (call[0].includes("horizontal") || call[0].includes("vertical")),
+    );
+
+    // Verificar que se agregaron 2 imágenes
+    expect(imageCalls.length).toBe(2);
+
+    // Verificar cada imagen agregada
+    imageCalls.forEach((call) => {
+      const [, , , , width, height] = call;
+      // Verificar que no excede las dimensiones máximas
+      expect(width).toBeLessThanOrEqual(140);
+      expect(height).toBeLessThanOrEqual(110);
+      // Verificar que las dimensiones son positivas
+      expect(width).toBeGreaterThan(0);
+      expect(height).toBeGreaterThan(0);
+    });
   }, 10000);
 });
