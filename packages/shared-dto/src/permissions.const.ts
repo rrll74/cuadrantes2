@@ -36,6 +36,10 @@ export const AVAILABLE_PERMISSIONS = [
     tipo: "jornadas:write",
     descripcion: "Jornadas: Escribir",
   },
+  {
+    tipo: "partes_trabajo:write",
+    descripcion: "Generar Partes de Trabajo",
+  },
 ] as const;
 
 // Tipo derivado para garantizar type-safety
@@ -50,4 +54,5 @@ export const PERMISSIONS = {
   USERS_DELETE: "users:delete",
   JORNADAS_READ: "jornadas:read",
   JORNADAS_WRITE: "jornadas:write",
+  PARTES_TRABAJO_WRITE: "partes_trabajo:write",
 } as const satisfies Record<string, PermissionType>;

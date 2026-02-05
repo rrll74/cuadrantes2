@@ -121,7 +121,7 @@ describe('PostProcessHelper', () => {
       expect(r2.fichajeEntrada).toBeNull();
     });
 
-    it('debería agrupar aún siendo de equipos diferentes', () => {
+    it('no debería agrupar si son de equipos diferentes', () => {
       const r1 = createResult({
         start: '2023-10-25T08:00:00',
         end: '2023-10-25T14:00:00',
@@ -137,8 +137,8 @@ describe('PostProcessHelper', () => {
 
       ajustarHorarios([r1, r2]);
 
-      expect(r1.fichajeSalida).not.toBeNull();
-      expect(r2.fichajeEntrada).not.toBeNull();
+      expect(r1.fichajeSalida).toBeNull();
+      expect(r2.fichajeEntrada).toBeNull();
     });
 
     it('no debería modificar rutas sin horario (inicio=fin) aunque sean consecutivas', () => {

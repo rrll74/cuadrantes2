@@ -7,6 +7,7 @@ import { DatabaseStatusService } from './status/database-status.service';
 import { AppService } from '@/app.service';
 import { OldUsersModule } from '@/oldatabase/users/oldusers.module';
 import { OldPermisosModule } from '@/oldatabase/permisos/oldpermisos.module';
+import { OldDepartamentosModule } from '@/oldatabase/departamentos/olddepartamentos.module';
 import { UsersModule } from '@/newdatabase/users/users.module';
 import { PermisosModule } from '@/newdatabase/permisos/permisos.module';
 import { SeederModule } from '@/newdatabase/seeder.module';
@@ -141,6 +142,7 @@ import { getTestDbOptions } from '../test/e2e-setup';
     }),
     OldUsersModule,
     OldPermisosModule,
+    OldDepartamentosModule,
     UsersModule,
     PermisosModule,
     SeederModule,
