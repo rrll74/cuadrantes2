@@ -13,7 +13,8 @@ describe("Gestión de Jornadas", () => {
     }).as("getSessionsInitial");
 
     // Visitamos tras definir el intercept para capturar la petición inicial
-    cy.visit("/dashboard/jornadas");
+    // Usando visitProtected para asegurar que la página se carga correctamente
+    cy.visitProtected("/dashboard/jornadas");
 
     // Esperar a que la página cargue y haga la primera petición
     cy.wait("@getSessionsInitial");

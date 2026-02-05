@@ -48,6 +48,7 @@ export class JornadasTableHelper {
   /**
    * Genera una tabla detallada de jornadas por servicio y equipo.
    * Calcula las jornadas (horas planificadas / 7) para cada día.
+   * Solo considera rutas con partes de trabajo asociados (partesAsociados > 0).
    */
   async getJornadasTableDetail(
     sessionId: number,
@@ -60,6 +61,10 @@ export class JornadasTableHelper {
     const session = await this.sessionRepo.findOne({
       where: { id: sessionId },
     });
+
+    // Filtrar solo las rutas que tienen partes de trabajo asociados
+    // Esto asegura consistencia con los resúmenes por servicio y por trabajador
+    const validResults = allResults.filter((r) => r.route.partesAsociados > 0);
 
     const discountServices = session?.discountServices
       ? session.discountServices
@@ -81,7 +86,7 @@ export class JornadasTableHelper {
     >();
     const dateSet = new Set<string>();
 
-    allResults.forEach((res) => {
+    validResults.forEach((res) => {
       const route = res.route;
       const servicio = route.servicio || 'Sin Servicio';
       const equipo = route.equipo || 'Sin Equipo';

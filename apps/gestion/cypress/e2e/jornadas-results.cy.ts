@@ -87,13 +87,13 @@ describe("Resultados de Jornada (Paginación y Filtros)", () => {
     // --- INTERCEPTS ---
 
     // Carga inicial (Página 1, sin búsqueda)
-    cy.intercept("GET", `**/jornadas/${sessionId}?page=1&limit=10&search=`, {
+    cy.intercept("GET", `**/jornadas/${sessionId}?page=1&limit=10&search=*`, {
       statusCode: 200,
       body: mockPage1,
     }).as("getPage1");
 
     // Página 2
-    cy.intercept("GET", `**/jornadas/${sessionId}?page=2&limit=10&search=`, {
+    cy.intercept("GET", `**/jornadas/${sessionId}?page=2&limit=10&search=*`, {
       statusCode: 200,
       body: mockPage2,
     }).as("getPage2");
@@ -101,7 +101,7 @@ describe("Resultados de Jornada (Paginación y Filtros)", () => {
     // Búsqueda
     cy.intercept(
       "GET",
-      `**/jornadas/${sessionId}?page=1&limit=10&search=Juan`,
+      `**/jornadas/${sessionId}?page=1&limit=10&search=Juan*`,
       { statusCode: 200, body: mockSearch },
     ).as("getSearch");
 
@@ -125,7 +125,7 @@ describe("Resultados de Jornada (Paginación y Filtros)", () => {
     cy.contains("Trabajador 11").should("be.visible");
     cy.contains("Página 2 de 2").should("be.visible");
     // Verificar que los datos de la página 1 ya no están
-    cy.contains("Trabajador 1").should("not.exist");
+    cy.contains("Trabajador 3").should("not.exist");
 
     // 4. Probar Paginación: Ir a Anterior
     cy.get('nav[aria-label="Pagination"] button').first().click();
@@ -133,7 +133,7 @@ describe("Resultados de Jornada (Paginación y Filtros)", () => {
     cy.contains("Trabajador 1").should("be.visible");
 
     // 5. Probar Filtrado/Búsqueda
-    cy.get('input[placeholder="Nombre, apellido..."]').type("Juan");
+    cy.get('input[placeholder="Nombre, apellido, equipo..."]').type("Juan");
 
     // Esperar al debounce y la llamada a la API
     cy.wait("@getSearch");

@@ -521,5 +521,48 @@ describe('JornadasTableHelper', () => {
       expect(result.columns).toEqual([]);
       expect(result.rows).toEqual([]);
     });
+
+    it('debería filtrar rutas sin partes de trabajo asociados (partesAsociados = 0)', async () => {
+      const mockResults = [
+        {
+          route: {
+            servicio: 'S1',
+            equipo: 'E1',
+            fechaGeneral: baseDate,
+            inicio: new Date('2023-01-01T08:00:00Z'),
+            fin: new Date('2023-01-01T15:00:00Z'), // 7h = 1 jornada
+            partesAsociados: 1, // Esta ruta DEBE incluirse
+          },
+          estado: EstadoPresencia.COMPLETO,
+        },
+        {
+          route: {
+            servicio: 'S1',
+            equipo: 'E1',
+            fechaGeneral: baseDate,
+            inicio: new Date('2023-01-01T15:00:00Z'),
+            fin: new Date('2023-01-01T22:00:00Z'), // 7h = 1 jornada
+            partesAsociados: 0, // Esta ruta NO debe incluirse
+          },
+          estado: EstadoPresencia.COMPLETO,
+        },
+      ];
+
+      mockPresenceRepo.find.mockResolvedValue(mockResults);
+      mockSessionRepo.findOne.mockResolvedValue({
+        id: sessionId,
+        discountServices: '',
+        discountTeams: '',
+      });
+
+      const result = await helper.getJornadasTableDetail(sessionId);
+
+      // Solo debe contar la primera ruta (1 jornada), no la segunda
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0]['2023-01-01_value']).toBe(1);
+      expect(result.rows[0].total_value).toBe(1);
+      expect(result.footer['2023-01-01_value']).toBe(1);
+      expect(result.footer.total_value).toBe(1);
+    });
   });
 });

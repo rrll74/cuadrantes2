@@ -26,6 +26,8 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { SocketProvider } from "@/context/SocketContext";
 import { PERMISSIONS } from "@cuadrantes/shared-dto";
 
+// TODO: Crear una nueva página donde se inserten datos de partes de trabajo de Servicios Operativos y genere esos mismos partes en formato pdf para descargar. Esta página se llamaría "Generar Parte de Trabajo" y estaría en el menú lateral. Accedería a un formulario donde se pediría la fecha (dando la del día actual por defecto), el número documento, una casilla donde indique si tiene documentación adicional, los datos del solicitante, los datos de los servicios donde se destina el trabajo (pueden ser varios y se pueden extraer de la base de datos Old, en la tabla departamentos), la dirección de realización del trabajo, la descripción del trabajo (puede ser de muchos caracteres) y las imágenes (varias) que se quieren incluir. Incluiría un botón para generar el PDF que generaría el documento, el cuál mostrase todos los datos que se han indicado anteriormente, un logo en la parte superior desde una imagen que se pondría en la carpeta pública de la aplicación y un apartado adicional donde el trabajador pudiese indicar escribiendo con la mano, la fecha de realización del trabajo, unas observaciones y un lugar para firmar y sellar el documento impreso.
+
 const drawerWidth = 240;
 
 export default function DashboardLayout({

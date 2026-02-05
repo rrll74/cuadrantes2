@@ -152,7 +152,7 @@ export class JornadasExportService {
       [
         'fecha',
         'turno',
-        'equipo',
+        'equal',
         'inicio',
         'fin',
         'entrada',
@@ -466,14 +466,73 @@ export class JornadasExportService {
         ]);
         headerDiscounted.font = { bold: true, color: { argb: 'FF990000' } };
 
-        // Repetir cabecera de columnas? No es estrictamente necesario si se entiende el contexto,
-        // pero ayuda.
-        // wsSummary.addRow(excelColumns.map(c => c.header)); // Simplificado
-
         addRowsToSheet(summaryTable.discountedRows);
 
         if (summaryTable.discountedFooter) {
-          addFooterToSheet(summaryTable.discountedFooter, true);
+          // CORRECCIÓN: Pasar summaryTable.discountedFooter en lugar de reutilizar el footer original
+          const transformedDiscountedFooter: any = {
+            servicio: summaryTable.discountedFooter.servicio,
+            equipo: summaryTable.discountedFooter.equipo,
+            total_value: summaryTable.discountedFooter.total_value,
+          };
+
+          summaryTable.columns.forEach((col) => {
+            transformedDiscountedFooter[col.key] =
+              summaryTable.discountedFooter[`${col.key}_value`];
+          });
+
+          const footerRow = wsSummary.addRow(transformedDiscountedFooter);
+
+          // Aplicar colores específicos al footer descontado
+          summaryTable.columns.forEach((col) => {
+            const colorKey = `${col.key}_color`;
+            const color = summaryTable.discountedFooter[colorKey] as
+              | 'green'
+              | 'yellow'
+              | 'red'
+              | undefined;
+
+            if (color && colorMap[color]) {
+              footerRow.getCell(col.key).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: colorMap[color] },
+              };
+            }
+
+            footerRow.getCell(col.key).alignment = { horizontal: 'center' };
+          });
+
+          // Color del total general descontado
+          const totalColor = summaryTable.discountedFooter.total_color as
+            | 'green'
+            | 'yellow'
+            | 'red'
+            | undefined;
+
+          if (totalColor && colorMap[totalColor]) {
+            footerRow.getCell('total_value').fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: colorMap[totalColor] },
+            };
+          }
+          footerRow.getCell('total_value').alignment = { horizontal: 'center' };
+
+          // Estilos específicos para el footer descontado
+          footerRow.font = {
+            bold: true,
+            color: { argb: 'FF990000' },
+          };
+          footerRow.eachCell((cell) => {
+            if (!cell.fill) {
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFFFE0E0' },
+              };
+            }
+          });
         }
       }
     }

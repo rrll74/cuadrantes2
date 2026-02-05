@@ -52,7 +52,7 @@ export function ajustarHorarios(results: PresenceResult[]) {
 
         // Considerar consecutivos si el hueco es pequeño
         if (
-          // currentRoute.equipo === prevRoute.equipo &&
+          currentRoute.equipo === prevRoute.equipo &&
           gapInMinutes >= 0 &&
           gapInMinutes < toleranciaContinuidad
         ) {
