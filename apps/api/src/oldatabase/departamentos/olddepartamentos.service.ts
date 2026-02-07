@@ -12,7 +12,6 @@ export class OldDepartamentosService {
 
   async findAll(): Promise<OldDepartamento[]> {
     return this.departamentosRepository.find({
-      where: { activo: true },
       order: { nombre: 'ASC' },
     });
   }

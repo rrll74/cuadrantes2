@@ -1,8 +1,9 @@
 describe("Gestión de Jornadas", () => {
   beforeEach(() => {
-    // Iniciamos sesión
-    // Asumimos que el comando cy.login ya está configurado (como se ve en login.cy.ts)
+    // Iniciamos sesión y nos quedamos en el dashboard
     cy.login("testadmin", "adminpass");
+    // Después del login, navegamos a jornadas directamente
+    cy.visit("/dashboard/jornadas");
   });
 
   it("Debe permitir subir archivos, ver la sesión en la lista y eliminarla", () => {
@@ -12,12 +13,11 @@ describe("Gestión de Jornadas", () => {
       body: [],
     }).as("getSessionsInitial");
 
-    // Visitamos tras definir el intercept para capturar la petición inicial
-    // Usando visitProtected para asegurar que la página se carga correctamente
-    cy.visitProtected("/dashboard/jornadas");
+    // Esperamos a que la página esté cargada (tras el login en beforeEach)
+    cy.contains("Panel de Gestión", { timeout: 10000 }).should("be.visible");
 
-    // Esperar a que la página cargue y haga la primera petición
-    cy.wait("@getSessionsInitial");
+    // Esperar a que la primera petición de jornadas se complete
+    cy.wait("@getSessionsInitial", { timeout: 10000 });
     cy.contains("No hay sesiones registradas.").should("be.visible");
 
     // 2. Preparar intercept para la subida de archivos

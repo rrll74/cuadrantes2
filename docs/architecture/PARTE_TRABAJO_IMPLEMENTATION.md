@@ -71,8 +71,8 @@ Se ha implementado una nueva página en la aplicación de gestión (Next.js/Reac
 
 - **Ubicación**: `/apps/api/src/oldatabase/departamentos/olddepartamentos.controller.ts`
 - **Endpoints**:
-  - `GET /api/departamentos`: Lista todos los departamentos (público)
-  - `GET /api/departamentos/:id`: Obtiene un departamento específico (público)
+  - `GET /olddepartamentos`: Lista todos los departamentos (público)
+  - `GET /olddepartamentos/:id`: Obtiene un departamento específico (público)
 
 #### Módulo
 

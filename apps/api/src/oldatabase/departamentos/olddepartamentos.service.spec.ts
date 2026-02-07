@@ -27,14 +27,13 @@ describe('OldDepartamentosService', () => {
     repository = module.get(getRepositoryToken(OldDepartamento, 'old'));
   });
 
-  it('findAll filtra solo activos y ordena por nombre', async () => {
+  it('findAll muestra todos y ordena por nombre', async () => {
     const expected = [{ id: 1, nombre: 'Servicios', activo: true }];
     jest.spyOn(repository, 'find').mockResolvedValue(expected);
 
     const result = await service.findAll();
 
     expect(repository.find).toHaveBeenCalledWith({
-      where: { activo: true },
       order: { nombre: 'ASC' },
     });
     expect(result).toBe(expected);

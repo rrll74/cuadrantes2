@@ -32,7 +32,7 @@ describe("ParteTrabajoForm", () => {
     render(<ParteTrabajoForm />);
 
     await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalledWith("/api/departamentos");
+      expect(mockedAxios.get).toHaveBeenCalledWith("/olddepartamentos");
     });
 
     await user.type(

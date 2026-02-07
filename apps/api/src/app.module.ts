@@ -149,6 +149,7 @@ import { getTestDbOptions } from '../test/e2e-setup';
     AuthModule,
     StatusModule,
     JornadasModule,
+    OldDepartamentosModule,
   ],
   controllers: [AppController],
   providers: [

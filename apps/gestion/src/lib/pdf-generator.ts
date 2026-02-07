@@ -79,7 +79,10 @@ export const generatePDFFromData = async (data: ParteTrabajo) => {
           }
         };
         img.onerror = () => reject(new Error("No se pudo cargar el logo"));
-        img.src = "/headerimg.jpg";
+        // Cargar el nombre del logo desde variable de entorno, con fallback a headerimg.jpg
+        const logoFilename =
+          process.env.NEXT_PUBLIC_LOGO_FILENAME || "headerimg.jpg";
+        img.src = `/${logoFilename}`;
       });
     };
 

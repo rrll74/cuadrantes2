@@ -27,7 +27,7 @@ describe('OldDepartamentosController', () => {
 
   it('findAll retorna la lista del servicio', async () => {
     const departamentos: OldDepartamento[] = [
-      { id: 1, nombre: 'Servicios Operativos', activo: true },
+      { id: 1, nombre: 'Servicios Operativos' },
     ];
     jest.spyOn(service, 'findAll').mockResolvedValue(departamentos);
 
@@ -38,7 +38,6 @@ describe('OldDepartamentosController', () => {
     const departamento: OldDepartamento = {
       id: 2,
       nombre: 'Limpieza',
-      activo: true,
     };
     jest.spyOn(service, 'findById').mockResolvedValue(departamento);
 

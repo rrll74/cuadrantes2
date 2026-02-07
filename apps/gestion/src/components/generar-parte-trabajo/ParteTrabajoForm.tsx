@@ -22,7 +22,6 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useForm, Controller } from "react-hook-form";
 import { generatePDFFromData } from "@/lib/pdf-generator";
-import axios from "axios";
 import PDFPreview from "./PDFPreview";
 
 interface Departamento {
@@ -67,17 +66,43 @@ export default function ParteTrabajoForm() {
 
   const formValues = watch();
 
-  // Cargar departamentos desde la API
+  // Cargar departamentos desde archivo de texto o lista por defecto
   useEffect(() => {
     const fetchDepartamentos = async () => {
       setLoadingDepts(true);
+
       try {
-        // Intentamos obtener los departamentos de la API del sistema
-        const response = await axios.get("/api/departamentos");
-        setDepartamentos(response.data);
+        // Intentar cargar desde el archivo servicios-orden-trabajo.txt ubicado en public/
+        const response = await fetch("/servicios-orden-trabajo.txt");
+
+        if (response.ok) {
+          const text = await response.text();
+          // Parsear el archivo: cada línea es un servicio
+          const servicios = text
+            .split("\n")
+            .map((linea) => linea.trim())
+            .filter((linea) => linea.length > 0);
+
+          // Convertir a formato Departamento con IDs secuenciales
+          const departamentosFromFile = servicios.map((nombre, index) => ({
+            id: index + 1,
+            nombre,
+          }));
+
+          setDepartamentos(departamentosFromFile);
+          console.log(
+            "Servicios cargados desde archivo:",
+            departamentosFromFile,
+          );
+        } else {
+          throw new Error("Archivo no encontrado");
+        }
       } catch (error) {
-        console.error("Error al cargar departamentos:", error);
-        // Datos de ejemplo si la API no está disponible
+        // Si falla, usar lista por defecto hardcodeada
+        console.warn(
+          "No se pudo cargar el archivo de servicios, usando lista por defecto:",
+          error,
+        );
         setDepartamentos([
           { id: 1, nombre: "Almacén" },
           { id: 2, nombre: "Brigada Operativa" },

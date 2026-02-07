@@ -1,15 +1,22 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { OldDepartamentosService } from './olddepartamentos.service';
 import { OldDepartamento } from './entities/olddepartamento.entity';
-import { Public } from '@/auth/decorators/public.decorator';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '@/auth/guards/permissions.guard';
 
 @ApiTags('Departamentos (Old)')
-@Controller('api/departamentos')
+@Controller('olddepartamentos')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class OldDepartamentosController {
   constructor(private readonly departamentosService: OldDepartamentosService) {}
 
-  @Public()
   @Get()
   @ApiOperation({ summary: 'Obtener todos los departamentos' })
   @ApiResponse({
@@ -21,7 +28,6 @@ export class OldDepartamentosController {
     return this.departamentosService.findAll();
   }
 
-  @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un departamento por ID' })
   @ApiResponse({

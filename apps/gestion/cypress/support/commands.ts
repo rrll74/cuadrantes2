@@ -55,12 +55,18 @@ Cypress.Commands.add(
 );
 
 // --- Implementación del comando `visitProtected` ---
+// NOTA: Este comando es útil cuando necesitas navegar a una ruta protegida
+// sin tener que hacer login de nuevo. Funciona mejor cuando se llama
+// inmediatamente después de cy.login() en beforeEach()
 Cypress.Commands.add("visitProtected", (path: string) => {
+  // La sesión ya debe estar establecida por cy.login()
+  // Solo visitamos la página que se supone debe estar protegida
   cy.visit(path);
-  // Esperar a que el contexto de autenticación se cargue
-  // El Panel de Gestión es un indicador de que el usuario está autenticado
+  // Esperar a que la página se cargue completamente
   cy.contains("Panel de Gestión", { timeout: 10000 }).should("be.visible");
-  // Esperar a que la URL sea correcta (no esté redirigiendo al login)
+  // Verificar que no estamos en la página de login (lo que significaría que no estamos autenticados)
+  cy.url().should("not.include", "/login");
+  // Verificar que estamos en la ruta correcta
   cy.url().should("include", path);
 });
 
