@@ -61,29 +61,26 @@ export const generateParteTrabajoPDF = async (
 
 export const generatePDFFromData = async (data: ParteTrabajo) => {
   try {
-    // Cargar el logo
+    // Cargar el logo desde la API route que utiliza el filesystem
     const loadLogo = async (): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL("image/jpeg"));
-          } else {
-            reject(new Error("No se pudo crear el contexto del canvas"));
-          }
-        };
-        img.onerror = () => reject(new Error("No se pudo cargar el logo"));
-        // Cargar el nombre del logo desde variable de entorno, con fallback a headerimg.jpg
-        const logoFilename =
-          process.env.NEXT_PUBLIC_LOGO_FILENAME || "headerimg.jpg";
-        img.src = `/${logoFilename}`;
-      });
+      try {
+        const response = await fetch("/api/logo");
+        if (response.ok) {
+          const result = await response.json();
+          console.log(`Logo cargado correctamente: ${result.filename}`);
+          return result.data;
+        } else {
+          const errorData = await response.json();
+          console.warn(
+            `Error al cargar el logo desde API: ${response.status}`,
+            errorData,
+          );
+          return "";
+        }
+      } catch (error) {
+        console.error("Error fetching logo from API:", error);
+        return "";
+      }
     };
 
     let logoBase64 = "";
@@ -167,9 +164,26 @@ export const generatePDFFromData = async (data: ParteTrabajo) => {
         try {
           const logoWidth = 40;
           const logoHeight = 20;
+
+          // jsPDF puede trabajar con data URLs completos o solo base64
+          // Si es un data URL (contiene "data:"), usarlo directamente
+          // Si no, asumimos que es base64 puro y construir un data URL
+          let imageData = logoBase64;
+          if (!logoBase64.startsWith("data:")) {
+            imageData = `data:image/jpeg;base64,${logoBase64}`;
+          }
+
+          // Determinar el formato basado en el data URL
+          let imageFormat = "JPEG";
+          if (imageData.includes("image/png")) {
+            imageFormat = "PNG";
+          } else if (imageData.includes("image/webp")) {
+            imageFormat = "WEBP";
+          }
+
           pdf.addImage(
-            logoBase64,
-            "JPEG",
+            imageData,
+            imageFormat,
             margin,
             yPosition,
             logoWidth,
