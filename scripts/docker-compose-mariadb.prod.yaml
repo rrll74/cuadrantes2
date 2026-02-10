@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  mariadb:
+    image: mariadb:lts-noble
+    container_name: mariadb-db
+    restart: always
+    networks:
+      - mi-red-db
+    ports:
+      - "3307:3306"
+    environment:
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+      - MARIADB_USER=${MARIADB_USER}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD}
+      # - MARIADB_DATABASE=${MARIADB_DATABASE}
+    volumes:
+      - ../data/mariadb:/var/lib/mysql
+    env_file: "./.env"
+
+networks:
+  mi-red-db:
+    driver: bridge

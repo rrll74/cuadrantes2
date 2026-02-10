@@ -41,6 +41,9 @@ const dynamicOrigins = process.env.CORS_ALLOWED_ORIGIN
   ? process.env.CORS_ALLOWED_ORIGIN.split(',')
   : [];
 
+// En desarrollo, permitir conexiones desde cualquier IP local (192.168.x.x, 10.x.x.x, 172.x.x.x)
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 @WebSocketGateway({
   cors: {
     origin: (origin, callback) => {
@@ -50,16 +53,50 @@ const dynamicOrigins = process.env.CORS_ALLOWED_ORIGIN
         return;
       }
 
-      // 2. Comprobar si el origen coincide con la lista estática o con los patrones dinámicos
-      const isAllowed =
-        staticAllowedOrigins.includes(origin) ||
-        dynamicOrigins.some((o) => origin.startsWith(o));
-
-      if (isAllowed) {
+      // 2. Comprobar si el origen coincide con la lista estática
+      const isInStaticList = staticAllowedOrigins.includes(origin);
+      if (isInStaticList) {
         callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+        return;
       }
+
+      // 3. Comprobar si coincide con patrones dinámicos de CORS_ALLOWED_ORIGIN
+      const isInDynamicPatterns = dynamicOrigins.some((pattern) =>
+        origin.startsWith(pattern),
+      );
+      if (isInDynamicPatterns) {
+        callback(null, true);
+        return;
+      }
+
+      // 4. En desarrollo, permitir conexiones locales desde IPs internas
+      if (isDevelopment) {
+        // Extraer el hostname del origen
+        const originUrl = new URL(origin);
+        const hostname = originUrl.hostname;
+
+        // Permitir IPs privadas: 192.168.x.x, 10.x.x.x, 172.16.x.x - 172.31.x.x
+        const isPrivateIP =
+          hostname.startsWith('192.168.') ||
+          hostname.startsWith('10.') ||
+          (hostname.startsWith('172.') &&
+            !hostname.startsWith('172.0.') &&
+            !hostname.startsWith('172.1.') &&
+            !hostname.startsWith('172.2.') &&
+            !hostname.startsWith('172.3.'));
+
+        if (
+          isPrivateIP ||
+          hostname === 'localhost' ||
+          hostname === '127.0.0.1'
+        ) {
+          callback(null, true);
+          return;
+        }
+      }
+
+      // Si llegamos aquí, rechazar la conexión
+      callback(new Error('Not allowed by CORS'));
     },
     methods: ['GET', 'POST'],
     credentials: true,

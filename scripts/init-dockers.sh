@@ -7,14 +7,23 @@ set -e
 ACTION=$1
 
 # Definimos las rutas a los ficheros docker-compose para claridad
-PHP_COMPOSE_FILE="../../phpcuadrantes/docker-compose.yaml"
-MARIADB_COMPOSE_FILE="./docker-compose-mariadb.yaml"
+PRODUCTION_MODE=$2
+if [ "$PRODUCTION_MODE" == "--prod" ]; then
+    echo "Modo de producción activado. Usando archivos docker-compose.prod.yaml."
+    PHP_COMPOSE_FILE="../../phpcuadrantes/docker-compose.prod.yaml"
+    MARIADB_COMPOSE_FILE="./docker-compose-mariadb.prod.yaml"
+else
+    echo "Modo de desarrollo activado. Usando archivos docker-compose.yaml."
+    PHP_COMPOSE_FILE="../../phpcuadrantes/docker-compose.yaml"
+    MARIADB_COMPOSE_FILE="./docker-compose-mariadb.yaml"
+fi
 
 # Función para mostrar cómo usar el script
 usage() {
-  echo "Uso: $0 [up|down]"
+  echo "Uso: $0 [up|down] [--prod]"
   echo "  up:   Levanta los contenedores de Docker en segundo plano."
   echo "  down: Detiene y elimina los contenedores de Docker."
+  echo "  --prod: Usa los archivos de configuración para producción."
   exit 1
 }
 

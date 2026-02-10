@@ -22,6 +22,7 @@ async function bootstrap() {
 
   // CORS config to let petitions from frontend
   const gestionPort = process.env.GESTION_PORT ?? '3002'; // Puerto del frontend
+  const isDevelopment = process.env.NODE_ENV !== 'production';
 
   // Lista de orígenes estáticos siempre permitidos (desarrollo)
   const staticAllowedOrigins = [
@@ -42,17 +43,55 @@ async function bootstrap() {
         return;
       }
 
-      // 2. Comprobar si el origen coincide con la lista estática o con los patrones dinámicos
-      const isAllowed =
-        staticAllowedOrigins.includes(origin) ||
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        dynamicOrigins.some((o) => origin.startsWith(o));
-
-      if (isAllowed) {
+      // 2. Comprobar si el origen coincide con la lista estática
+      const isInStaticList = staticAllowedOrigins.includes(origin);
+      if (isInStaticList) {
         callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+        return;
       }
+
+      // 3. Comprobar si coincide con patrones dinámicos de CORS_ALLOWED_ORIGIN
+      const isInDynamicPatterns = dynamicOrigins.some((pattern) =>
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        origin.startsWith(pattern),
+      );
+      if (isInDynamicPatterns) {
+        callback(null, true);
+        return;
+      }
+
+      // 4. En desarrollo, permitir conexiones locales desde IPs internas
+      if (isDevelopment) {
+        try {
+          const originUrl = new URL(origin);
+          const hostname = originUrl.hostname;
+
+          // Permitir IPs privadas: 192.168.x.x, 10.x.x.x, 172.16.x.x - 172.31.x.x
+          const isPrivateIP =
+            hostname.startsWith('192.168.') ||
+            hostname.startsWith('10.') ||
+            (hostname.startsWith('172.') &&
+              !hostname.startsWith('172.0.') &&
+              !hostname.startsWith('172.1.') &&
+              !hostname.startsWith('172.2.') &&
+              !hostname.startsWith('172.3.'));
+
+          if (
+            isPrivateIP ||
+            hostname === 'localhost' ||
+            hostname === '127.0.0.1'
+          ) {
+            callback(null, true);
+            return;
+          }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (error) {
+          // Continuar con el rechazo si no se puede parsear la URL
+        }
+      }
+
+      // Si llegamos aquí, rechazar la conexión
+      callback(new Error('Not allowed by CORS'));
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,

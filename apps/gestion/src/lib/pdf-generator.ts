@@ -162,8 +162,8 @@ export const generatePDFFromData = async (data: ParteTrabajo) => {
       // Logo (si se cargó correctamente)
       if (logoBase64) {
         try {
-          const logoWidth = 40;
-          const logoHeight = 20;
+          const logoWidth = 60;
+          const logoHeight = 30;
 
           // jsPDF puede trabajar con data URLs completos o solo base64
           // Si es un data URL (contiene "data:"), usarlo directamente

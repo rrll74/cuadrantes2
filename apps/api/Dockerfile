@@ -10,7 +10,8 @@ COPY apps/api/package.json ./apps/api/
 COPY packages/shared-dto/package.json ./packages/shared-dto/
 
 # Instalamos TODAS las dependencias (incluidas las de desarrollo para el build)
-RUN npm install
+# Usamos 'npm ci' para reproducibilidad exacta (recomendado en Docker)
+RUN npm ci
 
 # --- Fase 2: Build ---
 FROM node:20-alpine AS builder
@@ -28,7 +29,7 @@ RUN npm run build --workspace=@cuadrantes/shared-dto
 # Construimos la aplicación de la API
 RUN npm run build:api
 
-# --- Fase 2: Producción ---
+# --- Fase 3: Producción ---
 # Usamos una imagen de Node.js ligera para la ejecución.
 FROM node:20-alpine AS runner
 
@@ -42,7 +43,7 @@ COPY apps/api/package.json ./apps/api/
 COPY packages/shared-dto/package.json ./packages/shared-dto/
 
 # Instalamos ÚNICAMENTE las dependencias de producción.
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 # Copiamos los artefactos de build desde la fase 'builder'.
 COPY --from=builder /app/apps/api/dist ./dist

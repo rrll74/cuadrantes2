@@ -5,7 +5,8 @@ import fs from "fs";
 export async function GET() {
   try {
     const logoFilename =
-      process.env.NEXT_PUBLIC_LOGO_FILENAME || "headerimg.jpg";
+      process.env.NEXT_PUBLIC_LOGO_FILENAME ||
+      "local-img-logo-orden-trabajo.jpg";
 
     // Intentar diferentes rutas donde el archivo puede estar
     const possiblePaths = [
