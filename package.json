@@ -19,7 +19,7 @@
     "start:api": "npm run start:prod -w apps/api",
     "start:gestion": "npm run -w apps/gestion start",
     "test:api": "npm run -w apps/api test",
-    "test:e2e:api": "npm run build:api && jest --config ./apps/api/test/jest-e2e.config.js",
+    "test:e2e:api": "cross-env NODE_ENV=test npm run build:api && NODE_ENV=test jest --config ./apps/api/test/jest-e2e.config.js --forceExit",
     "test:gestion": "jest --config ./apps/gestion/jest.config.js -w ./apps/gestion",
     "cypress:open:gestion": "cypress open --project apps/gestion",
     "storybook:gestion": "npm run storybook -w apps/gestion",

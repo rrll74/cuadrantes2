@@ -2,27 +2,23 @@ import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ParteTrabajoForm from "./ParteTrabajoForm";
-import axios from "axios";
 import { generatePDFFromData } from "@/lib/pdf-generator";
-
-jest.mock("axios");
 
 jest.mock("@/lib/pdf-generator", () => ({
   generatePDFFromData: jest.fn(),
 }));
 
 describe("ParteTrabajoForm", () => {
-  const mockedAxios = axios as jest.Mocked<typeof axios>;
   const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedAxios.get.mockResolvedValue({
-      data: [
-        { id: 1, nombre: "Servicios Operativos" },
-        { id: 2, nombre: "Limpieza" },
-      ],
-    });
+
+    // Mock de fetch para cargar los servicios
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: jest.fn().mockResolvedValue("Servicios Operativos\nLimpieza"),
+    } as unknown as Response);
   });
 
   it("permite seleccionar servicios y generar el PDF", async () => {
@@ -32,7 +28,7 @@ describe("ParteTrabajoForm", () => {
     render(<ParteTrabajoForm />);
 
     await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalledWith("/olddepartamentos");
+      expect(global.fetch).toHaveBeenCalledWith("/servicios-orden-trabajo.txt");
     });
 
     await user.type(

@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
+// ¡IMPORTANTE! Establecer NODE_ENV=test ANTES de cualquier otra importación
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'test';
+}
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';

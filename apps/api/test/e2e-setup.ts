@@ -12,6 +12,10 @@ const PERMISSIONS = {
   USERS_DELETE: { tipo: 'users:delete', descripcion: 'Usuarios: Eliminar' },
   JORNADAS_READ: { tipo: 'jornadas:read', descripcion: 'Jornadas: Leer' },
   JORNADAS_WRITE: { tipo: 'jornadas:write', descripcion: 'Jornadas: Escribir' },
+  CUADRANTES_READ: {
+    tipo: 'cuadrantes:read',
+    descripcion: 'Consultar Cuadrantes Históricos',
+  },
 } as const;
 
 // 2. Centralizar la configuración de la base de datos de prueba
@@ -38,10 +42,16 @@ export const seedDatabase = async (dataSource: DataSource) => {
   // Usamos .clear() que es el método idiomático para borrar todos los registros.
   await userRepository.clear();
   await permisoRepository.clear();
-  // Reseteamos la secuencia de autoincremento para SQLite, asegurando IDs predecibles (1, 2, ...)
-  await userRepository.query(
-    'DELETE FROM "sqlite_sequence" WHERE "name" IN (\'users\', \'permisos\');',
-  );
+  // Reseteamos la secuencia de autoincremento para SQLite, asegurando IDs predecibles
+  try {
+    // Intenta resetear sqlite_sequence (para sqlite3)
+    await userRepository.query(
+      'DELETE FROM "sqlite_sequence" WHERE "name" IN (\'users\', \'permisos\');',
+    );
+  } catch {
+    // Si falla, es probablemente porque usamos better-sqlite3 que no necesita esto
+    // o la tabla no existe, simplemente continuamos
+  }
 
   console.log('🌱 Seeding database...');
 
@@ -55,6 +65,9 @@ export const seedDatabase = async (dataSource: DataSource) => {
   const pJornadasRead = await permisoRepository.save(PERMISSIONS.JORNADAS_READ);
   const pJornadasWrite = await permisoRepository.save(
     PERMISSIONS.JORNADAS_WRITE,
+  );
+  const pCuadrantesRead = await permisoRepository.save(
+    PERMISSIONS.CUADRANTES_READ,
   );
 
   // 3. Obtener contraseñas en texto plano. La entidad se encargará de hashearlas.
@@ -74,6 +87,7 @@ export const seedDatabase = async (dataSource: DataSource) => {
       pUsersDelete,
       pJornadasRead,
       pJornadasWrite,
+      pCuadrantesRead,
     ],
   });
   await userRepository.save(adminUser);

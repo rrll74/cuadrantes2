@@ -82,7 +82,7 @@ describe("pdf-generator", () => {
     expect(html2canvas).toHaveBeenCalledWith(element, expect.any(Object));
     expect(jsPDF).toHaveBeenCalledTimes(1);
     expect(pdfInstances[0].save).toHaveBeenCalledWith(
-      expect.stringContaining("Parte-Trabajo-PT-123"),
+      expect.stringContaining("E-PT-123"),
     );
   });
 
@@ -136,10 +136,10 @@ describe("pdf-generator", () => {
 
     expect(jsPDF).toHaveBeenCalledTimes(2);
     expect(pdfInstances[0].save).toHaveBeenCalledWith(
-      expect.stringContaining("Parte-Trabajo-PT-456-1"),
+      expect.stringContaining("E-PT-456-1"),
     );
     expect(pdfInstances[1].save).toHaveBeenCalledWith(
-      expect.stringContaining("Parte-Trabajo-PT-456-2"),
+      expect.stringContaining("E-PT-456-2"),
     );
     expect(pdfInstances[0].addImage).toHaveBeenCalled();
   }, 10000);

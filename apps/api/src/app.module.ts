@@ -8,6 +8,7 @@ import { AppService } from '@/app.service';
 import { OldUsersModule } from '@/oldatabase/users/oldusers.module';
 import { OldPermisosModule } from '@/oldatabase/permisos/oldpermisos.module';
 import { OldDepartamentosModule } from '@/oldatabase/departamentos/olddepartamentos.module';
+import { ConsultaCuadrantesModule } from '@/oldatabase/consulta-cuadrantes/consulta-cuadrantes.module';
 import { UsersModule } from '@/newdatabase/users/users.module';
 import { PermisosModule } from '@/newdatabase/permisos/permisos.module';
 import { SeederModule } from '@/newdatabase/seeder.module';
@@ -64,7 +65,10 @@ import { getTestDbOptions } from '../test/e2e-setup';
         const dataSource = new DataSource(realOptions);
         try {
           await dataSource.initialize();
-          dbStatusService.setNewDbStatus('ok');
+          dbStatusService.setNewDbStatus(
+            'ok',
+            'Connected to new database successfully',
+          );
           await dataSource.destroy(); // Cerramos la conexión temporal
           return realOptions;
         } catch (error) {
@@ -74,7 +78,7 @@ import { getTestDbOptions } from '../test/e2e-setup';
           // Devolvemos una configuración "dummy" para que la app no se detenga.
           return {
             name: 'new',
-            type: 'sqlite',
+            type: 'better-sqlite3',
             database: ':memory:',
             // ¡Clave! Incluimos las entidades para que la inyección de repositorios no falle.
             entities: [__dirname + '/newdatabase/**/*.entity{.ts,.js}'],
@@ -91,20 +95,7 @@ import { getTestDbOptions } from '../test/e2e-setup';
         configService: ConfigService,
         dbStatusService: DatabaseStatusService,
       ): Promise<DataSourceOptions> => {
-        // Si estamos en entorno de test, usamos una BD en memoria para 'old'
-        if (process.env.NODE_ENV === 'test') {
-          dbStatusService.setOldDbStatus('ok', 'Mocked for test environment');
-          return {
-            name: 'old',
-            type: 'sqlite',
-            database: ':memory:',
-            // ¡Clave! Incluimos las entidades para que la inyección de repositorios no falle.
-            entities: [__dirname + '/oldatabase/**/*.entity{.ts,.js}'],
-            synchronize: true, // Necesario para que TypeORM cree el esquema en la DB en memoria.
-          };
-        }
-
-        // Lógica original para entornos de desarrollo/producción
+        // Configuración para conectar a la base de datos real 'old'
         const realOptions: DataSourceOptions = {
           type: 'mysql',
           host: configService.get<string>('DB_OLD_HOST'),
@@ -121,7 +112,10 @@ import { getTestDbOptions } from '../test/e2e-setup';
         const dataSource = new DataSource(realOptions);
         try {
           await dataSource.initialize();
-          dbStatusService.setOldDbStatus('ok');
+          dbStatusService.setOldDbStatus(
+            'ok',
+            'Connected to old database successfully',
+          );
           await dataSource.destroy(); // Cerramos la conexión temporal
           return realOptions;
         } catch (error) {
@@ -143,6 +137,7 @@ import { getTestDbOptions } from '../test/e2e-setup';
     OldUsersModule,
     OldPermisosModule,
     OldDepartamentosModule,
+    ConsultaCuadrantesModule,
     UsersModule,
     PermisosModule,
     SeederModule,

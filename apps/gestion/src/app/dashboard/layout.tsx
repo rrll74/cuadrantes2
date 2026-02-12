@@ -21,6 +21,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import PeopleIcon from "@mui/icons-material/People";
 import CalendarIcon from "@mui/icons-material/CalendarToday";
 import DescriptionIcon from "@mui/icons-material/Description";
+import EventNoteIcon from "@mui/icons-material/EventNote";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -47,6 +48,8 @@ export default function DashboardLayout({
   const showJornadas = canReadJornadas || isAdmin;
   const canGenerarPartesTrabajo =
     usePermissions(PERMISSIONS.PARTES_TRABAJO_WRITE) || isAdmin;
+  const canReadCuadrantes =
+    usePermissions(PERMISSIONS.CUADRANTES_READ) || isAdmin;
 
   useEffect(() => {
     // Si no está cargando y el usuario no está autenticado, lo echamos al login.
@@ -149,6 +152,20 @@ export default function DashboardLayout({
                         <DescriptionIcon />
                       </ListItemIcon>
                       <ListItemText primary="Generar Orden de Trabajo" />
+                    </ListItemButton>
+                  </ListItem>
+                )}
+
+                {canReadCuadrantes && (
+                  <ListItem disablePadding>
+                    <ListItemButton
+                      component={Link}
+                      href="/dashboard/consulta-cuadrantes"
+                    >
+                      <ListItemIcon>
+                        <EventNoteIcon />
+                      </ListItemIcon>
+                      <ListItemText primary="Consulta de Cuadrantes" />
                     </ListItemButton>
                   </ListItem>
                 )}

@@ -8,6 +8,11 @@ require('dotenv').config({
   path: path.resolve(__dirname, '../.env.test.local'),
 });
 
+// Establecemos NODE_ENV=test si aún no está configurado
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'test';
+}
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { pathsToModuleNameMapper } = require('ts-jest');
 // Leemos el tsconfig.json de la API para obtener los mapeos de rutas.
