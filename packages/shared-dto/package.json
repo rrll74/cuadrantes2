@@ -7,6 +7,9 @@
     "build": "tsc",
     "watch": "tsc --watch"
   },
+  "dependencies": {
+    "class-validator": "^0.14.1"
+  },
   "devDependencies": {
     "typescript": "^5.0.0"
   }
