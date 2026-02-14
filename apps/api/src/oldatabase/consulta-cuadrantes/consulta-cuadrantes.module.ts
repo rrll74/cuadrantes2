@@ -10,6 +10,7 @@ import { OldAsignacion } from '@/oldatabase/asignaciones/entities/oldasignacion.
 import { OldEstado } from '@/oldatabase/estados/entities/oldestado.entity';
 import { OldPuesto } from '@/oldatabase/puestos/entities/oldpuesto.entity';
 import { OldContrato } from '@/oldatabase/contratos/entities/oldcontrato.entity';
+import { MailModule } from '@/mail/mail.module';
 
 @Module({
   controllers: [ConsultaCuadrantesController],
@@ -28,6 +29,7 @@ import { OldContrato } from '@/oldatabase/contratos/entities/oldcontrato.entity'
       ],
       'old',
     ),
+    MailModule,
   ],
 })
 export class ConsultaCuadrantesModule {}

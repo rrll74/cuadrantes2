@@ -11,4 +11,10 @@ export class AppController {
   getApiStatus() {
     return this.appService.getApiStatus();
   }
+
+  @Public()
+  @Get('test-email-connection')
+  async testEmailConnection() {
+    return await this.appService.testEmailConnection();
+  }
 }

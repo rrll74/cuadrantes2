@@ -15,6 +15,7 @@ import { SeederModule } from '@/newdatabase/seeder.module';
 import { JornadasModule } from '@/newdatabase/jornadas/jornadas.module';
 import { AuthModule } from './auth/auth.module';
 import { StatusModule } from './status/status.module';
+import { MailModule } from './mail/mail.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { getTestDbOptions } from '../test/e2e-setup';
 
@@ -144,6 +145,7 @@ import { getTestDbOptions } from '../test/e2e-setup';
     AuthModule,
     StatusModule,
     JornadasModule,
+    MailModule,
     OldDepartamentosModule,
   ],
   controllers: [AppController],

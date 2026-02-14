@@ -20,6 +20,7 @@ import {
   EstadoTrabajoDto,
   NOMBRES_MESES,
 } from '@cuadrantes/shared-dto';
+import { MailService } from '@/mail/mail.service';
 
 @Injectable()
 export class ConsultaCuadrantesService {
@@ -42,6 +43,7 @@ export class ConsultaCuadrantesService {
     private readonly puestoRepository: Repository<OldPuesto>,
     @InjectRepository(OldContrato, 'old')
     private readonly contratoRepository: Repository<OldContrato>,
+    private readonly mailService: MailService,
   ) {}
 
   /**
@@ -582,8 +584,172 @@ export class ConsultaCuadrantesService {
   }
 
   /**
+   * Genera el contenido HTML del email con los datos de la consulta
+   */
+  private generarHtmlEmail(
+    datos: ConsultaCuadranteResponseDto,
+    mesInicio: number,
+    anioInicio: number,
+    mesFin: number,
+    anioFin: number,
+    tipoInicial: boolean,
+  ): string {
+    const periodoText = `${NOMBRES_MESES[mesInicio - 1]} ${anioInicio} - ${NOMBRES_MESES[mesFin - 1]} ${anioFin}`;
+    const tipoText = tipoInicial ? 'Inicial' : 'Modificado';
+
+    let estadosHtml = '';
+    datos.estadosUsados.forEach((estado) => {
+      const colorFondo = this.convertirColorToHex(
+        typeof estado.colorfondo === 'number' ? estado.colorfondo : 0,
+      );
+      const colorTexto = this.convertirColorToHex(
+        typeof estado.colortexto === 'number' ? estado.colortexto : 0,
+      );
+      const horario =
+        estado.horainicio && estado.horafin
+          ? `${estado.horainicio} - ${estado.horafin}`
+          : 'N/A';
+
+      estadosHtml += `
+        <tr>
+          <td style="padding: 10px; border: 1px solid #ddd;">
+            <span style="background-color: ${colorFondo}; color: ${colorTexto}; padding: 5px 10px; border-radius: 3px; font-weight: bold;">
+              ${estado.abreviatura}
+            </span>
+          </td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${estado.descrip || 'N/A'}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${horario}</td>
+        </tr>
+      `;
+    });
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+            }
+            .container {
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            h1 {
+              color: #2c3e50;
+              border-bottom: 2px solid #3498db;
+              padding-bottom: 10px;
+            }
+            .section {
+              margin: 20px 0;
+              padding: 15px;
+              background-color: #f9f9f9;
+              border-left: 4px solid #3498db;
+            }
+            .info-row {
+              margin: 8px 0;
+            }
+            .label {
+              font-weight: bold;
+              color: #2c3e50;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 15px;
+            }
+            th {
+              background-color: #3498db;
+              color: white;
+              padding: 12px;
+              text-align: left;
+            }
+            td {
+              padding: 10px;
+              border: 1px solid #ddd;
+            }
+            .footer {
+              margin-top: 20px;
+              padding-top: 15px;
+              border-top: 1px solid #ddd;
+              font-size: 12px;
+              color: #7f8c8d;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Consulta de Cuadrante</h1>
+            
+            <div class="section">
+              <div class="info-row">
+                <span class="label">Empleado:</span> ${datos.empleado.nombre}
+              </div>
+              <div class="info-row">
+                <span class="label">NIFs:</span> ${datos.empleado.nif}
+              </div>
+              <div class="info-row">
+                <span class="label">Email:</span> ${datos.empleado.email}
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="info-row">
+                <span class="label">Cuadrante:</span> ${datos.cuadrante.nombre}
+              </div>
+              <div class="info-row">
+                <span class="label">Departamento:</span> ${datos.cuadrante.departamentoNombre}
+              </div>
+              <div class="info-row">
+                <span class="label">Tipo:</span> ${tipoText}
+              </div>
+              <div class="info-row">
+                <span class="label">Período:</span> ${periodoText}
+              </div>
+            </div>
+
+            <div class="section">
+              <h3 style="margin-top: 0;">Leyenda de Estados</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Abreviatura</th>
+                    <th>Descripción</th>
+                    <th>Horario</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${estadosHtml}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="section">
+              <p>
+                Consulta generada automáticamente por el sistema Cuadrantes2.
+                Para más detalles, accede a la plataforma web.
+              </p>
+            </div>
+
+            <div class="footer">
+              <p>Este es un mensaje automático. Por favor, no responda a este correo.</p>
+              <p>Generado el ${new Date().toLocaleString('es-ES')}</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    return html;
+  }
+
+  /**
    * Genera un PDF y lo envía por email al empleado
-   * Nota: Requiere configuración de nodemailer con credenciales SMTP
+   * Requiere configuración de variables de entorno SMTP
    */
   async generarYEnviarPDF(
     empleadoId: number,
@@ -598,9 +764,19 @@ export class ConsultaCuadrantesService {
       `Generando y enviando PDF por email al empleado ${empleadoId}`,
     );
 
+    // Verificar si el servicio de email está configurado
+    if (!this.mailService.isConfigured()) {
+      const errorMsg =
+        'El servicio de email no está configurado. Configure las variables de entorno: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM';
+      this.logger.warn(errorMsg);
+      return {
+        success: false,
+        message: errorMsg,
+      };
+    }
+
     // Generar PDF
-    // const pdfBuffer =
-    await this.generarPDF(
+    const pdfBuffer = await this.generarPDF(
       empleadoId,
       mesInicio,
       anioInicio,
@@ -619,16 +795,57 @@ export class ConsultaCuadrantesService {
       throw new NotFoundException(`El empleado no tiene email configurado`);
     }
 
-    // TODO: Implementar envío de email con nodemailer
-    // Por ahora, retornamos un mensaje indicando que se debe configurar nodemailer
-    this.logger.warn(
-      'El envío de email no está implementado. Configure nodemailer con credenciales SMTP.',
+    // Obtener datos para generar el HTML del email
+    const datos = await this.obtenerConsultaCuadrante(
+      empleadoId,
+      mesInicio,
+      anioInicio,
+      mesFin,
+      anioFin,
+      cuadranteId,
+      tipoInicial,
     );
 
-    return {
-      success: false,
-      message:
-        'La generación de PDF fue exitosa, pero el envío de email requiere configuración de nodemailer. Por favor, configure las credenciales SMTP.',
-    };
+    // Generar HTML del email
+    const htmlContent = this.generarHtmlEmail(
+      datos,
+      mesInicio,
+      anioInicio,
+      mesFin,
+      anioFin,
+      tipoInicial,
+    );
+
+    // Enviar email con PDF adjunto
+    const subject = `Consulta de Cuadrante: ${datos.cuadrante.nombre} (${NOMBRES_MESES[mesInicio - 1]} ${anioInicio} - ${NOMBRES_MESES[mesFin - 1]} ${anioFin})`;
+
+    const mailResult = await this.mailService.sendMail({
+      to: empleado.email,
+      subject,
+      html: htmlContent,
+      attachments: [
+        {
+          filename: `consulta-cuadrante-${empleadoId}-${new Date().getTime()}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+
+    if (mailResult.success) {
+      this.logger.log(
+        `Email enviado exitosamente a ${empleado.email} (MessageId: ${mailResult.messageId})`,
+      );
+      return {
+        success: true,
+        message: `PDF generado y enviado exitosamente a ${empleado.email}`,
+      };
+    } else {
+      this.logger.error(`Error al enviar email: ${mailResult.error}`);
+      return {
+        success: false,
+        message: `Error al enviar email: ${mailResult.error}`,
+      };
+    }
   }
 }
