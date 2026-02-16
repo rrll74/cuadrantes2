@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -19,6 +20,7 @@ import { PERMISSIONS } from '@cuadrantes/shared-dto';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateSelfUserDto } from './dto/update-self-user.dto';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -28,6 +30,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { UserResponseDto } from './dto/user-response.dto';
+import { Request } from 'express';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -35,6 +38,18 @@ import { UserResponseDto } from './dto/user-response.dto';
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Get('me')
+  @ApiOperation({ summary: 'Obtener los datos del usuario autenticado' })
+  @ApiResponse({
+    status: 200,
+    description: 'Datos del usuario autenticado recuperados con éxito.',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  getSelfUser(@Req() req: Request & { user: { userId: number } }) {
+    return this.usersService.getSelfUser(req.user.userId);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Obtener una lista de todos los usuarios' })
@@ -70,6 +85,25 @@ export class UsersController {
   @HasPermissions(PERMISSIONS.USERS_CREATE)
   createUser(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
+  }
+
+  @Patch('me')
+  @ApiOperation({
+    summary: 'Actualizar email o contraseña del usuario autenticado',
+  })
+  @ApiBody({ type: UpdateSelfUserDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario actualizado con éxito.',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  updateSelfUser(
+    @Req() req: Request & { user: { userId: number } },
+    @Body() updateSelfUserDto: UpdateSelfUserDto,
+  ) {
+    return this.usersService.updateSelfUser(req.user.userId, updateSelfUserDto);
   }
 
   @Patch(':id')

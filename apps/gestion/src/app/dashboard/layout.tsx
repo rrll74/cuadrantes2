@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   AppBar,
@@ -16,17 +16,24 @@ import {
   ListItemText,
   CircularProgress,
   Button,
+  IconButton,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import PeopleIcon from "@mui/icons-material/People";
 import CalendarIcon from "@mui/icons-material/CalendarToday";
 import DescriptionIcon from "@mui/icons-material/Description";
 import EventNoteIcon from "@mui/icons-material/EventNote";
+import SettingsIcon from "@mui/icons-material/Settings";
+import LogoutIcon from "@mui/icons-material/Logout";
+import PersonIcon from "@mui/icons-material/Person";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { usePermissions } from "@/hooks/usePermissions";
 import { SocketProvider } from "@/context/SocketContext";
 import { PERMISSIONS } from "@cuadrantes/shared-dto";
+import AccountSettingsDialog from "@/components/user-settings/AccountSettingsDialog";
 
 const drawerWidth = 240;
 
@@ -35,8 +42,12 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, isLoading, logout } = useAuth();
+  const { isAuthenticated, isLoading, logout, user } = useAuth();
   const router = useRouter();
+  const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(
+    null,
+  );
+  const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false);
   const isAdmin = usePermissions(PERMISSIONS.ADMIN);
   const canReadUsers = usePermissions(PERMISSIONS.USERS_READ) || isAdmin;
   const canCreateUsers = usePermissions(PERMISSIONS.USERS_CREATE) || isAdmin;
@@ -79,6 +90,23 @@ export default function DashboardLayout({
     router.push("/login");
   };
 
+  const handleOpenSettingsMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setSettingsAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseSettingsMenu = () => {
+    setSettingsAnchorEl(null);
+  };
+
+  const handleOpenAccountDialog = () => {
+    setIsAccountDialogOpen(true);
+    handleCloseSettingsMenu();
+  };
+
+  const handleCloseAccountDialog = () => {
+    setIsAccountDialogOpen(false);
+  };
+
   return (
     <Box sx={{ display: "flex" }}>
       <ProtectedRoute>
@@ -101,9 +129,31 @@ export default function DashboardLayout({
                 <HomeIcon />
                 Inicio
               </Button>
-              <Button color="inherit" onClick={handleLogout}>
-                Cerrar Sesión
-              </Button>
+              <IconButton
+                color="inherit"
+                aria-label="Configuración de cuenta"
+                onClick={handleOpenSettingsMenu}
+              >
+                <SettingsIcon />
+              </IconButton>
+              <Menu
+                anchorEl={settingsAnchorEl}
+                open={Boolean(settingsAnchorEl)}
+                onClose={handleCloseSettingsMenu}
+              >
+                <MenuItem onClick={handleOpenAccountDialog}>
+                  <ListItemIcon>
+                    <PersonIcon fontSize="small" />
+                  </ListItemIcon>
+                  {user?.username || "Usuario"}
+                </MenuItem>
+                <MenuItem onClick={handleLogout}>
+                  <ListItemIcon>
+                    <LogoutIcon fontSize="small" />
+                  </ListItemIcon>
+                  Cerrar sesión
+                </MenuItem>
+              </Menu>
             </Toolbar>
           </AppBar>
 
@@ -178,6 +228,10 @@ export default function DashboardLayout({
             <Toolbar />
             {children}
           </Box>
+          <AccountSettingsDialog
+            open={isAccountDialogOpen}
+            onClose={handleCloseAccountDialog}
+          />
         </SocketProvider>
       </ProtectedRoute>
     </Box>

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 // import { FindManyOptions, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { ConnectionStatusService } from '@/status/connection-status.service';
@@ -31,6 +31,7 @@ const mockQueryBuilder = {
 
 const mockUserRepository = {
   find: jest.fn().mockResolvedValue(mockUserArray),
+  findOne: jest.fn().mockResolvedValue(mockUser),
   findOneBy: jest.fn().mockResolvedValue(mockUser),
   create: jest.fn().mockReturnValue(new User()),
   save: jest.fn().mockResolvedValue(mockUser),
@@ -49,6 +50,7 @@ const mockConnectionStatusService = {
 // Mockear bcrypt
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashedpassword'),
+  compare: jest.fn().mockResolvedValue(true),
 }));
 
 describe('UsersService', () => {
@@ -165,6 +167,29 @@ describe('UsersService', () => {
     });
   });
 
+  describe('getSelfUser', () => {
+    it('should return the authenticated user response data', async () => {
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockConnectionStatusService.isUserConnected.mockReturnValue(false);
+
+      const result = await service.getSelfUser(mockUser.id);
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockUser.id,
+          username: mockUser.username,
+          email: mockUser.email,
+        }),
+      );
+    });
+
+    it('should throw NotFoundException if user is missing', async () => {
+      mockUserRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.getSelfUser(999)).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('findOneByUsername', () => {
     it('should find a user by username using the query builder', async () => {
       const result = await service.findOneByUsername('testuser');
@@ -223,6 +248,62 @@ describe('UsersService', () => {
     it('should throw NotFoundException if user to update is not found', async () => {
       mockUserRepository.findOneBy.mockResolvedValue(null);
       await expect(service.update(99, {})).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('updateSelfUser', () => {
+    it('should reject when no data is provided', async () => {
+      await expect(
+        service.updateSelfUser(mockUser.id, {
+          currentPassword: 'currentpass',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject when current password is missing', async () => {
+      await expect(
+        service.updateSelfUser(mockUser.id, {
+          email: 'new@test.com',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should update email and password when current password matches', async () => {
+      const updatedUser = { ...mockUser, email: 'new@test.com' } as User;
+      mockQueryBuilder.getOne.mockResolvedValue({
+        ...mockUser,
+        password: 'hashedpassword',
+      });
+      mockUserRepository.save.mockResolvedValue(updatedUser);
+
+      const result = await service.updateSelfUser(mockUser.id, {
+        email: 'new@test.com',
+        currentPassword: 'currentpass',
+        newPassword: 'newpass123',
+      });
+
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        'currentpass',
+        'hashedpassword',
+      );
+      expect(bcrypt.hash).toHaveBeenCalledWith('newpass123', 10);
+      expect(result.email).toBe('new@test.com');
+    });
+
+    it('should reject when email is already in use', async () => {
+      const otherUser = { ...mockUser, id: 2, email: 'other@test.com' } as User;
+      mockQueryBuilder.getOne.mockResolvedValue({
+        ...mockUser,
+        password: 'hashedpassword',
+      });
+      mockUserRepository.findOne.mockResolvedValue(otherUser);
+
+      await expect(
+        service.updateSelfUser(mockUser.id, {
+          email: 'other@test.com',
+          currentPassword: 'currentpass',
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
