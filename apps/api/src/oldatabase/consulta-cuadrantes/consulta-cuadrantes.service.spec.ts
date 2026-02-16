@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +12,7 @@ import { OldPuesto } from '../puestos/entities/oldpuesto.entity';
 import { OldContrato } from '../contratos/entities/oldcontrato.entity';
 import { OldCuadranteEmpleado } from '../cuadrantes-empleados/entities/oldcuadrante-empleado.entity';
 import { OldDepartamento } from '../departamentos/entities/olddepartamento.entity';
+import { MailService } from '@/mail/mail.service';
 
 describe('ConsultaCuadrantesService', () => {
   let service: ConsultaCuadrantesService;
@@ -23,6 +24,7 @@ describe('ConsultaCuadrantesService', () => {
   let puestoRepository: Repository<OldPuesto>;
   let contratoRepository: Repository<OldContrato>;
   let cuadranteEmpleadoRepository: Repository<OldCuadranteEmpleado>;
+  // let mailService: MailService;
 
   beforeEach(async () => {
     // Mock de los repositorios
@@ -61,6 +63,13 @@ describe('ConsultaCuadrantesService', () => {
       find: jest.fn(),
     };
 
+    const mockMailService = {
+      isConfigured: jest.fn().mockReturnValue(true),
+      sendMail: jest
+        .fn()
+        .mockResolvedValue({ success: true, messageId: '123' }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ConsultaCuadrantesService,
@@ -96,6 +105,10 @@ describe('ConsultaCuadrantesService', () => {
           provide: getRepositoryToken(OldCuadranteEmpleado, 'old'),
           useValue: mockCuadranteEmpleadoRepository,
         },
+        {
+          provide: MailService,
+          useValue: mockMailService,
+        },
       ],
     }).compile();
 
@@ -124,6 +137,7 @@ describe('ConsultaCuadrantesService', () => {
     cuadranteEmpleadoRepository = module.get<Repository<OldCuadranteEmpleado>>(
       getRepositoryToken(OldCuadranteEmpleado, 'old'),
     );
+    // mailService = module.get<MailService>(MailService);
   });
 
   describe('obtenerEmpleados', () => {
@@ -154,6 +168,7 @@ describe('ConsultaCuadrantesService', () => {
       expect(resultado).toHaveLength(2);
       expect(resultado[0].nombre).toBe('Alice');
       expect(resultado[1].nombre).toBe('Bob');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(empleadoRepository.find).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { activo: true },
