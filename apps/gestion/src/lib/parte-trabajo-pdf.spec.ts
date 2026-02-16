@@ -1,10 +1,10 @@
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import {
-  generateParteTrabajoPDF,
-  generatePDFFromData,
+  generateParteTrabajoPdfFromElement,
+  generateParteTrabajoPdfFromData,
   ParteTrabajo,
-} from "./pdf-generator";
+} from "./parte-trabajo-pdf";
 
 const pdfInstances: Array<Record<string, jest.Mock>> = [];
 
@@ -36,7 +36,7 @@ jest.mock("jspdf", () => {
 
 jest.mock("html2canvas", () => jest.fn());
 
-describe("pdf-generator", () => {
+describe("parte-trabajo-pdf", () => {
   const originalCreateElement = document.createElement.bind(document);
   const originalImage = global.Image;
   let createElementSpy: jest.SpyInstance | null = null;
@@ -77,7 +77,7 @@ describe("pdf-generator", () => {
       imagenes: [],
     };
 
-    await generateParteTrabajoPDF(element, data);
+    await generateParteTrabajoPdfFromElement(element, data);
 
     expect(html2canvas).toHaveBeenCalledWith(element, expect.any(Object));
     expect(jsPDF).toHaveBeenCalledTimes(1);
@@ -130,7 +130,7 @@ describe("pdf-generator", () => {
       fechaEjecucion: "",
     };
 
-    const promise = generatePDFFromData(data);
+    const promise = generateParteTrabajoPdfFromData(data);
     await jest.runAllTimersAsync();
     await promise;
 
@@ -144,7 +144,7 @@ describe("pdf-generator", () => {
     expect(pdfInstances[0].addImage).toHaveBeenCalled();
   }, 10000);
 
-  it("mantiene el aspecto de las imágenes sin deformarlas", async () => {
+  it("mantiene el aspecto de las imagenes sin deformarlas", async () => {
     jest.useFakeTimers();
 
     class MockImage {
@@ -191,11 +191,11 @@ describe("pdf-generator", () => {
       fechaEjecucion: "",
     };
 
-    const promise = generatePDFFromData(data);
+    const promise = generateParteTrabajoPdfFromData(data);
     await jest.runAllTimersAsync();
     await promise;
 
-    // Verificar que se llamó getImageProperties para cada imagen
+    // Verificar que se llamo getImageProperties para cada imagen
     expect(pdfInstances[0].getImageProperties).toHaveBeenCalledTimes(2);
 
     // Verificar que addImage fue llamado con las dimensiones apropiadas
@@ -207,13 +207,13 @@ describe("pdf-generator", () => {
         (call[0].includes("horizontal") || call[0].includes("vertical")),
     );
 
-    // Verificar que se agregaron 2 imágenes
+    // Verificar que se agregaron 2 imagenes
     expect(imageCalls.length).toBe(2);
 
     // Verificar cada imagen agregada
     imageCalls.forEach((call) => {
       const [, , , , width, height] = call;
-      // Verificar que no excede las dimensiones máximas
+      // Verificar que no excede las dimensiones maximas
       expect(width).toBeLessThanOrEqual(140);
       expect(height).toBeLessThanOrEqual(110);
       // Verificar que las dimensiones son positivas

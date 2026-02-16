@@ -21,7 +21,7 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useForm, Controller } from "react-hook-form";
-import { generatePDFFromData } from "@/lib/pdf-generator";
+import { generateParteTrabajoPdfFromData } from "@/lib";
 import PDFPreview from "./PDFPreview";
 
 interface Departamento {
@@ -165,7 +165,7 @@ export default function ParteTrabajoForm() {
         fechaEjecucion: data.fechaEjecucion,
       };
 
-      await generatePDFFromData(parteData);
+      await generateParteTrabajoPdfFromData(parteData);
 
       const numPDFs = data.servicios.length || 1;
       alert(

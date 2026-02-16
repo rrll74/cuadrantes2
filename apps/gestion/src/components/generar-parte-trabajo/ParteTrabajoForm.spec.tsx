@@ -2,10 +2,10 @@ import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ParteTrabajoForm from "./ParteTrabajoForm";
-import { generatePDFFromData } from "@/lib/pdf-generator";
+import { generateParteTrabajoPdfFromData } from "@/lib";
 
-jest.mock("@/lib/pdf-generator", () => ({
-  generatePDFFromData: jest.fn(),
+jest.mock("@/lib", () => ({
+  generateParteTrabajoPdfFromData: jest.fn(),
 }));
 
 describe("ParteTrabajoForm", () => {
@@ -23,7 +23,7 @@ describe("ParteTrabajoForm", () => {
 
   it("permite seleccionar servicios y generar el PDF", async () => {
     const user = userEvent.setup();
-    (generatePDFFromData as jest.Mock).mockResolvedValue(undefined);
+    (generateParteTrabajoPdfFromData as jest.Mock).mockResolvedValue(undefined);
 
     render(<ParteTrabajoForm />);
 
@@ -58,7 +58,7 @@ describe("ParteTrabajoForm", () => {
     await user.click(screen.getByRole("button", { name: /generar pdf/i }));
 
     await waitFor(() => {
-      expect(generatePDFFromData).toHaveBeenCalledWith(
+      expect(generateParteTrabajoPdfFromData).toHaveBeenCalledWith(
         expect.objectContaining({
           numeroDocumento: "PT-123",
           solicitante: "Carlos",
