@@ -92,7 +92,7 @@ export const generateParteTrabajoPdfFromData = async (data: ParteTrabajo) => {
       // Guardar cada PDF con nombre único
       //const timestamp = new Date().getTime();
       //const fileName = `Parte-Trabajo-${numeroDocumentoConSufijo}-${timestamp}.pdf`;
-      const fileName = `E-${numeroDocumentoConSufijo}.pdf`;
+      const fileName = `E-${numeroDocumentoConSufijo} ${servicio}.pdf`;
       pdf.save(fileName);
 
       // Pequeña pausa entre PDFs para evitar problemas de descarga
