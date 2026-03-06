@@ -22,7 +22,12 @@ import { getTestDbOptions } from '../test/e2e-setup';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: `.env.${process.env.NODE_ENV}.local`,
+      envFilePath: [
+        `.env.${process.env.NODE_ENV}.local`,
+        `.env.${process.env.NODE_ENV}`,
+        `.env.local`,
+        '.env',
+      ],
       isGlobal: true,
     }),
     TypeOrmModule.forRootAsync({

@@ -9,24 +9,38 @@ import { twMerge } from "tailwind-merge";
 import {
   INFO_JORNADAS_DIARIAS,
   type UploadJornadasResponse,
+  IMPORT_TYPES,
 } from "@cuadrantes/shared-dto";
 import api from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
-import { useFileUpload, FileKey } from "@/hooks/useFileUpload";
+import {
+  useFileUpload,
+  FileKey,
+  FileStateType1,
+  FileStateType2,
+} from "@/hooks/useFileUpload";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { MonthInfoForm, MonthInfoData } from "./MonthInfoForm";
 
-const FILE_LABELS: Record<FileKey, string> = {
+const FILE_LABELS_TYPE1: Record<string, string> = {
   titulares: "Rutas Titulares (Excel)",
   auxiliares: "Rutas Auxiliares (Excel)",
   trabajadores: "Listado Trabajadores (Excel)",
   fichajes: "Fichajes (Excel)",
 };
 
+const FILE_LABELS_TYPE2: Record<string, string> = {
+  trabajadores: "Listado Trabajadores (Excel)",
+  fichajes: "Fichajes (Excel)",
+  rutas: "Rutas (Excel)",
+  rutasDocumento: "Rutas con documento (Txt) - Opcional",
+};
+
 export const UploadJornadasForm = () => {
   const queryClient = useQueryClient();
+  const [importType, setImportType] = useState<number>(IMPORT_TYPES.SECONDARY);
   const { files, handleFileChange, validateFiles, resetFiles } =
-    useFileUpload();
+    useFileUpload(importType);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [message, setMessage] = useState<{
@@ -53,6 +67,12 @@ export const UploadJornadasForm = () => {
     [handleFileChange],
   );
 
+  const handleImportTypeChange = (newType: number) => {
+    setImportType(newType);
+    resetFiles();
+    setMessage(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -71,11 +91,30 @@ export const UploadJornadasForm = () => {
     setMessage(null);
 
     const formData = new FormData();
-    if (files.titulares) formData.append("titulares", files.titulares);
-    if (files.auxiliares) formData.append("auxiliares", files.auxiliares);
-    if (files.trabajadores) formData.append("trabajadores", files.trabajadores);
-    if (files.fichajes) formData.append("fichajes", files.fichajes);
+
+    if (importType === IMPORT_TYPES.PRIMARY) {
+      // Tipo 1: Titulares, Auxiliares, Trabajadores, Fichajes
+      const type1Files: FileStateType1 = files as FileStateType1;
+      if (type1Files.titulares)
+        formData.append("titulares", type1Files.titulares);
+      if (type1Files.auxiliares)
+        formData.append("auxiliares", type1Files.auxiliares);
+      if (type1Files.trabajadores)
+        formData.append("trabajadores", type1Files.trabajadores);
+      if (type1Files.fichajes) formData.append("fichajes", type1Files.fichajes);
+    } else if (importType === IMPORT_TYPES.SECONDARY) {
+      // Tipo 2: Trabajadores, Fichajes, Rutas, Rutas con Documento (opcional)
+      const type2Files: FileStateType2 = files as FileStateType2;
+      if (type2Files.trabajadores)
+        formData.append("trabajadores", type2Files.trabajadores);
+      if (type2Files.fichajes) formData.append("fichajes", type2Files.fichajes);
+      if (type2Files.rutas) formData.append("rutas", type2Files.rutas);
+      if (type2Files.rutasDocumento)
+        formData.append("rutasDocumento", type2Files.rutasDocumento);
+    }
+
     formData.append("monthInfo", JSON.stringify(monthInfo));
+    formData.append("importType", String(importType));
 
     try {
       // Ajusta la URL a tu endpoint de backend
@@ -121,6 +160,10 @@ export const UploadJornadasForm = () => {
     }
   };
 
+  const fileLabels =
+    importType === IMPORT_TYPES.PRIMARY ? FILE_LABELS_TYPE1 : FILE_LABELS_TYPE2;
+  const fileKeys = Object.keys(fileLabels);
+
   return (
     <div className="p-6 bg-white rounded-lg shadow-md max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">
@@ -128,15 +171,53 @@ export const UploadJornadasForm = () => {
       </h2>
 
       <form onSubmit={handleSubmit}>
+        {/* Selector de Tipo de Importación */}
+        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Tipo de Importación
+          </label>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="importType"
+                value={IMPORT_TYPES.PRIMARY}
+                checked={importType === IMPORT_TYPES.PRIMARY}
+                onChange={(e) => handleImportTypeChange(Number(e.target.value))}
+                className="w-4 h-4"
+              />
+              <span className="text-sm text-gray-700">
+                Tipo 1: Formato Original (Titulares + Auxiliares)
+              </span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="importType"
+                value={IMPORT_TYPES.SECONDARY}
+                checked={importType === IMPORT_TYPES.SECONDARY}
+                onChange={(e) => handleImportTypeChange(Number(e.target.value))}
+                className="w-4 h-4"
+              />
+              <span className="text-sm text-gray-700">
+                Tipo 2: Formato Secundario (Rutas Unificadas)
+              </span>
+            </label>
+          </div>
+        </div>
+
         <MonthInfoForm value={monthInfo} onChange={setMonthInfo} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {(Object.keys(files) as FileKey[]).map((key) => (
+          {fileKeys.map((key) => (
             <SingleFileDropzone
               key={key}
-              label={FILE_LABELS[key]}
-              file={files[key]}
-              onDrop={(f) => onDrop(f, key)}
+              label={fileLabels[key]}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              file={(files as any)[key] || null}
+              onDrop={(f) => onDrop(f, key as FileKey)}
+              acceptText={key === "rutasDocumento" ? "(Txt, Csv)" : "(Excel)"}
+              isTextFile={key === "rutasDocumento"}
             />
           ))}
         </div>
@@ -164,7 +245,23 @@ export const UploadJornadasForm = () => {
           </div>
         )}
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => {
+              resetFiles();
+              setMessage(null);
+            }}
+            className={clsx(
+              "px-6 py-2 rounded-md font-semibold transition-colors",
+              loading
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                : "bg-gray-300 text-gray-700 hover:bg-gray-400",
+            )}
+          >
+            Limpiar
+          </button>
           <button
             type="submit"
             disabled={loading}
@@ -188,25 +285,36 @@ const SingleFileDropzone = ({
   label,
   file,
   onDrop,
+  acceptText = "(Excel)",
+  isTextFile = false,
 }: {
   label: string;
   file: File | null;
   onDrop: (files: File[]) => void;
+  acceptText?: string;
+  isTextFile?: boolean;
 }) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
-        ".xlsx",
-      ],
-      "application/vnd.ms-excel": [".xls"],
-    },
+    accept: isTextFile
+      ? {
+          "text/plain": [".txt"],
+          "text/csv": [".csv"],
+        }
+      : {
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+            ".xlsx",
+          ],
+          "application/vnd.ms-excel": [".xls"],
+        },
     maxFiles: 1,
   });
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
+      <label className="text-sm font-medium text-gray-700">
+        {label} <span className="text-xs text-gray-500">{acceptText}</span>
+      </label>
       <div
         {...getRootProps()}
         className={twMerge(

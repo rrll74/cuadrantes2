@@ -1,0 +1,100 @@
+Se quiere realizar el mismo proceso que se utiliza para la anotación de jornadas, pero extrayendo la información de unas tablas de excel que contienen la información en columnas diferentes y con ciertos formatos diferentes, es decir, como una versión secundaria para la carga de información para luego realizar los cálculos. Una vez extraída la información de las nuevas hojas de excel, todos los cálculos y almacenado en base de datos es común.
+Para llevar a cabo, este proceso será necesario modificar parte del frontend y parte del backend.
+El cambio en el front será: Modificar el  formulario en dashboard/jornadas que permita la seleccionar mediante una casilla si la carga de datos es la primera (con la información de títulos actual) o la secundaria (Título de "Listado Trabajadores (Excel)" y "Fichajes (Excel)") se mantedrían, la del título "Rutas Titulares (Excel) cambiaría a "Rutas (Excel)" y la de "Rutas Auxiliares (Excel)" cambiaría a "Rutas con documento (Txt)".
+El fichero "Rutas con documento (Txt)" contiene en formato de texto plano y que en cada línea contiene el texto "Hoja _ " + [Nro. de ruta] + "." + ["pdf" | "webp"] todas las rutas que contienen documento adjunto.  
+Los cambios en el back serán sólo a la hora de importar la información de las nuevas hojas de cálculo. Se añadirá esta nueva forma de importación, manteniendo también por se se hace desde primera. Esta forma secundaria se implementará de manera que la similitud de información entre la que se recibía en las hojas de cálculo primeras y los nuevos ficheros de las secundarias se puede relacionar de la siguiente forma:
+Fichero "Fichajes": sólo cambia el nombre de la columna "Cód. trabajador" por "Trabajador"
+Fichero "Rutas Titulares (Excel)" y "Rutas Auxiliares (Excel)": En la importación primera se realizaba en dos ficheros, mientras que en la secundaria se realiza en uno solo donde las columnas de "Rutas auxiliares" que sólo contenían la fecha, el id del trabajador y la relación con la ruta, ahora viene añadido como dos columnas en el fichero "Rutas (Excel)" con los títulos "Auxiliar 1" y "Auxiliar 2". El resto de correspondencias de campos entre "Rutas Titulares (Excel)" y "Rutas (Excel)" es el siguiente:
+	· Columna "Código": Columna "Hoja ruta"
+	· Columna "Fecha": Columna "Fecha"
+	· Columna "Servicio": Columna "Servicio"
+        · Columna "Equipo": Columna "Equipo"
+        · Columna "Turno": Columna "Turno"
+        · Columna "Hora salida": Columna "Inicio"
+        · Columna "Hora llegada": Columna "Final"
+        · Columna "Vehículo": Sin correspondencia
+        · Columna "Total KM": Sin correspondencia
+        · Columna "Titular": Columna "Trab." 
+        · Columna "Nº dctos": Este dato se obtiene del fichero "Rutas con documento (Txt)". Se tiene que buscar el número de ruta entre los distintos datos del fichero y, en caso de existir, marcar este campo como "1", si no como "0".
+
+Fichero "Trabajadores": Este fichero es el que más varía porque casi toda la información se encuentra en la Columna "Trabajador" que tiene el siguiente formato: [id del trabajador] + " - " + [Apellido1 Apellido2] + ", " + [Nombre] + " (" + [Puesto] + ") (" + [id del trabajador] + ")". Es decir de esta columna se puede obtener el id del trabajador, su nombre y apellidos, y el puesto que ocupa. Puede no contener la columna "Equal" por lo que, en tal caso habría que poner ese valor cuando se carga la información a "0" o falso, según corresponda. El mismo trabajador puede estar repetido varias veces, por lo que se almacenará sólo el valor de la columna "Fecha inicio" cuya fecha sea más reciente.
+
+Una vez que se ha hecho la similitud de carga de información entre los ficheros de la forma primera y la secundaria, todos los demás procesos de almacenado y, llegado el momento, de solicitud de resúmenes e información se mantendrá de la misma forma.
+También se han de agregar y modificar las constantes en el paquete shared-dto para reflejar todos estos nuevos cambios.
+
+## INFORMACIÓN ADICIONAL NECESARIA PARA LA IMPLEMENTACIÓN
+
+### FRONTEND (apps/gestion)
+1. **Localización del formulario**: 
+   - Fichero: apps/gestion/src/app/dashboard/jornadas/ (especificar componente exacto)
+   - Añadir parámetro booleano en el formulario que indique si es "importación tipo 1" o "importación tipo 2"
+   - Este parámetro se debe enviar en el body de la request al backend
+
+2. **Estado UI**:
+   - Mostrar/ocultar campos según el tipo de importación seleccionado
+   - Los archivos requeridos cambian según la selección:
+     - Tipo 1: "Listado Trabajadores", "Fichajes", "Rutas Titulares", "Rutas Auxiliares"
+     - Tipo 2: "Listado Trabajadores", "Fichajes", "Rutas", "Rutas con documento (Txt)" (archivo de texto, no Excel)
+
+### BACKEND (apps/api)
+1. **Endpoint de importación**:
+   - Modificar POST endpoint en jornadas.controller.ts que reciba el parámetro importType (1 o 2)
+   - El endpoint debe validar el tipo de importación y direccionar al servicio correcto
+
+2. **Servicios a crear/modificar**:
+   - Crear o extender: JornadasImportService para soportar ambos tipos
+   - Modificar o crear: JornadasParserService para parsear ambos formatos
+   - Nueva clase: JornadasMatchingSecondaryService (o lógica dentro de JornadasMatchingService)
+   - Procesar archivo de texto "Rutas con documento (Txt)": implementar parseo de formato "Hoja {numero}.{extension}"
+
+3. **Ubicación de la lógica**:
+   - apps/api/src/newdatabase/jornadas/services/
+
+4. **Validaciones requeridas**:
+   - Validar headers de las hojas Excel según tipo de importación
+   - Validar formato del archivo de texto "Rutas con documento (Txt)"
+   - Validar que el ID de ruta en el archivo TXT coincida con las rutas del Excel
+
+### DATABASE (entities)
+1. **Cambios en entidades**:
+   - Verificar si ScheduledRoute, RawWorker, RawClockIn necesitan campos adicionales
+   - Considerar si se necesita un campo importType en ImportSession para trackear qué tipo de importación se usó
+
+2. **Migraciones**:
+   - Si se agregan campos a entidades existentes, crear corresponientes migraciones
+   - En desarrollo con synchronize: true se actualizará automáticamente
+
+### DTOs (packages/shared-dto)
+1. **Constantes a agregar**:
+   - Mapeo de columnas para ambos tipos de importación
+   - Tipos de importación: IMPORT_TYPE_PRIMARY = 1, IMPORT_TYPE_SECONDARY = 2
+   - Constantes para validar extensiones de documento: "pdf", "webp"
+
+2. **DTOs a crear o modificar**:
+   - JornadasImportDto: agregar campo importType
+   - Nuevas constantes de mapeo de columnas secundarias
+   - DTO para resultado de parseo del archivo TXT
+
+### TESTING
+1. **Unit Tests**:
+   - Pruebas para el parser secundario (validar columna "Trabajador")
+   - Pruebas para extracción de ID, nombre, apellidos y puesto de la columna combinada
+   - Pruebas para parseo del archivo de texto "Rutas con documento (Txt)"
+   - Pruebas para obtención de "Nº dctos" cruzando TXT con rutas
+
+2. **E2E Tests**:
+   - Archivos de prueba con datos validados para ambos tipos
+   - Validar que ImportSession se guarda correctamente con importType
+   - Validar que el resultado final sea igual independientemente del tipo de importación usado
+
+### ARCHIVOS ESPERADOS EN FRONTEND
+1. Subida de archivos Excel para tipo 1 (3 archivos)
+2. Subida de archivos Excel para tipo 2 (2 archivos: trabajadores y fichajes)
+3. Subida de 1 archivo Excel para rutas (tipo 2)
+4. Subida de 1 archivo de texto plano para "Rutas con documento (Txt)" (solo tipo 2)
+
+### CONSIDERACIONES ESPECIALES
+1. El archivo "Rutas con documento (Txt)" debe procesarse DESPUÉS de haber parseado el Excel de rutas
+2. Para trabajadores repetidos: solo guardar el registro con fecha más reciente
+3. El campo Equal en "Trabajadores": asignar 0/false si no existe en los datos
+4. Marcar Nº dctos como "1" solo si existe correspondencia exacta en el archivo TXT  

@@ -35,19 +35,21 @@ export class JornadasService {
   ) {}
 
   /**
-   * Procesa los archivos Excel subidos (Trabajadores, Fichajes, Rutas Titulares y Auxiliares).
-   * Realiza la importación de datos, validación de cabeceras y ejecuta la casación de jornadas.
-   * El proceso se realiza dentro de una transacción de base de datos.
+   * Procesa los archivos Excel subidos según el tipo de importación.
+   * Tipo 1: Trabajadores, Fichajes, Rutas Titulares y Auxiliares (separados)
+   * Tipo 2: Trabajadores, Fichajes, Rutas (unificadas) y opcionalmente Rutas con Documento (TXT)
    *
    * @param files Objeto con los archivos subidos.
    * @param userId ID del usuario que realiza la importación.
    * @param monthInfoJson JSON string con la información de la sesión (temporada, jornadas, etc).
+   * @param importType Tipo de importación (1 o 2).
    * @returns Un resumen del resultado de la importación.
    */
   async procesarArchivos(
     files: UploadedFiles,
     userId?: number,
     monthInfoJson?: string,
+    importType?: number,
   ) {
     let monthInfo: MonthInfo | undefined;
     if (monthInfoJson) {
@@ -58,7 +60,14 @@ export class JornadasService {
       }
     }
 
-    return this.importService.procesarArchivos(files, userId, monthInfo);
+    const resolvedImportType = importType ?? 1;
+
+    return this.importService.procesarArchivos(
+      files,
+      userId,
+      monthInfo,
+      resolvedImportType,
+    );
   }
 
   /**
@@ -164,6 +173,7 @@ export class JornadasService {
 
     return this.exportService.generateExcel(
       results.data,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       unmatched.data,
       session,
       summaryTable,

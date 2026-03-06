@@ -17,7 +17,11 @@ import {
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JornadasService, PaginatedSessionResults } from './jornadas.service';
-import { UploadJornadasResponse, PERMISSIONS } from '@cuadrantes/shared-dto';
+import {
+  UploadJornadasResponse,
+  PERMISSIONS,
+  IMPORT_TYPES,
+} from '@cuadrantes/shared-dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { HasPermissions } from '../../auth/decorators/permissions.decorator';
@@ -43,6 +47,8 @@ export class JornadasController {
       { name: 'auxiliares', maxCount: 1 },
       { name: 'trabajadores', maxCount: 1 },
       { name: 'fichajes', maxCount: 1 },
+      { name: 'rutas', maxCount: 1 },
+      { name: 'rutasDocumento', maxCount: 1 },
     ]),
   )
   async uploadFiles(
@@ -52,34 +58,70 @@ export class JornadasController {
       auxiliares?: Express.Multer.File[];
       trabajadores?: Express.Multer.File[];
       fichajes?: Express.Multer.File[];
+      rutas?: Express.Multer.File[];
+      rutasDocumento?: Express.Multer.File[];
     },
-    @Body() body: { monthInfo?: string },
+    @Body() body: { monthInfo?: string; importType?: string },
     @Req() req: Request & { user: { userId: number } },
   ): Promise<UploadJornadasResponse> {
-    // Validación básica de presencia de archivos
-    if (
-      !files.titulares?.[0] ||
-      !files.auxiliares?.[0] ||
-      !files.trabajadores?.[0] ||
-      !files.fichajes?.[0]
-    ) {
-      throw new BadRequestException(
-        'Faltan archivos requeridos. Asegúrate de enviar: titulares, auxiliares, trabajadores y fichajes.',
-      );
-    }
+    const PRIMARY_TYPE: number = IMPORT_TYPES.PRIMARY || 1;
+    const SECONDARY_TYPE: number = IMPORT_TYPES.SECONDARY || 2;
 
-    if (
-      files.titulares?.[0]?.size === 0 ||
-      files.auxiliares?.[0]?.size === 0 ||
-      files.trabajadores?.[0]?.size === 0 ||
-      files.fichajes?.[0]?.size === 0
-    ) {
-      throw new BadRequestException(
-        'Uno o más archivos subidos están vacíos (0 bytes).',
-      );
-    }
-
+    const importType = body.importType
+      ? parseInt(body.importType, 10)
+      : PRIMARY_TYPE;
     const userId = req.user?.userId;
+
+    // Validación según tipo de importación
+    if (importType === PRIMARY_TYPE) {
+      // Tipo 1: Requiere titulares, auxiliares, trabajadores y fichajes
+      if (
+        !files.titulares?.[0] ||
+        !files.auxiliares?.[0] ||
+        !files.trabajadores?.[0] ||
+        !files.fichajes?.[0]
+      ) {
+        throw new BadRequestException(
+          'Para importación tipo 1, se requieren: titulares, auxiliares, trabajadores y fichajes.',
+        );
+      }
+
+      if (
+        files.titulares?.[0]?.size === 0 ||
+        files.auxiliares?.[0]?.size === 0 ||
+        files.trabajadores?.[0]?.size === 0 ||
+        files.fichajes?.[0]?.size === 0
+      ) {
+        throw new BadRequestException(
+          'Uno o más archivos subidos están vacíos (0 bytes).',
+        );
+      }
+    } else if (importType === SECONDARY_TYPE) {
+      // Tipo 2: Requiere trabajadores, fichajes y rutas. rutasDocumento es opcional
+      if (
+        !files.trabajadores?.[0] ||
+        !files.fichajes?.[0] ||
+        !files.rutas?.[0]
+      ) {
+        throw new BadRequestException(
+          'Para importación tipo 2, se requieren: trabajadores, fichajes y rutas. rutasDocumento es opcional.',
+        );
+      }
+
+      if (
+        files.trabajadores?.[0]?.size === 0 ||
+        files.fichajes?.[0]?.size === 0 ||
+        files.rutas?.[0]?.size === 0
+      ) {
+        throw new BadRequestException(
+          'Uno o más archivos subidos están vacíos (0 bytes).',
+        );
+      }
+    } else {
+      throw new BadRequestException(
+        `Tipo de importación inválido: ${importType}. Esperados: ${PRIMARY_TYPE} o ${SECONDARY_TYPE}`,
+      );
+    }
 
     const result = await this.jornadasService.procesarArchivos(
       {
@@ -87,9 +129,12 @@ export class JornadasController {
         auxiliares: files.auxiliares,
         trabajadores: files.trabajadores,
         fichajes: files.fichajes,
+        rutas: files.rutas,
+        rutasDocumento: files.rutasDocumento,
       },
       userId,
       body.monthInfo,
+      importType,
     );
 
     return {

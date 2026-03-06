@@ -9,6 +9,7 @@ import { RawClockIn } from './entities/raw-clock-in.entity';
 import { PresenceResult } from './entities/presence-result.entity';
 import { UnmatchedResult } from './entities/unmatched-result.entity';
 import { JornadasParserService } from './services/jornadas-parser.service';
+import { JornadasTextParserService } from './services/jornadas-text-parser.service';
 import { JornadasMatchingService } from './services/jornadas-matcher.service';
 import { JornadasExportService } from './services/jornadas-export.service';
 import { JornadasImportService } from './services/jornadas-import.service';
@@ -66,6 +67,7 @@ import { join } from 'path';
   providers: [
     JornadasService,
     JornadasParserService,
+    JornadasTextParserService,
     JornadasMatchingService,
     JornadasExportService,
     JornadasImportService,

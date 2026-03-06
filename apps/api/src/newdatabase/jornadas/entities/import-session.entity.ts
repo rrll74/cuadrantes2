@@ -21,6 +21,9 @@ export class ImportSession {
   @Column({ nullable: true })
   userId: number; // ID del usuario que realizó la carga (opcional por ahora)
 
+  @Column({ default: 1 })
+  importType: number; // 1: Tipo primario (Titulares + Auxiliares), 2: Tipo secundario (Rutas unificadas)
+
   @OneToMany(() => ScheduledRoute, (route) => route.session)
   routes: ScheduledRoute[];
 

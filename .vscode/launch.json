@@ -1,15 +1,29 @@
 {
-  // Use IntelliSense para saber los atributos posibles.
-  // Mantenga el puntero para ver las descripciones de los existentes atributos.
-  // Para más información, visite: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "chrome",
-      "request": "launch",
       "name": "Iniciar Chrome para localhost",
+      "request": "launch",
       "url": "http://localhost:3002",
+      "type": "chrome",
       "webRoot": "${workspaceFolder}"
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to NestJS API",
+      "port": 9229,
+      "restart": true,
+      "stopOnEntry": false,
+      "sourceMaps": true,
+      "cwd": "${workspaceFolder}/apps/api",
+      "outFiles": ["${workspaceFolder}/apps/api/dist/**/*.js"],
+      "skipFiles": ["<node_internals>/**", "node_modules/**"],
+      "sourceMapPathOverrides": {
+        // Esto es crucial para que VS Code encuentre tus archivos .ts originales
+        // cuando la aplicación se ejecuta desde el directorio 'dist'.
+        "webpack:///./src/*": "${workspaceFolder}/apps/api/src/*"
+      }
     }
   ]
 }
