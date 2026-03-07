@@ -462,16 +462,25 @@ export class JornadasImportService {
 
           const hojaRuta = Number(r[EXCEL_COLUMNS.RUTA_TIPO2.HOJARUTA]);
           const tieneDocumento = rutasConDocumento.has(hojaRuta) ? 1 : 0;
+          const fechaGeneral = new Date(
+            r[EXCEL_COLUMNS.RUTA_TIPO2.FECHA] as string,
+          );
+
+          const horasInicioFin = this._combinarFechaConHora(
+            fechaGeneral,
+            r[EXCEL_COLUMNS.RUTA_TIPO2.INICIO] as string,
+            r[EXCEL_COLUMNS.RUTA_TIPO2.FIN] as string,
+          );
 
           const baseRoute = {
             session,
-            fechaGeneral: new Date(r[EXCEL_COLUMNS.RUTA_TIPO2.FECHA] as string),
+            fechaGeneral,
             codigoParte: r[EXCEL_COLUMNS.RUTA_TIPO2.HOJARUTA],
             servicio: r[EXCEL_COLUMNS.RUTA_TIPO2.SERVICIO],
             turno: r[EXCEL_COLUMNS.RUTA_TIPO2.TURNO],
             equipo: r[EXCEL_COLUMNS.RUTA_TIPO2.EQUIPO],
-            inicio: new Date(r[EXCEL_COLUMNS.RUTA_TIPO2.INICIO] as string),
-            fin: new Date(r[EXCEL_COLUMNS.RUTA_TIPO2.FIN] as string),
+            inicio: horasInicioFin.inicio,
+            fin: horasInicioFin.fin,
             vehiculo: '', // No existe en tipo 2
             kms: 0, // No existe en tipo 2
             esTitular: true, // En tipo 2 todas las rutas son "titulares"
@@ -581,6 +590,100 @@ export class JornadasImportService {
     );
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return ruta[0];
+  }
+
+  /**
+   * Combina una fecha general con horas de inicio y fin del Excel.
+   * Si la hora de fin es menor que la de inicio (cruce de medianoche),
+   * la fecha de inicio será un día anterior a fechaGeneral.
+   *
+   * @param fechaGeneral - La fecha base de la ruta
+   * @param horaInicioStr - Hora de inicio del Excel (formato hh:mm:ss)
+   * @param horaFinStr - Hora de fin del Excel (formato hh:mm:ss)
+   * @returns Objeto con las fechas de inicio y fin correctamente combinadas
+   * @throws BadRequestException si el formato de la hora no es válido
+   */
+  private _combinarFechaConHora(
+    fechaGeneral: Date,
+    horaInicioStr: string,
+    horaFinStr: string,
+  ): { inicio: Date; fin: Date } {
+    // Función auxiliar para extraer componentes de hora de un string en formato hh:mm:ss
+    const extraerHora = (
+      horaStr: string,
+    ): { horas: number; minutos: number; segundos: number } => {
+      if (!horaStr) {
+        const horas = 0;
+        const minutos = 0;
+        const segundos = 0;
+        return { horas, minutos, segundos };
+      }
+      const partes = String(horaStr).trim().split(':');
+      if (partes.length !== 3) {
+        throw new BadRequestException(
+          `Formato de hora inválido: ${horaStr}. Esperado formato hh:mm:ss`,
+        );
+      }
+
+      const horas = parseInt(partes[0], 10);
+      const minutos = parseInt(partes[1], 10);
+      const segundos = parseInt(partes[2], 10);
+
+      if (
+        isNaN(horas) ||
+        isNaN(minutos) ||
+        isNaN(segundos) ||
+        horas < 0 ||
+        horas > 23 ||
+        minutos < 0 ||
+        minutos > 59 ||
+        segundos < 0 ||
+        segundos > 59
+      ) {
+        throw new BadRequestException(
+          `Hora inválida: ${horaStr}. Valores fuera de rango válido`,
+        );
+      }
+
+      return { horas, minutos, segundos };
+    };
+
+    const horaInicio = extraerHora(horaInicioStr);
+    const horaFin = extraerHora(horaFinStr);
+
+    // Crear fecha de fin combinando fechaGeneral con horaFin
+    let fin = new Date(fechaGeneral);
+    fin.setHours(horaFin.horas, horaFin.minutos, horaFin.segundos, 0);
+
+    // Crear fecha de inicio
+    let inicio = new Date(fechaGeneral);
+    inicio.setHours(
+      horaInicio.horas,
+      horaInicio.minutos,
+      horaInicio.segundos,
+      0,
+    );
+
+    // Si la hora de fin es menor que la de inicio, hay cruce de medianoche
+    // Por lo tanto, la fecha de inicio debe ser un día anterior
+    const horaInicioMinutos = horaInicio.horas * 60 + horaInicio.minutos;
+    const horaFinMinutos = horaFin.horas * 60 + horaFin.minutos;
+
+    if (horaFinMinutos < horaInicioMinutos) {
+      // Restar un día a la fecha de inicio
+      inicio = new Date(inicio.getTime() - 24 * 60 * 60 * 1000);
+    }
+
+    // Validar que las fechas sean válidas
+    if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
+      // throw new BadRequestException(
+      //   `Error al procesar las fechas. Valores inválidos en inicio o fin`,
+      // );
+      inicio = new Date(0); // Asignar fecha mínima para evitar errores posteriores, aunque idealmente no debería ocurrir si las horas son válidas
+      fin = new Date(0); // Asignar fecha mínima
+    }
+
+    return { inicio, fin };
   }
 
   /**

@@ -47,7 +47,7 @@ export const EXCEL_COLUMNS = {
     HOJARUTA: "Hoja ruta",
     AUXILIAR1: "Auxiliar 1",
     AUXILIAR2: "Auxiliar 2",
-    PARTES_ASOCIADOS: "Nro dctos",
+    // PARTES_ASOCIADOS: "Nro dctos",
   },
   FICHAJE_TIPO2: {
     ID_TRABAJADOR: "Trabajador",

@@ -31,7 +31,7 @@ export class JornadasTextParserService {
       for (const line of lines) {
         const match = line.match(routeDocumentPattern);
         if (match) {
-          const routeNumber = parseInt(match[1], 10);
+          const routeNumber = parseInt(match[2], 10);
           routes.add(routeNumber);
           this.logger.debug(
             `Ruta con documento encontrada: ${routeNumber}.${match[2]}`,
