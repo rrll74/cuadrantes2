@@ -1,156 +1,206 @@
-import "@testing-library/jest-dom";
-import React from "react";
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  act,
-} from "@testing-library/react";
-import { UploadJornadasForm } from "./UploadJornadasForm";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useFileUpload } from "@/hooks/useFileUpload";
-import api from "@/lib/api";
+import '@testing-library/jest-dom';
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { IMPORT_TYPES } from '@cuadrantes/shared-dto';
+import { UploadJornadasForm } from './UploadJornadasForm';
+import { useFileUpload } from '@/hooks/useFileUpload';
+import api from '@/lib/api';
 
-// --- Mocks de dependencias ---
-
-// Mock del componente Toast para verificar si se llama con un error
-jest.mock("@/components/ui/Toast", () => ({
-  Toast: ({ message, type }: { message: string; type: string }) => (
-    <div data-testid="toast" data-type={type}>
-      {message}
-    </div>
-  ),
-}));
-
-// Mock de iconos para evitar problemas de renderizado de SVG
-jest.mock("@/components/ui/Icon", () => ({
-  Icon: () => <span data-testid="icon" />,
-}));
-
-// Mock de hooks de contexto y permisos
-jest.mock("@/hooks/usePermissions", () => ({
+jest.mock('@/hooks/usePermissions', () => ({
   usePermissions: () => true,
 }));
 
-jest.mock("@/hooks/useFileUpload", () => ({
+jest.mock('@/hooks/useFileUpload', () => ({
   useFileUpload: jest.fn(),
 }));
 
-jest.mock("@/context/AuthContext", () => ({
+jest.mock('@/context/AuthContext', () => ({
   useAuth: () => ({ user: { userId: 1 } }),
 }));
 
-// Mock de la API para asegurar que no se hagan llamadas reales
-jest.mock("@/lib/api");
+jest.mock('@/lib/api', () => ({
+  __esModule: true,
+  default: {
+    post: jest.fn(),
+  },
+}));
 
-describe("UploadJornadasForm", () => {
+describe('UploadJornadasForm', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
+      defaultOptions: { queries: { retry: false } },
     });
     jest.clearAllMocks();
   });
 
-  const renderComponent = () => {
-    return render(
+  const renderComponent = () =>
+    render(
       <QueryClientProvider client={queryClient}>
         <UploadJornadasForm />
       </QueryClientProvider>,
     );
-  };
 
-  it("muestra un error si se intenta enviar el formulario sin seleccionar los 4 archivos", async () => {
-    // Configurar el mock para simular validación fallida
+  it('muestra por defecto los campos del tipo 2', () => {
+    (useFileUpload as jest.Mock).mockImplementation(() => ({
+      files: {
+        trabajadores: null,
+        fichajes: null,
+        rutas: null,
+        rutasDocumento: null,
+      },
+      handleFileChange: jest.fn(),
+      validateFiles: jest.fn().mockReturnValue(null),
+      resetFiles: jest.fn(),
+    }));
+
+    renderComponent();
+
+    expect(screen.getByText(/Tipo 2: Formato Secundario/i)).toBeInTheDocument();
+    expect(screen.getByText(/Rutas \(Excel\)/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Rutas con documento \(Txt\) - Opcional/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Rutas Titulares \(Excel\)/i)).not.toBeInTheDocument();
+  });
+
+  it('muestra error de validacion al enviar si faltan archivos requeridos', async () => {
     (useFileUpload as jest.Mock).mockReturnValue({
       files: {},
       handleFileChange: jest.fn(),
-      validateFiles: jest.fn().mockReturnValue("Faltan archivos requeridos"),
+      validateFiles: jest
+        .fn()
+        .mockReturnValue('Faltan archivos requeridos: trabajadores, fichajes, rutas.'),
       resetFiles: jest.fn(),
     });
 
     renderComponent();
 
-    // 1. Localizar el botón de envío (basado en el texto visto en los tests E2E)
-    const submitButton = screen.getByRole("button", {
-      name: /procesar archivos/i,
-    });
-    expect(submitButton).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /procesar archivos/i }));
 
-    // 2. Simular clic sin haber seleccionado archivos
-    fireEvent.click(submitButton);
-
-    // 3. Verificar que aparece un mensaje de error
-    await waitFor(() => {
-      // Buscamos palabras clave comunes en mensajes de validación de archivos
-      const errorRegex = /ficheros|archivos|requeridos|faltan|obligatorios/i;
-
-      // Verificamos si aparece en un Toast (data-testid="toast") o como texto plano
-      const toast = screen.queryByTestId("toast");
-      if (toast) {
-        expect(toast).toHaveAttribute("data-type", "error");
-        expect(toast.textContent).toMatch(errorRegex);
-      } else {
-        const errorElement = screen.queryAllByText(errorRegex);
-        expect(errorElement.length).toBeGreaterThan(1); // El botón procesar archivos también contiene "archivos"
-      }
-    });
+    expect(
+      await screen.findByText(/Faltan archivos requeridos: trabajadores, fichajes, rutas\./i),
+    ).toBeInTheDocument();
   });
 
-  it("muestra la barra de progreso durante la subida", async () => {
-    // 1. Configurar useFileUpload para que tenga archivos válidos
-    (useFileUpload as jest.Mock).mockReturnValue({
+  it('envia importType=2 y archivos tipo 2 al procesar', async () => {
+    const trabajadores = new File(['w'], 'trabajadores.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const fichajes = new File(['f'], 'fichajes.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const rutas = new File(['r'], 'rutas.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const rutasDocumento = new File(['txt'], 'rutas.txt', { type: 'text/plain' });
+
+    (useFileUpload as jest.Mock).mockImplementation(() => ({
       files: {
-        titulares: new File(["dummy"], "t.xlsx"),
-        auxiliares: new File(["dummy"], "a.xlsx"),
-        trabajadores: new File(["dummy"], "w.xlsx"),
-        fichajes: new File(["dummy"], "f.xlsx"),
+        trabajadores,
+        fichajes,
+        rutas,
+        rutasDocumento,
       },
       handleFileChange: jest.fn(),
-      validateFiles: jest.fn().mockReturnValue(null), // Sin errores
+      validateFiles: jest.fn().mockReturnValue(null),
       resetFiles: jest.fn(),
-    });
+    }));
 
-    // 2. Configurar api.post para simular progreso
-    (api.post as jest.Mock).mockImplementation((url, data, config) => {
-      // Simulamos eventos de progreso asíncronamente
-      setTimeout(() => {
-        if (config && config.onUploadProgress) {
-          act(() => {
-            config.onUploadProgress({ loaded: 50, total: 100 });
-          });
-        }
-      }, 100);
-
-      // Devolvemos una promesa que tarda un poco más en resolverse
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            data: {
-              success: true,
-              sessionId: 123,
-              stats: { procesados: 10 },
-            },
-          });
-        }, 500);
-      });
+    (api.post as jest.Mock).mockResolvedValue({
+      data: {
+        success: true,
+        sessionId: 321,
+        stats: { procesados: 10, conflictos: 0, totalRutas: 10 },
+      },
     });
 
     renderComponent();
 
-    // 3. Click en procesar
-    const submitButton = screen.getByRole("button", {
-      name: /procesar archivos/i,
-    });
-    fireEvent.click(submitButton);
+    fireEvent.click(screen.getByRole('button', { name: /procesar archivos/i }));
 
-    // 4. Verificar que aparece el texto de progreso y la barra
-    // Esperamos a que el progreso llegue al 50%
-    expect(await screen.findByText("50%")).toBeInTheDocument();
-    expect(screen.getByText("Subiendo y procesando...")).toBeInTheDocument();
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+
+    const [, formData] = (api.post as jest.Mock).mock.calls[0];
+    expect(formData).toBeInstanceOf(FormData);
+    expect(formData.get('importType')).toBe(String(IMPORT_TYPES.SECONDARY));
+    expect(formData.get('trabajadores')).toBe(trabajadores);
+    expect(formData.get('fichajes')).toBe(fichajes);
+    expect(formData.get('rutas')).toBe(rutas);
+    expect(formData.get('rutasDocumento')).toBe(rutasDocumento);
+
+    const monthInfoRaw = String(formData.get('monthInfo'));
+    const monthInfo = JSON.parse(monthInfoRaw) as { isHighSeason: boolean };
+    expect(monthInfo.isHighSeason).toBe(true);
+  });
+
+  it('al cambiar a tipo 1 envia los archivos de tipo 1 e importType=1', async () => {
+    const titulares = new File(['t'], 'titulares.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const auxiliares = new File(['a'], 'auxiliares.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const trabajadores = new File(['w'], 'trabajadores.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const fichajes = new File(['f'], 'fichajes.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+
+    (useFileUpload as jest.Mock).mockImplementation((importType: number) => {
+      if (importType === IMPORT_TYPES.PRIMARY) {
+        return {
+          files: {
+            titulares,
+            auxiliares,
+            trabajadores,
+            fichajes,
+          },
+          handleFileChange: jest.fn(),
+          validateFiles: jest.fn().mockReturnValue(null),
+          resetFiles: jest.fn(),
+        };
+      }
+
+      return {
+        files: {
+          trabajadores: null,
+          fichajes: null,
+          rutas: null,
+          rutasDocumento: null,
+        },
+        handleFileChange: jest.fn(),
+        validateFiles: jest.fn().mockReturnValue(null),
+        resetFiles: jest.fn(),
+      };
+    });
+
+    (api.post as jest.Mock).mockResolvedValue({
+      data: {
+        success: true,
+        sessionId: 987,
+        stats: { procesados: 8, conflictos: 0, totalRutas: 8 },
+      },
+    });
+
+    renderComponent();
+
+    fireEvent.click(screen.getByRole('radio', { name: /Tipo 1: Formato Original/i }));
+    expect(screen.getByText(/Rutas Titulares \(Excel\)/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /procesar archivos/i }));
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+
+    const [, formData] = (api.post as jest.Mock).mock.calls[0];
+    expect(formData.get('importType')).toBe(String(IMPORT_TYPES.PRIMARY));
+    expect(formData.get('titulares')).toBe(titulares);
+    expect(formData.get('auxiliares')).toBe(auxiliares);
+    expect(formData.get('trabajadores')).toBe(trabajadores);
+    expect(formData.get('fichajes')).toBe(fichajes);
+    expect(formData.get('rutas')).toBeNull();
   });
 });
