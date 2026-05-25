@@ -6,8 +6,212 @@ import type {
 
 const roundToTwoDecimals = (value: number) => Math.round(value * 100) / 100;
 const roundToOneDecimal = (value: number) => Math.round(value * 10) / 10;
+const EPSILON = 0.001;
 
 const randomWeightFactor = () => 0.8 + Math.random() * 0.4;
+
+const roundByPreference = (value: number) => {
+  const rounded = roundToOneDecimal(value);
+  const integerCandidate = Math.round(rounded);
+
+  if (Math.abs(rounded - integerCandidate) <= 0.1 + EPSILON) {
+    return integerCandidate;
+  }
+
+  return rounded;
+};
+
+const aplicarAjusteFinalExacto = (
+  rows: MaterialDistributionRow[],
+  presupuestoObjetivo: number,
+) => {
+  let ajusteFinalAplicado = false;
+  const maxIteraciones = 1000;
+
+  const rowsByPrecioAsc = [...rows].sort(
+    (a, b) => a.precioUnitario - b.precioUnitario,
+  );
+
+  const aplicarDeltaConPaso = (deltaUnidades: number, diferencia: number) => {
+    for (const row of rowsByPrecioAsc) {
+      const candidatoUnidades = roundToOneDecimal(row.unidades + deltaUnidades);
+      if (candidatoUnidades < 0.1 - EPSILON) {
+        continue;
+      }
+
+      const subtotalCandidato = roundToTwoDecimals(
+        candidatoUnidades * row.precioUnitario,
+      );
+      const impacto = roundToTwoDecimals(subtotalCandidato - row.subtotal);
+
+      if (deltaUnidades > 0 && impacto <= diferencia + EPSILON) {
+        row.unidades = candidatoUnidades;
+        row.subtotal = subtotalCandidato;
+        return true;
+      }
+
+      if (deltaUnidades < 0 && -impacto <= Math.abs(diferencia) + EPSILON) {
+        row.unidades = candidatoUnidades;
+        row.subtotal = subtotalCandidato;
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  const aplicarAjusteFino = (diferencia: number) => {
+    for (const row of rowsByPrecioAsc) {
+      if (diferencia > 0) {
+        const delta = roundByPreference(diferencia / row.precioUnitario);
+        if (delta <= 0) {
+          continue;
+        }
+
+        const candidatoUnidades = roundToOneDecimal(row.unidades + delta);
+        const subtotalCandidato = roundToTwoDecimals(
+          candidatoUnidades * row.precioUnitario,
+        );
+        const impacto = roundToTwoDecimals(subtotalCandidato - row.subtotal);
+
+        if (impacto <= diferencia + EPSILON) {
+          row.unidades = candidatoUnidades;
+          row.subtotal = subtotalCandidato;
+          return true;
+        }
+
+        continue;
+      }
+
+      const delta = roundByPreference(
+        Math.abs(diferencia) / row.precioUnitario,
+      );
+      if (delta <= 0) {
+        continue;
+      }
+
+      const candidatoUnidades = roundToOneDecimal(row.unidades - delta);
+      if (candidatoUnidades < 0.1 - EPSILON) {
+        continue;
+      }
+
+      const subtotalCandidato = roundToTwoDecimals(
+        candidatoUnidades * row.precioUnitario,
+      );
+      const impacto = roundToTwoDecimals(row.subtotal - subtotalCandidato);
+
+      if (impacto <= Math.abs(diferencia) + EPSILON) {
+        row.unidades = candidatoUnidades;
+        row.subtotal = subtotalCandidato;
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  const aplicarMejorMovimiento = (diferencia: number) => {
+    let mejor:
+      | {
+          row: MaterialDistributionRow;
+          unidades: number;
+          subtotal: number;
+          nuevaDiferencia: number;
+        }
+      | undefined;
+
+    for (const row of rowsByPrecioAsc) {
+      for (const delta of [0.1, -0.1]) {
+        const candidatoUnidades = roundToOneDecimal(row.unidades + delta);
+        if (candidatoUnidades < 0.1 - EPSILON) {
+          continue;
+        }
+
+        const subtotalCandidato = roundToTwoDecimals(
+          candidatoUnidades * row.precioUnitario,
+        );
+        const impacto = roundToTwoDecimals(subtotalCandidato - row.subtotal);
+        const nuevaDiferencia = roundToTwoDecimals(diferencia - impacto);
+
+        if (
+          !mejor ||
+          Math.abs(nuevaDiferencia) < Math.abs(mejor.nuevaDiferencia)
+        ) {
+          mejor = {
+            row,
+            unidades: candidatoUnidades,
+            subtotal: subtotalCandidato,
+            nuevaDiferencia,
+          };
+        }
+      }
+    }
+
+    if (!mejor || Math.abs(mejor.nuevaDiferencia) >= Math.abs(diferencia)) {
+      return false;
+    }
+
+    mejor.row.unidades = mejor.unidades;
+    mejor.row.subtotal = mejor.subtotal;
+    return true;
+  };
+
+  for (let iteracion = 0; iteracion < maxIteraciones; iteracion += 1) {
+    const subtotalCalculado = roundToTwoDecimals(
+      rows.reduce((acumulado, row) => acumulado + row.subtotal, 0),
+    );
+    const diferencia = roundToTwoDecimals(
+      presupuestoObjetivo - subtotalCalculado,
+    );
+
+    if (Math.abs(diferencia) < EPSILON) {
+      return { ajusteFinalAplicado, subtotalCalculado, diferencia: 0 };
+    }
+
+    const ajustadoPorPaso =
+      diferencia > 0
+        ? aplicarDeltaConPaso(0.1, diferencia)
+        : aplicarDeltaConPaso(-0.1, diferencia);
+
+    const ajustado =
+      ajustadoPorPaso ||
+      aplicarAjusteFino(diferencia) ||
+      aplicarMejorMovimiento(diferencia);
+
+    if (!ajustado) {
+      break;
+    }
+
+    ajusteFinalAplicado = true;
+  }
+
+  const materialMasBarato = rowsByPrecioAsc[0];
+  const subtotalPreResidual = roundToTwoDecimals(
+    rows.reduce((acumulado, row) => acumulado + row.subtotal, 0),
+  );
+  const residualFinal = roundToTwoDecimals(
+    presupuestoObjetivo - subtotalPreResidual,
+  );
+
+  if (
+    Math.abs(residualFinal) >= EPSILON &&
+    (residualFinal > 0 || materialMasBarato.unidades > 0.1)
+  ) {
+    materialMasBarato.subtotal = roundToTwoDecimals(
+      materialMasBarato.subtotal + residualFinal,
+    );
+    ajusteFinalAplicado = true;
+  }
+
+  const subtotalCalculado = roundToTwoDecimals(
+    rows.reduce((acumulado, row) => acumulado + row.subtotal, 0),
+  );
+  const diferencia = roundToTwoDecimals(
+    presupuestoObjetivo - subtotalCalculado,
+  );
+
+  return { ajusteFinalAplicado, subtotalCalculado, diferencia };
+};
 
 export const distribuirPresupuesto = (
   materials: MaterialInputRow[],
@@ -70,31 +274,8 @@ export const distribuirPresupuesto = (
     };
   });
 
-  let subtotalCalculado = roundToTwoDecimals(
-    distributedRows.reduce((acumulado, row) => acumulado + row.subtotal, 0),
-  );
-  let diferencia = roundToTwoDecimals(presupuestoObjetivo - subtotalCalculado);
-  let ajusteFinalAplicado = false;
-
-  if (Math.abs(diferencia) >= 0.01) {
-    const lastIndex = distributedRows.length - 1;
-    const lastRow = distributedRows[lastIndex];
-    const unidadesAjustadas = roundToOneDecimal(
-      lastRow.unidades + diferencia / lastRow.precioUnitario,
-    );
-
-    distributedRows[lastIndex] = {
-      ...lastRow,
-      unidades: unidadesAjustadas,
-      subtotal: roundToTwoDecimals(unidadesAjustadas * lastRow.precioUnitario),
-    };
-    ajusteFinalAplicado = true;
-
-    subtotalCalculado = roundToTwoDecimals(
-      distributedRows.reduce((acumulado, row) => acumulado + row.subtotal, 0),
-    );
-    diferencia = roundToTwoDecimals(presupuestoObjetivo - subtotalCalculado);
-  }
+  const { ajusteFinalAplicado, subtotalCalculado, diferencia } =
+    aplicarAjusteFinalExacto(distributedRows, presupuestoObjetivo);
 
   return {
     rows: distributedRows,

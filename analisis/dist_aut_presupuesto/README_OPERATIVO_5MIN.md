@@ -54,8 +54,9 @@ Si no aparece la opcion en menu:
    - codigo (opcional)
 4. Ejecutar validacion/calculo.
 5. Ver tabla de resultados y resumen.
-6. Probar exportar Excel.
-7. Probar exportar PDF.
+6. Comprobar en resumen: objetivo, calculado y diferencia.
+7. Probar exportar Excel.
+8. Probar exportar PDF.
 
 ## 6) Validaciones clave esperadas
 
@@ -63,7 +64,9 @@ Si no aparece la opcion en menu:
 2. descripcion duplicada da error.
 3. precio_unitario menor o igual a 0 da error.
 4. Todos los materiales salen con minimo 0.1 unidades.
-5. Hay variacion entre ejecuciones por aleatoriedad.
+5. Las unidades se muestran con un decimal.
+6. Hay variacion entre ejecuciones por aleatoriedad.
+7. El cierre final reduce o elimina diferencia respecto al objetivo segun ajuste residual.
 
 ## 7) Tests del modulo
 
@@ -95,10 +98,9 @@ npm run test:gestion
 
 ## 9) Estado actual
 
-1. Fases 1 a 5 implementadas.
-2. Build de gestion correcto.
-3. Tests del modulo en verde.
-4. Pendiente: validacion funcional final con negocio en casos reales.
+1. Implementacion funcional operativa en frontend.
+2. Documentacion de algoritmo consolidada en analisis/dist_aut_presupuesto/MEJORAS_IMPLEMENTADAS.md.
+3. Pendiente: validacion funcional final con negocio en casos reales.
 
 ## 10) Siguiente accion recomendada
 

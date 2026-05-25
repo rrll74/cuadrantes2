@@ -1,10 +1,16 @@
-Se quiere realizar una funcionalidad que reciba un fichero en formato excel que contenga la información en cuatro columnas (codigo, descripcion, precio_unitario) y que genere otro documento, que debería poder ser en formato PDF o Excel, en el que devuelvan esos mismos valores, pero con dos columnas adicionales más; una con las unidades de ese material y otra con la multiplicación de esas unidades por el precio unitario.
-Las condiciones para la generación de los cáĺculos están detalladas en la carpeta `analisis/dis_aut_presupuesto` donde se puede encontrar un algoritmo indicado en el fichero "algoritmo_distribución_presupuesto.txt" donde se tiene en cuenta el peso que se le debe dar a cada material, dependiendo de su valor económico unitario. De igual forma, se ha creado el fichero en typescript que lleva a cabo ese algoritmo "DistribuidorPresupuesto.ts".
-Estos algoritmos están basados en las siguientes condiciones:
- . El presupuesto debe repartirse completamente coincidiendo hasta el último céntimo.
-2. Todos los materiales deben tener, al menos, alguna unidad, aunque se puede coger fracciones de esa unidad hasta ajustarla con hasta un decimal.
-3. El reparto será poniendo más cantidad de materiales en los de valor económico más pequeño y menos en los más caros.
-4. Se puede realizar en varios pasos, es decir, si se hace un primer ajuste para dando un valor aproximado y después afinarlo hasta dejarlo en el vale económico final que se pretende tener.
-5. Dentro de los valores que de materiales que se asignen puede haber cierta aleatoriedad en la elección de sus cantidades, aunque se ha de respetar que se la cantidad de cada material debe ajustarse, como máximo a tener un decimal de ese material, es decir, puede haber 0.1 o 0.2 de algún material, pero no 0.13.
+La funcionalidad recibe un fichero Excel con columnas codigo, descripcion y precio_unitario, junto con un presupuesto objetivo introducido en formulario. El sistema genera resultados con dos columnas adicionales: unidades y subtotal por material, y permite exportar en Excel y PDF.
 
-Esta funcionalidad debe crearse como parte del frontend, ya que no lleva almacenamiento persistente en base de datos, en una opción nueva del menú de inicio, y también se deben crear nuevos permisos para poder acceder a ejecutar la funcionalidad.
+Implementacion real de referencia:
+- apps/gestion/src/app/dashboard/dist-aut-presupuesto/lib/algoritmo.ts
+- apps/gestion/src/app/dashboard/dist-aut-presupuesto/lib/algoritmo.spec.ts
+- analisis/dist_aut_presupuesto/MEJORAS_IMPLEMENTADAS.md
+
+Reglas funcionales consolidadas:
+1. El presupuesto se reparte con cierre economico final frente al objetivo.
+2. Cada material debe tener al menos 0.1 unidades.
+3. Se priorizan materiales baratos mediante pesos inversos al precio.
+4. El proceso de ajuste es iterativo y puede ejecutarse en varios pasos hasta estabilizar.
+5. Hay aleatoriedad controlada en el reparto inicial (factor entre 0.8 y 1.2).
+6. Las unidades se manejan con un decimal en las fases de reparto y ajuste iterativo.
+
+La funcionalidad esta implementada en frontend, sin persistencia en base de datos, y protegida por permiso de acceso.

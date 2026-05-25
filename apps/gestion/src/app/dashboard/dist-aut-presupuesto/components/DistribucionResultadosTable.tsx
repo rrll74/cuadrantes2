@@ -59,10 +59,10 @@ export const DistribucionResultadosTable = ({
           {formatMoney(summary.diferencia)}
         </Alert>
 
-        {summary.ajusteFinalAplicado && summary.diferencia !== 0 && (
+        {summary.ajusteFinalAplicado && (
           <Alert severity="info">
-            Se aplicó un ajuste final de cierre para aproximar el total al
-            presupuesto objetivo.
+            Se aplicó un ajuste final iterativo para cuadrar el total con el
+            presupuesto objetivo respetando cantidades mínimas y un decimal.
           </Alert>
         )}
 

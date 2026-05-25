@@ -70,4 +70,26 @@ describe("algoritmo dist-aut-presupuesto", () => {
 
     expect(firstWeights).not.toEqual(secondWeights);
   });
+
+  it("ajusta el total al presupuesto objetivo con diferencia final cero", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0.5);
+
+    const result = distribuirPresupuesto(materials, 1500);
+
+    expect(result.summary.diferencia).toBe(0);
+    expect(result.summary.subtotalCalculado).toBe(
+      result.summary.presupuestoObjetivo,
+    );
+  });
+
+  it("mantiene las unidades con un único decimal y mínimo 0.1", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0.5);
+
+    const result = distribuirPresupuesto(materials, 987.65);
+
+    result.rows.forEach((row) => {
+      expect(row.unidades).toBeGreaterThanOrEqual(0.1);
+      expect(row.unidades * 10).toBeCloseTo(Math.round(row.unidades * 10), 10);
+    });
+  });
 });

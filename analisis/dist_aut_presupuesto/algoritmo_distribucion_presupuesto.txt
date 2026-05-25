@@ -1,50 +1,100 @@
-ALGORITMO DistribucionPresupuesto
-    ENTRADA: 
-        PresupuestoTotal (Real)
-        ListaMateriales (Matriz de [Código, Descripción, Precio])
+ALGORITMO DistribucionPresupuesto (version final frontend)
+    ENTRADA:
+        PresupuestoObjetivo (Real)
+        ListaMateriales (Matriz de [Codigo, Descripcion, PrecioUnitario])
     SALIDA:
-        ListaResultados (Matriz de [Código, Cantidad, Subtotal])
+        ListaResultados (Matriz de [Codigo, Descripcion, PrecioUnitario, Unidades, Subtotal, Peso])
+        Resumen (PresupuestoObjetivo, SubtotalCalculado, Diferencia, AjusteFinalAplicado)
 
     INICIO
-        // PASO 1: Garantizar presencia de todos los materiales (Condición 2)
+        // PASO 1: Inicializacion minima obligatoria
         PARA cada Material en ListaMateriales:
-            Material.Cantidad = 0.1
-            Material.Subtotal = Redondear(Material.Precio * 0.1, 2)
-            PresupuestoRestante = PresupuestoRestante - Material.Subtotal
+            Material.Unidades = 0.1
+            Material.Subtotal = Redondear(Material.PrecioUnitario * 0.1, 2)
+            Material.Peso = 0
         FIN PARA
 
+        SubtotalInicialTotal = SUMA(Material.Subtotal)
+        PresupuestoRestante = Redondear(PresupuestoObjetivo - SubtotalInicialTotal, 2)
+
         SI PresupuestoRestante < 0 ENTONCES
-            ERROR "Presupuesto insuficiente para mínimos"
+            ERROR "El presupuesto es insuficiente para cubrir el minimo de 0.1 unidades por material."
             DETENER
         FIN SI
 
-        // PASO 2: Cálculo de pesos inversos y aleatorios (Condición 3 y 5)
-        SumaPesos = 0
+        // PASO 2: Calculo de pesos inversos con aleatoriedad
         PARA cada Material en ListaMateriales:
-            FactorAleatorio = GenerarRandom(0.8, 1.2)
-            Material.Peso = (1 / Material.Precio) * FactorAleatorio
-            SumaPesos = SumaPesos + Material.Peso
+            FactorAleatorio = Random(0.8, 1.2)
+            Material.Peso = (1 / Material.PrecioUnitario) * FactorAleatorio
         FIN PARA
 
-        // PASO 3: Reparto proporcional aproximado (Condición 4)
+        SumaPesos = SUMA(Material.Peso)
+
+        // PASO 3: Reparto proporcional inicial
         PARA cada Material en ListaMateriales:
             Proporcion = Material.Peso / SumaPesos
-            MontoAsignado = PresupuestoRestante * Proporcion
-            
-            // Calculamos cantidad extra y limitamos a 1 decimal
-            CantidadExtra = Suelo( (MontoAsignado / Material.Precio) * 10 ) / 10
-            Material.Cantidad = Material.Cantidad + CantidadExtra
-            Material.Subtotal = Redondear(Material.Precio * Material.Cantidad, 2)
+            MontoTeorico = PresupuestoRestante * Proporcion
+            UnidadesExtra = Suelo((MontoTeorico / Material.PrecioUnitario) * 10) / 10
+
+            Material.Unidades = Redondear(Material.Unidades + UnidadesExtra, 1)
+            Material.Subtotal = Redondear(Material.Unidades * Material.PrecioUnitario, 2)
         FIN PARA
 
-        // PASO 4: Ajuste final de cierre (Condición 1)
-        PresupuestoGastado = Suma de todos los Material.Subtotal
-        DiferenciaResidual = PresupuestoTotal - PresupuestoGastado
-        
-        // El último material absorbe el error de redondeo para cuadrar al céntimo
-        UltimoMaterial = ListaMateriales[Fin]
-        UltimoMaterial.Cantidad = UltimoMaterial.Cantidad + (DiferenciaResidual / UltimoMaterial.Precio)
-        UltimoMaterial.Subtotal = UltimoMaterial.Subtotal + DiferenciaResidual
+        // PASO 4: Ajuste final iterativo
+        AjusteFinalAplicado = FALSO
+        MaxIteraciones = 1000
+        ListaOrdenada = OrdenarPorPrecioAsc(ListaMateriales)
 
-        RETORNAR ListaMateriales
+        REPETIR para i desde 1 hasta MaxIteraciones:
+            SubtotalCalculado = Redondear(SUMA(Material.Subtotal), 2)
+            Diferencia = Redondear(PresupuestoObjetivo - SubtotalCalculado, 2)
+
+            SI ABS(Diferencia) < 0.001 ENTONCES
+                IR A PASO_5
+            FIN SI
+
+            Ajustado = FALSO
+
+            // 4.1 Ajuste por paso (+/-0.1)
+            SI Diferencia > 0 ENTONCES
+                Ajustado = IntentarAjustePaso(ListaOrdenada, +0.1, Diferencia)
+            SINO
+                Ajustado = IntentarAjustePaso(ListaOrdenada, -0.1, Diferencia)
+            FIN SI
+
+            // 4.2 Ajuste fino
+            SI NO Ajustado ENTONCES
+                Ajustado = IntentarAjusteFino(ListaOrdenada, Diferencia)
+            FIN SI
+
+            // 4.3 Mejor movimiento local
+            SI NO Ajustado ENTONCES
+                Ajustado = IntentarMejorMovimiento(ListaOrdenada, Diferencia)
+            FIN SI
+
+            SI NO Ajustado ENTONCES
+                SALIR REPETIR
+            FIN SI
+
+            AjusteFinalAplicado = VERDADERO
+        FIN REPETIR
+
+        PASO_5:
+        // PASO 5: Cierre residual final
+        SubtotalPreResidual = Redondear(SUMA(Material.Subtotal), 2)
+        ResidualFinal = Redondear(PresupuestoObjetivo - SubtotalPreResidual, 2)
+
+        SI ABS(ResidualFinal) >= 0.001 ENTONCES
+            MaterialMasBarato = PrimerElemento(ListaOrdenada)
+
+            SI ResidualFinal > 0 O MaterialMasBarato.Unidades > 0.1 ENTONCES
+                MaterialMasBarato.Subtotal = Redondear(MaterialMasBarato.Subtotal + ResidualFinal, 2)
+                AjusteFinalAplicado = VERDADERO
+            FIN SI
+        FIN SI
+
+        SubtotalCalculado = Redondear(SUMA(Material.Subtotal), 2)
+        Diferencia = Redondear(PresupuestoObjetivo - SubtotalCalculado, 2)
+
+        RETORNAR ListaMateriales, Resumen
     FIN
