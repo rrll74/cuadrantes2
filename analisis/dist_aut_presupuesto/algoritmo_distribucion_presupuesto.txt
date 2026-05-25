@@ -1,0 +1,50 @@
+ALGORITMO DistribucionPresupuesto
+    ENTRADA: 
+        PresupuestoTotal (Real)
+        ListaMateriales (Matriz de [Código, Descripción, Precio])
+    SALIDA:
+        ListaResultados (Matriz de [Código, Cantidad, Subtotal])
+
+    INICIO
+        // PASO 1: Garantizar presencia de todos los materiales (Condición 2)
+        PARA cada Material en ListaMateriales:
+            Material.Cantidad = 0.1
+            Material.Subtotal = Redondear(Material.Precio * 0.1, 2)
+            PresupuestoRestante = PresupuestoRestante - Material.Subtotal
+        FIN PARA
+
+        SI PresupuestoRestante < 0 ENTONCES
+            ERROR "Presupuesto insuficiente para mínimos"
+            DETENER
+        FIN SI
+
+        // PASO 2: Cálculo de pesos inversos y aleatorios (Condición 3 y 5)
+        SumaPesos = 0
+        PARA cada Material en ListaMateriales:
+            FactorAleatorio = GenerarRandom(0.8, 1.2)
+            Material.Peso = (1 / Material.Precio) * FactorAleatorio
+            SumaPesos = SumaPesos + Material.Peso
+        FIN PARA
+
+        // PASO 3: Reparto proporcional aproximado (Condición 4)
+        PARA cada Material en ListaMateriales:
+            Proporcion = Material.Peso / SumaPesos
+            MontoAsignado = PresupuestoRestante * Proporcion
+            
+            // Calculamos cantidad extra y limitamos a 1 decimal
+            CantidadExtra = Suelo( (MontoAsignado / Material.Precio) * 10 ) / 10
+            Material.Cantidad = Material.Cantidad + CantidadExtra
+            Material.Subtotal = Redondear(Material.Precio * Material.Cantidad, 2)
+        FIN PARA
+
+        // PASO 4: Ajuste final de cierre (Condición 1)
+        PresupuestoGastado = Suma de todos los Material.Subtotal
+        DiferenciaResidual = PresupuestoTotal - PresupuestoGastado
+        
+        // El último material absorbe el error de redondeo para cuadrar al céntimo
+        UltimoMaterial = ListaMateriales[Fin]
+        UltimoMaterial.Cantidad = UltimoMaterial.Cantidad + (DiferenciaResidual / UltimoMaterial.Precio)
+        UltimoMaterial.Subtotal = UltimoMaterial.Subtotal + DiferenciaResidual
+
+        RETORNAR ListaMateriales
+    FIN

@@ -25,6 +25,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import CalendarIcon from "@mui/icons-material/CalendarToday";
 import DescriptionIcon from "@mui/icons-material/Description";
 import EventNoteIcon from "@mui/icons-material/EventNote";
+import CalculateIcon from "@mui/icons-material/Calculate";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PersonIcon from "@mui/icons-material/Person";
@@ -61,6 +62,8 @@ export default function DashboardLayout({
     usePermissions(PERMISSIONS.PARTES_TRABAJO_WRITE) || isAdmin;
   const canReadCuadrantes =
     usePermissions(PERMISSIONS.CUADRANTES_READ) || isAdmin;
+  const canDistribuirPresupuesto =
+    usePermissions(PERMISSIONS.PRESUPUESTO_DISTRIBUCION) || isAdmin;
 
   useEffect(() => {
     // Si no está cargando y el usuario no está autenticado, lo echamos al login.
@@ -222,6 +225,19 @@ export default function DashboardLayout({
                         <EventNoteIcon />
                       </ListItemIcon>
                       <ListItemText primary="Consulta de Cuadrantes" />
+                    </ListItemButton>
+                  </ListItem>
+                )}
+                {canDistribuirPresupuesto && (
+                  <ListItem disablePadding>
+                    <ListItemButton
+                      component={Link}
+                      href="/dashboard/dist-aut-presupuesto"
+                    >
+                      <ListItemIcon>
+                        <CalculateIcon />
+                      </ListItemIcon>
+                      <ListItemText primary="Distribución de Presupuesto" />
                     </ListItemButton>
                   </ListItem>
                 )}

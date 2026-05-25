@@ -44,6 +44,10 @@ export const AVAILABLE_PERMISSIONS = [
     tipo: "cuadrantes:read",
     descripcion: "Consultar Cuadrantes Históricos",
   },
+  {
+    tipo: "presupuesto:distribucion",
+    descripcion: "Distribución automática de presupuesto",
+  },
 ] as const;
 
 // Tipo derivado para garantizar type-safety
@@ -60,4 +64,5 @@ export const PERMISSIONS = {
   JORNADAS_WRITE: "jornadas:write",
   PARTES_TRABAJO_WRITE: "partes_trabajo:write",
   CUADRANTES_READ: "cuadrantes:read",
+  PRESUPUESTO_DISTRIBUCION: "presupuesto:distribucion",
 } as const satisfies Record<string, PermissionType>;
