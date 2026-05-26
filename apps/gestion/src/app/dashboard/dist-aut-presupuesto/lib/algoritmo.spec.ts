@@ -74,7 +74,7 @@ describe("algoritmo dist-aut-presupuesto", () => {
   it("ajusta el total al presupuesto objetivo con diferencia final cero", () => {
     jest.spyOn(Math, "random").mockReturnValue(0.5);
 
-    const result = distribuirPresupuesto(materials, 1500);
+    const result = distribuirPresupuesto(materials, 1000);
 
     expect(result.summary.diferencia).toBe(0);
     expect(result.summary.subtotalCalculado).toBe(
@@ -90,6 +90,76 @@ describe("algoritmo dist-aut-presupuesto", () => {
     result.rows.forEach((row) => {
       expect(row.unidades).toBeGreaterThanOrEqual(0.1);
       expect(row.unidades * 10).toBeCloseTo(Math.round(row.unidades * 10), 10);
+    });
+  });
+
+  it("respeta el máximo de 1000 unidades por material", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0.5);
+
+    // Presupuesto muy alto para intentar forzar unidades altas
+    const result = distribuirPresupuesto(materials, 100000);
+
+    result.rows.forEach((row) => {
+      expect(row.unidades).toBeLessThanOrEqual(1000);
+      expect(row.unidades).toBeGreaterThanOrEqual(0.1);
+    });
+  });
+
+  it("no excede 1000 unidades incluso con presupuesto muy elevado", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0.5);
+
+    // Material muy barato con presupuesto extremadamente alto
+    const cheapMaterial = [
+      {
+        rowNumber: 1,
+        codigo: "CHEAP",
+        descripcion: "Producto muy barato",
+        precioUnitario: 0.01,
+      },
+    ];
+
+    const result = distribuirPresupuesto(cheapMaterial, 50000);
+
+    expect(result.rows[0].unidades).toBeLessThanOrEqual(1000);
+    expect(result.rows[0].unidades).toBeGreaterThanOrEqual(0.1);
+  });
+
+  it("redistribuye el presupuesto restante cuando un material alcanza el tope", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0.5);
+
+    const cappedMaterials: MaterialInputRow[] = [
+      {
+        rowNumber: 2,
+        codigo: "CHEAP",
+        descripcion: "Material muy barato",
+        precioUnitario: 0.03,
+      },
+      {
+        rowNumber: 3,
+        codigo: "MID1",
+        descripcion: "Material medio 1",
+        precioUnitario: 0.11,
+      },
+      {
+        rowNumber: 4,
+        codigo: "MID2",
+        descripcion: "Material medio 2",
+        precioUnitario: 0.16,
+      },
+      {
+        rowNumber: 5,
+        codigo: "MID3",
+        descripcion: "Material medio 3",
+        precioUnitario: 0.29,
+      },
+    ];
+
+    const result = distribuirPresupuesto(cappedMaterials, 500);
+
+    expect(result.summary.diferencia).toBe(0);
+    expect(result.summary.subtotalCalculado).toBe(500);
+    result.rows.forEach((row) => {
+      expect(row.unidades).toBeLessThanOrEqual(1000);
     });
   });
 });

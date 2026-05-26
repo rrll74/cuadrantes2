@@ -7,8 +7,83 @@ import type {
 const roundToTwoDecimals = (value: number) => Math.round(value * 100) / 100;
 const roundToOneDecimal = (value: number) => Math.round(value * 10) / 10;
 const EPSILON = 0.001;
+const MAX_UNIDADES = 1000;
 
 const randomWeightFactor = () => 0.8 + Math.random() * 0.4;
+
+const distribuirPresupuestoRestante = (
+  rows: MaterialDistributionRow[],
+  weights: number[],
+  presupuestoRestante: number,
+) => {
+  let presupuestoPendiente = roundToTwoDecimals(presupuestoRestante);
+  const maxIteraciones = 1000;
+
+  for (let iteracion = 0; iteracion < maxIteraciones; iteracion += 1) {
+    if (presupuestoPendiente < EPSILON) {
+      break;
+    }
+
+    const elegibles = rows
+      .map((row, index) => ({ row, index, weight: weights[index] }))
+      .filter(({ row }) => row.unidades < MAX_UNIDADES - EPSILON);
+
+    if (elegibles.length === 0) {
+      break;
+    }
+
+    const sumaPesosElegibles = elegibles.reduce(
+      (acumulado, item) => acumulado + item.weight,
+      0,
+    );
+
+    if (sumaPesosElegibles <= 0) {
+      break;
+    }
+
+    const presupuestoIteracion = presupuestoPendiente;
+    let presupuestoAsignado = 0;
+
+    for (const { row, weight } of elegibles) {
+      const proporcion = weight / sumaPesosElegibles;
+      const moneyShare = presupuestoIteracion * proporcion;
+      const capacidadUnidades = roundToOneDecimal(MAX_UNIDADES - row.unidades);
+      const extraUnitsTeoricas =
+        Math.floor((moneyShare / row.precioUnitario) * 10) / 10;
+      const extraUnits = roundToOneDecimal(
+        Math.min(extraUnitsTeoricas, capacidadUnidades),
+      );
+
+      if (extraUnits < 0.1) {
+        continue;
+      }
+
+      const nuevasUnidades = roundToOneDecimal(row.unidades + extraUnits);
+      const nuevoSubtotal = roundToTwoDecimals(
+        nuevasUnidades * row.precioUnitario,
+      );
+      const incremento = roundToTwoDecimals(nuevoSubtotal - row.subtotal);
+
+      if (incremento <= 0) {
+        continue;
+      }
+
+      row.unidades = nuevasUnidades;
+      row.subtotal = nuevoSubtotal;
+      presupuestoAsignado = roundToTwoDecimals(
+        presupuestoAsignado + incremento,
+      );
+    }
+
+    if (presupuestoAsignado < EPSILON) {
+      break;
+    }
+
+    presupuestoPendiente = roundToTwoDecimals(
+      presupuestoPendiente - presupuestoAsignado,
+    );
+  }
+};
 
 const roundByPreference = (value: number) => {
   const rounded = roundToOneDecimal(value);
@@ -35,7 +110,10 @@ const aplicarAjusteFinalExacto = (
   const aplicarDeltaConPaso = (deltaUnidades: number, diferencia: number) => {
     for (const row of rowsByPrecioAsc) {
       const candidatoUnidades = roundToOneDecimal(row.unidades + deltaUnidades);
-      if (candidatoUnidades < 0.1 - EPSILON) {
+      if (
+        candidatoUnidades < 0.1 - EPSILON ||
+        candidatoUnidades > MAX_UNIDADES
+      ) {
         continue;
       }
 
@@ -69,6 +147,10 @@ const aplicarAjusteFinalExacto = (
         }
 
         const candidatoUnidades = roundToOneDecimal(row.unidades + delta);
+        if (candidatoUnidades > MAX_UNIDADES) {
+          continue;
+        }
+
         const subtotalCandidato = roundToTwoDecimals(
           candidatoUnidades * row.precioUnitario,
         );
@@ -123,7 +205,10 @@ const aplicarAjusteFinalExacto = (
     for (const row of rowsByPrecioAsc) {
       for (const delta of [0.1, -0.1]) {
         const candidatoUnidades = roundToOneDecimal(row.unidades + delta);
-        if (candidatoUnidades < 0.1 - EPSILON) {
+        if (
+          candidatoUnidades < 0.1 - EPSILON ||
+          candidatoUnidades > MAX_UNIDADES
+        ) {
           continue;
         }
 
@@ -185,7 +270,6 @@ const aplicarAjusteFinalExacto = (
     ajusteFinalAplicado = true;
   }
 
-  const materialMasBarato = rowsByPrecioAsc[0];
   const subtotalPreResidual = roundToTwoDecimals(
     rows.reduce((acumulado, row) => acumulado + row.subtotal, 0),
   );
@@ -193,14 +277,29 @@ const aplicarAjusteFinalExacto = (
     presupuestoObjetivo - subtotalPreResidual,
   );
 
-  if (
-    Math.abs(residualFinal) >= EPSILON &&
-    (residualFinal > 0 || materialMasBarato.unidades > 0.1)
-  ) {
-    materialMasBarato.subtotal = roundToTwoDecimals(
-      materialMasBarato.subtotal + residualFinal,
-    );
-    ajusteFinalAplicado = true;
+  if (Math.abs(residualFinal) >= EPSILON) {
+    const materialAjustable = rowsByPrecioAsc.find((row) => {
+      const unidadesImplicitas = roundToOneDecimal(
+        (row.subtotal + residualFinal) / row.precioUnitario,
+      );
+
+      if (unidadesImplicitas > MAX_UNIDADES) {
+        return false;
+      }
+
+      if (residualFinal < 0 && unidadesImplicitas < 0.1 - EPSILON) {
+        return false;
+      }
+
+      return residualFinal > 0 || row.unidades > 0.1;
+    });
+
+    if (materialAjustable) {
+      materialAjustable.subtotal = roundToTwoDecimals(
+        materialAjustable.subtotal + residualFinal,
+      );
+      ajusteFinalAplicado = true;
+    }
   }
 
   const subtotalCalculado = roundToTwoDecimals(
@@ -254,25 +353,12 @@ export const distribuirPresupuesto = (
     return (1 / material.precioUnitario) * factor;
   });
 
-  const totalWeight = weights.reduce(
-    (acumulado, weight) => acumulado + weight,
-    0,
-  );
+  const distributedRows = baseRows.map((row, index) => ({
+    ...row,
+    peso: weights[index],
+  }));
 
-  const distributedRows = baseRows.map((row, index) => {
-    const proportion = totalWeight > 0 ? weights[index] / totalWeight : 0;
-    const moneyShare = presupuestoRestante * proportion;
-    const extraUnits = Math.floor((moneyShare / row.precioUnitario) * 10) / 10;
-    const unidades = roundToOneDecimal(row.unidades + extraUnits);
-    const subtotal = roundToTwoDecimals(unidades * row.precioUnitario);
-
-    return {
-      ...row,
-      unidades,
-      subtotal,
-      peso: weights[index],
-    };
-  });
+  distribuirPresupuestoRestante(distributedRows, weights, presupuestoRestante);
 
   const { ajusteFinalAplicado, subtotalCalculado, diferencia } =
     aplicarAjusteFinalExacto(distributedRows, presupuestoObjetivo);

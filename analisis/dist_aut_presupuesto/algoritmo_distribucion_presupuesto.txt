@@ -5,6 +5,12 @@ ALGORITMO DistribucionPresupuesto (version final frontend)
     SALIDA:
         ListaResultados (Matriz de [Codigo, Descripcion, PrecioUnitario, Unidades, Subtotal, Peso])
         Resumen (PresupuestoObjetivo, SubtotalCalculado, Diferencia, AjusteFinalAplicado)
+    
+    RESTRICCIONES INVARIANTES:
+        - Unidades mínimo: 0.1 por material
+        - Unidades máximo: 1000 por material
+        - Decimales máximo: 1 por unidad
+        - Cierre económico: exacto al céntimo
 
     INICIO
         // PASO 1: Inicializacion minima obligatoria
@@ -30,15 +36,37 @@ ALGORITMO DistribucionPresupuesto (version final frontend)
 
         SumaPesos = SUMA(Material.Peso)
 
-        // PASO 3: Reparto proporcional inicial
-        PARA cada Material en ListaMateriales:
-            Proporcion = Material.Peso / SumaPesos
-            MontoTeorico = PresupuestoRestante * Proporcion
-            UnidadesExtra = Suelo((MontoTeorico / Material.PrecioUnitario) * 10) / 10
+        // PASO 3: Reparto proporcional inicial con redistribución iterativa
+        PresupuestoPendiente = PresupuestoRestante
 
-            Material.Unidades = Redondear(Material.Unidades + UnidadesExtra, 1)
-            Material.Subtotal = Redondear(Material.Unidades * Material.PrecioUnitario, 2)
-        FIN PARA
+        REPETIR mientras PresupuestoPendiente > 0 y existan materiales con Unidades < 1000:
+            ListaElegibles = Materiales con Unidades < 1000
+            SumaPesosElegibles = SUMA(MaterialElegible.Peso)
+            PresupuestoIteracion = PresupuestoPendiente
+            PresupuestoAsignado = 0
+
+            PARA cada Material en ListaElegibles:
+                Proporcion = Material.Peso / SumaPesosElegibles
+                MontoTeorico = PresupuestoIteracion * Proporcion
+                CapacidadUnidades = 1000 - Material.Unidades
+                UnidadesExtraTeoricas = Suelo((MontoTeorico / Material.PrecioUnitario) * 10) / 10
+                UnidadesExtra = Mínimo(UnidadesExtraTeoricas, CapacidadUnidades)
+
+                SI UnidadesExtra >= 0.1 ENTONCES
+                    Material.Unidades = Redondear(Material.Unidades + UnidadesExtra, 1)
+                    NuevoSubtotal = Redondear(Material.Unidades * Material.PrecioUnitario, 2)
+                    Incremento = NuevoSubtotal - Material.Subtotal
+                    Material.Subtotal = NuevoSubtotal
+                    PresupuestoAsignado = PresupuestoAsignado + Incremento
+                FIN SI
+            FIN PARA
+
+            SI PresupuestoAsignado = 0 ENTONCES
+                SALIR REPETIR
+            FIN SI
+
+            PresupuestoPendiente = Redondear(PresupuestoPendiente - PresupuestoAsignado, 2)
+        FIN REPETIR
 
         // PASO 4: Ajuste final iterativo
         AjusteFinalAplicado = FALSO
@@ -55,19 +83,19 @@ ALGORITMO DistribucionPresupuesto (version final frontend)
 
             Ajustado = FALSO
 
-            // 4.1 Ajuste por paso (+/-0.1)
+            // 4.1 Ajuste por paso (+/-0.1) respetando límite de 1000 unidades
             SI Diferencia > 0 ENTONCES
                 Ajustado = IntentarAjustePaso(ListaOrdenada, +0.1, Diferencia)
             SINO
                 Ajustado = IntentarAjustePaso(ListaOrdenada, -0.1, Diferencia)
             FIN SI
 
-            // 4.2 Ajuste fino
+            // 4.2 Ajuste fino respetando límite de 1000 unidades
             SI NO Ajustado ENTONCES
                 Ajustado = IntentarAjusteFino(ListaOrdenada, Diferencia)
             FIN SI
 
-            // 4.3 Mejor movimiento local
+            // 4.3 Mejor movimiento local respetando límite de 1000 unidades
             SI NO Ajustado ENTONCES
                 Ajustado = IntentarMejorMovimiento(ListaOrdenada, Diferencia)
             FIN SI
@@ -80,15 +108,15 @@ ALGORITMO DistribucionPresupuesto (version final frontend)
         FIN REPETIR
 
         PASO_5:
-        // PASO 5: Cierre residual final
+        // PASO 5: Cierre residual final respetando límite de 1000 unidades
         SubtotalPreResidual = Redondear(SUMA(Material.Subtotal), 2)
         ResidualFinal = Redondear(PresupuestoObjetivo - SubtotalPreResidual, 2)
 
         SI ABS(ResidualFinal) >= 0.001 ENTONCES
-            MaterialMasBarato = PrimerElemento(ListaOrdenada)
+            MaterialAjustable = Primer material de ListaOrdenada cuyo ajuste residual sea viable
 
-            SI ResidualFinal > 0 O MaterialMasBarato.Unidades > 0.1 ENTONCES
-                MaterialMasBarato.Subtotal = Redondear(MaterialMasBarato.Subtotal + ResidualFinal, 2)
+            SI EXISTE MaterialAjustable ENTONCES
+                MaterialAjustable.Subtotal = Redondear(MaterialAjustable.Subtotal + ResidualFinal, 2)
                 AjusteFinalAplicado = VERDADERO
             FIN SI
         FIN SI

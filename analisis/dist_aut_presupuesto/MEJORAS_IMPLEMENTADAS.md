@@ -41,18 +41,15 @@ Documento de referencia final del algoritmo que se ejecuta actualmente en fronte
 2. Si el presupuesto no cubre esos minimos, se devuelve error.
 3. El reparto principal usa peso inverso al precio (material barato pesa mas), con factor aleatorio de variacion.
 4. Las unidades del reparto principal se limitan a 1 decimal.
-5. Se ejecuta un ajuste final iterativo para reducir la diferencia frente al presupuesto objetivo.
+5. Ningún material puede superar 1000 unidades (límite máximo de cantidad).
+6. Se ejecuta un ajuste final iterativo para reducir la diferencia frente al presupuesto objetivo.
 
 ## 4. Utilidades numericas
 
 - roundToTwoDecimals(valor): redondeo a 2 decimales.
 - roundToOneDecimal(valor): redondeo a 1 decimal.
 - EPSILON = 0.001 para comparaciones de flotantes.
-- roundByPreference(valor):
-  - redondea a 1 decimal,
-  - y si queda cerca de entero, fuerza entero para favorecer valores mas naturales.
-
-## 5. Flujo completo del algoritmo
+- MAX_UNIDADES = 1000 límite máximo de unidades por material.
 
 ## 5.1 Inicializacion minima
 
@@ -89,9 +86,11 @@ Si presupuestoRestante < 0, se lanza:
 
    extraUnits = floor((moneyShare / precioUnitario) \* 10) / 10
 
-6. Resultado por material:
+6. El reparto inicial no es de una sola pasada cuando existe tope de 1000 unidades.
+7. Si un material alcanza el tope, el presupuesto que ya no puede absorber se redistribuye entre los materiales que siguen siendo elegibles.
+8. Resultado por material:
 
-- unidades = roundToOneDecimal(0.1 + extraUnits)
+- unidades = roundToOneDecimal(unidadesActuales + extraUnits)
 - subtotal = roundToTwoDecimals(unidades \* precioUnitario)
 
 ## 5.3 Ajuste final iterativo
@@ -140,7 +139,8 @@ Tras el bucle:
 
 Si abs(residualFinal) >= EPSILON y es viable:
 
-- se aplica residualFinal al subtotal del material mas barato,
+- se busca el primer material viable por orden de precio ascendente,
+- se aplica residualFinal al subtotal de ese material,
 - ajusteFinalAplicado = true.
 
 Con esto se recalcula summary con:
@@ -158,7 +158,7 @@ distribuirPresupuesto(materials, presupuestoObjetivo):
    validar presupuestoRestante >= 0
 
    calcular pesos inversos con factor aleatorio [0.8, 1.2]
-   repartir presupuestoRestante proporcionalmente
+   repartir presupuestoRestante proporcionalmente con redistribucion iterativa
    limitar unidades a 1 decimal
 
    ejecutar ajuste final iterativo:
@@ -170,14 +170,14 @@ distribuirPresupuesto(materials, presupuestoObjetivo):
          si falla, intentar mejor movimiento +/-0.1
          si no mejora, romper
 
-      aplicar cierre residual al material mas barato (si procede)
+      aplicar cierre residual al primer material viable (si procede)
 
    devolver rows + summary
 ```
 
 ## 7. Complejidad y comportamiento
 
-- Reparto inicial: O(n)
+- Reparto inicial: O(k \* n), siendo k el numero de rondas de redistribucion
 - Ajuste final por iteracion:
   - aplicarDeltaConPaso: O(n)
   - aplicarAjusteFino: O(n)
@@ -194,6 +194,9 @@ Las pruebas unitarias cubren actualmente:
 4. Variabilidad por aleatoriedad en pesos.
 5. Caso de cierre con diferencia final cero.
 6. Unidades con un decimal y minimo 0.1.
+7. Máximo 1000 unidades por material (incluso con presupuestos elevados).
+8. No exceso del límite de 1000 incluso con materiales muy baratos y presupuestos altos.
+9. Redistribución correcta cuando un material alcanza el tope de 1000 y queda presupuesto pendiente.
 
 Archivo de pruebas:
 
@@ -203,8 +206,14 @@ Archivo de pruebas:
 
 1. El algoritmo mantiene no determinismo por uso de Math.random() en pesos.
 2. El ajuste final trabaja sobre subtotales ya redondeados a centimos.
-3. En el cierre residual final se corrige el subtotal del material mas barato para reducir o eliminar la diferencia.
+3. En el cierre residual final se corrige el subtotal del primer material viable por precio para reducir o eliminar la diferencia.
 4. La bandera ajusteFinalAplicado indica que hubo intervencion en fase de cierre.
+5. El límite máximo de 1000 unidades se valida en todas las estrategias de ajuste iterativo:
+   - ajuste por paso (+/-0.1) rechaza candidatos que superan 1000
+   - ajuste fino rechaza candidatos que superan 1000
+   - mejor movimiento local rechaza candidatos fuera del rango [0.1, 1000]
+6. Si todos los ajustes se rechazan por exceder 1000, el algoritmo intenta el siguiente ajuste o termina el bucle.
+7. El residual final se aplica solo si el material más barato no superaría 1000 unidades (validación implícita).
 
 ## 10. Recomendaciones de evolucion
 
