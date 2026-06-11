@@ -27,6 +27,7 @@ export class AsignacionesHelper {
     anioFin: number,
     asignaciones: OldAsignacion[],
     estadosMap: Map<number, OldEstado>,
+    fechasConPuestoVigente?: Set<string>,
   ): MesAsignacionesDto[] {
     const meses: MesAsignacionesDto[] = [];
 
@@ -46,6 +47,7 @@ export class AsignacionesHelper {
         anioActual,
         asignacionesMap,
         estadosMap,
+        fechasConPuestoVigente,
       );
       meses.push(mesDto);
 
@@ -83,6 +85,7 @@ export class AsignacionesHelper {
     anioActual: number,
     asignacionesMap: Map<string, OldAsignacion>,
     estadosMap: Map<number, OldEstado>,
+    fechasConPuestoVigente?: Set<string>,
   ): MesAsignacionesDto {
     // Determinar cuántos días tiene este mes
     const diasEnMes = new Date(anioActual, mesActual, 0).getDate();
@@ -96,7 +99,10 @@ export class AsignacionesHelper {
       const key = `${anioActual}-${mesActual}-${dia}`;
       const asignacion = asignacionesMap.get(key);
 
-      if (asignacion) {
+      if (
+        asignacion &&
+        (!fechasConPuestoVigente || fechasConPuestoVigente.has(key))
+      ) {
         const estado = estadosMap.get(asignacion.estado_id);
         asignacionesMes[dia - 1] = this.mapearAsignacionADto(
           dia,

@@ -329,6 +329,23 @@ describe('ConsultaCuadrantesService', () => {
       jest
         .spyOn(estadoRepository, 'find')
         .mockResolvedValue([mockEstado] as any);
+      jest.spyOn(contratoRepository, 'find').mockResolvedValue([
+        {
+          id: 10,
+          empleado_id: 1,
+          comienzo: new Date('2024-01-01'),
+          fin: null,
+        },
+      ] as any);
+      jest.spyOn(puestoRepository, 'find').mockResolvedValue([
+        {
+          id: 20,
+          contrato_id: 10,
+          comienzo_c: new Date('2024-01-01'),
+          fin_c: null,
+          departamento_id: 1,
+        },
+      ] as any);
 
       const resultado = await service.obtenerConsultaCuadrante(
         1, // empleadoId
@@ -344,6 +361,101 @@ describe('ConsultaCuadrantesService', () => {
       expect(resultado.empleado.nombre).toBe('Juan');
       expect(resultado.cuadrante).toBeDefined();
       expect(resultado.cuadrante.nombre).toBe('Cuadrante A');
+    });
+
+    it('no debe mostrar asignacion en dias sin puesto vigente', async () => {
+      const mockEmpleado = {
+        id: 1,
+        nombre: 'Juan',
+        email: 'juan@example.com',
+      };
+
+      const mockCuadrante = {
+        id: 1,
+        nombre: 'Cuadrante A',
+        departamento_id: 1,
+        guardia: true,
+      };
+
+      const mockDepartamento = {
+        id: 1,
+        nombre: 'Departamento Test',
+      };
+
+      const mockEstado = {
+        id: 1,
+        abreviatura: 'COM',
+        descrip: 'Comun',
+        trab1_desc0: true,
+        colortexto: 0,
+        colorfondo: 16711680,
+      };
+
+      const mockAsignaciones = [
+        {
+          id: 1,
+          empleado_id: 1,
+          cuadrante_id: 1,
+          ini0_mod1: false,
+          fecha: new Date('2024-01-01'),
+          estado_id: 1,
+        },
+        {
+          id: 2,
+          empleado_id: 1,
+          cuadrante_id: 1,
+          ini0_mod1: false,
+          fecha: new Date('2024-01-02'),
+          estado_id: 1,
+        },
+      ];
+
+      jest
+        .spyOn(empleadoRepository, 'findOne')
+        .mockResolvedValue(mockEmpleado as any);
+      jest
+        .spyOn(cuadranteRepository, 'findOne')
+        .mockResolvedValue(mockCuadrante as any);
+      jest
+        .spyOn(departamentoRepository, 'findOne')
+        .mockResolvedValue(mockDepartamento as any);
+      jest
+        .spyOn(asignacionRepository, 'find')
+        .mockResolvedValue(mockAsignaciones as any);
+      jest
+        .spyOn(estadoRepository, 'find')
+        .mockResolvedValue([mockEstado] as any);
+      jest.spyOn(contratoRepository, 'find').mockResolvedValue([
+        {
+          id: 10,
+          empleado_id: 1,
+          comienzo: new Date('2024-01-01'),
+          fin: null,
+        },
+      ] as any);
+      jest.spyOn(puestoRepository, 'find').mockResolvedValue([
+        {
+          id: 20,
+          contrato_id: 10,
+          comienzo_c: new Date('2024-01-02'),
+          fin_c: null,
+          departamento_id: 1,
+        },
+      ] as any);
+
+      const resultado = await service.obtenerConsultaCuadrante(
+        1,
+        1,
+        2024,
+        1,
+        2024,
+        1,
+        true,
+      );
+
+      expect(resultado.meses[0].asignaciones[0]).toBeNull();
+      expect(resultado.meses[0].asignaciones[1]).not.toBeNull();
+      expect(resultado.meses[0].asignaciones[1]?.abreviatura).toBe('COM');
     });
   });
 
@@ -380,6 +492,8 @@ describe('ConsultaCuadrantesService', () => {
         .mockResolvedValue(mockDepartamento as any);
       jest.spyOn(asignacionRepository, 'find').mockResolvedValue([]);
       jest.spyOn(estadoRepository, 'find').mockResolvedValue([]);
+      jest.spyOn(contratoRepository, 'find').mockResolvedValue([]);
+      jest.spyOn(puestoRepository, 'find').mockResolvedValue([]);
 
       const resultado = await service.generarPDF(1, 1, 2024, 1, 2024, 1, true);
 
@@ -420,6 +534,8 @@ describe('ConsultaCuadrantesService', () => {
         .mockResolvedValue(mockDepartamento as any);
       jest.spyOn(asignacionRepository, 'find').mockResolvedValue([]);
       jest.spyOn(estadoRepository, 'find').mockResolvedValue([]);
+      jest.spyOn(contratoRepository, 'find').mockResolvedValue([]);
+      jest.spyOn(puestoRepository, 'find').mockResolvedValue([]);
 
       const resultado = await service.generarYEnviarPDF(
         1,
