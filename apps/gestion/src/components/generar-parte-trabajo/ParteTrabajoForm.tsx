@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Box,
   Button,
@@ -16,6 +16,8 @@ import {
   MenuItem,
   Typography,
   CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
@@ -48,6 +50,12 @@ export default function ParteTrabajoForm() {
   const [imagenes, setImagenes] = useState<string[]>([]);
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [serviciosOpen, setServiciosOpen] = useState(false);
+  const [toastState, setToastState] = useState({
+    open: false,
+    message: "",
+  });
+  const skipNextServiciosFocus = useRef(false);
 
   const { control, handleSubmit, watch, formState, reset } = useForm({
     defaultValues: {
@@ -146,9 +154,39 @@ export default function ParteTrabajoForm() {
     reset();
     setImagenes([]);
     setShowPreview(false);
+    setServiciosOpen(false);
+  };
+
+  const validateRequiredFields = (data: FormData) => {
+    const missingFields: string[] = [];
+
+    if (!data.fecha?.trim()) missingFields.push("Fecha");
+    if (!data.numeroDocumento?.trim())
+      missingFields.push("Numero de documento");
+    if (!data.solicitante?.trim()) missingFields.push("Solicitante");
+    if (!data.servicios || data.servicios.length === 0)
+      missingFields.push("Servicios");
+    if (!data.direccion?.trim()) missingFields.push("Direccion de realizacion");
+    if (!data.descripcion?.trim())
+      missingFields.push("Descripcion del Trabajo");
+
+    return missingFields;
+  };
+
+  const showValidationToast = (message: string) => {
+    setToastState({ open: true, message });
   };
 
   const onSubmit = async (data: FormData) => {
+    const missingFields = validateRequiredFields(data);
+
+    if (missingFields.length > 0) {
+      showValidationToast(
+        `Completa los campos obligatorios: ${missingFields.join(", ")}.`,
+      );
+      return;
+    }
+
     try {
       setGeneratingPDF(true);
 
@@ -270,6 +308,28 @@ export default function ParteTrabajoForm() {
                           {...field}
                           label="Servicios"
                           multiple
+                          open={serviciosOpen}
+                          onOpen={() => setServiciosOpen(true)}
+                          onClose={() => {
+                            skipNextServiciosFocus.current = true;
+                            setServiciosOpen(false);
+                          }}
+                          onFocus={() => {
+                            if (skipNextServiciosFocus.current) {
+                              skipNextServiciosFocus.current = false;
+                              return;
+                            }
+                            setServiciosOpen(true);
+                          }}
+                          onBlur={() => {
+                            setServiciosOpen(false);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Tab") {
+                              skipNextServiciosFocus.current = true;
+                              setServiciosOpen(false);
+                            }
+                          }}
                           disabled={loadingDepts}
                           error={!!formState.errors.servicios}
                         >
@@ -509,6 +569,22 @@ export default function ParteTrabajoForm() {
           <CircularProgress />
         </Box>
       )}
+
+      <Snackbar
+        open={toastState.open}
+        autoHideDuration={3000}
+        onClose={() => setToastState((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setToastState((prev) => ({ ...prev, open: false }))}
+          severity="warning"
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {toastState.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
