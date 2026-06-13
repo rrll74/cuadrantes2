@@ -51,9 +51,14 @@ export default function ParteTrabajoForm() {
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [serviciosOpen, setServiciosOpen] = useState(false);
-  const [toastState, setToastState] = useState({
+  const [toastState, setToastState] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error" | "warning" | "info";
+  }>({
     open: false,
     message: "",
+    severity: "warning",
   });
   const skipNextServiciosFocus = useRef(false);
 
@@ -173,16 +178,20 @@ export default function ParteTrabajoForm() {
     return missingFields;
   };
 
-  const showValidationToast = (message: string) => {
-    setToastState({ open: true, message });
+  const showToast = (
+    message: string,
+    severity: "success" | "error" | "warning" | "info" = "warning",
+  ) => {
+    setToastState({ open: true, message, severity });
   };
 
   const onSubmit = async (data: FormData) => {
     const missingFields = validateRequiredFields(data);
 
     if (missingFields.length > 0) {
-      showValidationToast(
+      showToast(
         `Completa los campos obligatorios: ${missingFields.join(", ")}.`,
+        "warning",
       );
       return;
     }
@@ -206,14 +215,15 @@ export default function ParteTrabajoForm() {
       await generateParteTrabajoPdfFromData(parteData);
 
       const numPDFs = data.servicios.length || 1;
-      alert(
+      showToast(
         numPDFs > 1
           ? `Se han generado ${numPDFs} PDFs correctamente (uno por cada servicio seleccionado)`
           : "PDF generado correctamente",
+        "success",
       );
     } catch (error) {
       console.error("Error al generar PDF:", error);
-      alert("Error al generar el PDF");
+      showToast("Error al generar el PDF", "error");
     } finally {
       setGeneratingPDF(false);
     }

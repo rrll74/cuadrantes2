@@ -74,6 +74,9 @@ export default function DashboardLayout({
     usePermissions(PERMISSIONS.CUADRANTES_READ) || isAdmin;
   const canDistribuirPresupuesto =
     usePermissions(PERMISSIONS.PRESUPUESTO_DISTRIBUCION) || isAdmin;
+  const showRsuSection = showJornadas;
+  const showServiciosSection =
+    canGenerarPartesTrabajo || canReadCuadrantes || canDistribuirPresupuesto;
 
   useEffect(() => {
     // Si no está cargando y el usuario no está autenticado, lo echamos al login.
@@ -232,101 +235,112 @@ export default function DashboardLayout({
 
                 <Divider sx={{ my: 1 }} />
 
-                <ListItem disablePadding>
-                  <ListItemButton
-                    onClick={() => setRsuExpanded((prev) => !prev)}
-                  >
-                    <ListItemIcon>
-                      <AssignmentTurnedInIcon />
-                    </ListItemIcon>
-                    <ListItemText primary="RSU" />
-                    {rsuExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                  </ListItemButton>
-                </ListItem>
-                <Collapse in={rsuExpanded} timeout="auto" unmountOnExit>
-                  <List component="div" disablePadding>
-                    {showJornadas && (
-                      <ListItem disablePadding>
-                        <ListItemButton
-                          component={Link}
-                          href="/dashboard/jornadas"
-                          sx={{ pl: 4 }}
-                        >
-                          <ListItemIcon>
-                            <CalendarIcon />
-                          </ListItemIcon>
-                          <ListItemText primary="Comprobación de jornadas" />
-                        </ListItemButton>
-                      </ListItem>
-                    )}
-                  </List>
-                </Collapse>
+                {showRsuSection && (
+                  <>
+                    <ListItem disablePadding>
+                      <ListItemButton
+                        onClick={() => setRsuExpanded((prev) => !prev)}
+                      >
+                        <ListItemIcon>
+                          <AssignmentTurnedInIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="RSU" />
+                        {rsuExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      </ListItemButton>
+                    </ListItem>
+                    <Collapse in={rsuExpanded} timeout="auto" unmountOnExit>
+                      <List component="div" disablePadding>
+                        {showJornadas && (
+                          <ListItem disablePadding>
+                            <ListItemButton
+                              component={Link}
+                              href="/dashboard/jornadas"
+                              sx={{ pl: 4 }}
+                            >
+                              <ListItemIcon>
+                                <CalendarIcon />
+                              </ListItemIcon>
+                              <ListItemText primary="Comprobación de jornadas" />
+                            </ListItemButton>
+                          </ListItem>
+                        )}
+                      </List>
+                    </Collapse>
+                    <Divider sx={{ my: 1 }} />
+                  </>
+                )}
 
-                <Divider sx={{ my: 1 }} />
+                {showServiciosSection && (
+                  <>
+                    <ListItem disablePadding>
+                      <ListItemButton
+                        onClick={() => setServiciosExpanded((prev) => !prev)}
+                      >
+                        <ListItemIcon>
+                          <EngineeringIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="Servicios Operativos" />
+                        {serviciosExpanded ? (
+                          <ExpandLessIcon />
+                        ) : (
+                          <ExpandMoreIcon />
+                        )}
+                      </ListItemButton>
+                    </ListItem>
+                    <Collapse
+                      in={serviciosExpanded}
+                      timeout="auto"
+                      unmountOnExit
+                    >
+                      <List component="div" disablePadding>
+                        {canGenerarPartesTrabajo && (
+                          <ListItem disablePadding>
+                            <ListItemButton
+                              component={Link}
+                              href="/dashboard/generar-parte-trabajo"
+                              sx={{ pl: 4 }}
+                            >
+                              <ListItemIcon>
+                                <DescriptionIcon />
+                              </ListItemIcon>
+                              <ListItemText primary="Generar Orden de Trabajo" />
+                            </ListItemButton>
+                          </ListItem>
+                        )}
 
-                <ListItem disablePadding>
-                  <ListItemButton
-                    onClick={() => setServiciosExpanded((prev) => !prev)}
-                  >
-                    <ListItemIcon>
-                      <EngineeringIcon />
-                    </ListItemIcon>
-                    <ListItemText primary="Servicios Operativos" />
-                    {serviciosExpanded ? (
-                      <ExpandLessIcon />
-                    ) : (
-                      <ExpandMoreIcon />
-                    )}
-                  </ListItemButton>
-                </ListItem>
-                <Collapse in={serviciosExpanded} timeout="auto" unmountOnExit>
-                  <List component="div" disablePadding>
-                    {canGenerarPartesTrabajo && (
-                      <ListItem disablePadding>
-                        <ListItemButton
-                          component={Link}
-                          href="/dashboard/generar-parte-trabajo"
-                          sx={{ pl: 4 }}
-                        >
-                          <ListItemIcon>
-                            <DescriptionIcon />
-                          </ListItemIcon>
-                          <ListItemText primary="Generar Orden de Trabajo" />
-                        </ListItemButton>
-                      </ListItem>
-                    )}
+                        {canReadCuadrantes && (
+                          <ListItem disablePadding>
+                            <ListItemButton
+                              component={Link}
+                              href="/dashboard/consulta-cuadrantes"
+                              sx={{ pl: 4 }}
+                            >
+                              <ListItemIcon>
+                                <EventNoteIcon />
+                              </ListItemIcon>
+                              <ListItemText primary="Consulta de Cuadrantes" />
+                            </ListItemButton>
+                          </ListItem>
+                        )}
 
-                    {canReadCuadrantes && (
-                      <ListItem disablePadding>
-                        <ListItemButton
-                          component={Link}
-                          href="/dashboard/consulta-cuadrantes"
-                          sx={{ pl: 4 }}
-                        >
-                          <ListItemIcon>
-                            <EventNoteIcon />
-                          </ListItemIcon>
-                          <ListItemText primary="Consulta de Cuadrantes" />
-                        </ListItemButton>
-                      </ListItem>
-                    )}
-
-                    {canDistribuirPresupuesto && (
-                      <ListItem disablePadding>
-                        <ListItemButton
-                          component={Link}
-                          href="/dashboard/dist-aut-presupuesto"
-                          sx={{ pl: 4 }}
-                        >
-                          <ListItemIcon>
-                            <CalculateIcon />
-                          </ListItemIcon>
-                          <ListItemText primary="Distribución de Presupuesto" />
-                        </ListItemButton>
-                      </ListItem>
-                    )}
-                  </List>
-                </Collapse>
+                        {canDistribuirPresupuesto && (
+                          <ListItem disablePadding>
+                            <ListItemButton
+                              component={Link}
+                              href="/dashboard/dist-aut-presupuesto"
+                              sx={{ pl: 4 }}
+                            >
+                              <ListItemIcon>
+                                <CalculateIcon />
+                              </ListItemIcon>
+                              <ListItemText primary="Distribución de Presupuesto" />
+                            </ListItemButton>
+                          </ListItem>
+                        )}
+                      </List>
+                    </Collapse>
+                  </>
+                )}
               </List>
             </Box>
           </Drawer>
