@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1779712873362" clover="3.2.0">
+  <project timestamp="1779712873363" name="All files">
+    <metrics statements="22" coveredstatements="20" conditionals="28" coveredconditionals="20" methods="8" coveredmethods="6" elements="58" coveredelements="46" complexity="0" loc="22" ncloc="22" packages="1" files="1" classes="1"/>
+    <file name="DistribucionPresupuestoForm.tsx" path="/home/administrador/code/cuadrantes2/apps/gestion/src/app/dashboard/dist-aut-presupuesto/components/DistribucionPresupuestoForm.tsx">
+      <metrics statements="22" coveredstatements="20" conditionals="28" coveredconditionals="20" methods="8" coveredmethods="6"/>
+      <line num="3" count="1" type="stmt"/>
+      <line num="17" count="1" type="stmt"/>
+      <line num="18" count="1" type="stmt"/>
+      <line num="19" count="1" type="stmt"/>
+      <line num="21" count="1" type="stmt"/>
+      <line num="22" count="1" type="stmt"/>
+      <line num="27" count="6" type="stmt"/>
+      <line num="28" count="6" type="stmt"/>
+      <line num="45" count="6" type="stmt"/>
+      <line num="48" count="6" type="cond" truecount="3" falsecount="0"/>
+      <line num="51" count="6" type="stmt"/>
+      <line num="52" count="0" type="stmt"/>
+      <line num="55" count="6" type="stmt"/>
+      <line num="58" count="1" type="cond" truecount="1" falsecount="1"/>
+      <line num="59" count="1" type="stmt"/>
+      <line num="62" count="6" type="stmt"/>
+      <line num="63" count="1" type="stmt"/>
+      <line num="64" count="1" type="stmt"/>
+      <line num="67" count="6" type="stmt"/>
+      <line num="86" count="1" type="stmt"/>
+      <line num="146" count="1" type="stmt"/>
+      <line num="172" count="0" type="stmt"/>
+    </file>
+  </project>
+</coverage>

@@ -1,0 +1,16 @@
+La funcionalidad recibe un fichero Excel con columnas codigo, descripcion y precio_unitario, junto con un presupuesto objetivo introducido en formulario. El sistema genera resultados con dos columnas adicionales: unidades y subtotal por material, y permite exportar en Excel y PDF.
+
+Implementacion real de referencia:
+- apps/gestion/src/app/dashboard/dist-aut-presupuesto/lib/algoritmo.ts
+- apps/gestion/src/app/dashboard/dist-aut-presupuesto/lib/algoritmo.spec.ts
+- analisis/dist_aut_presupuesto/MEJORAS_IMPLEMENTADAS.md
+
+Reglas funcionales consolidadas:
+1. El presupuesto se reparte con cierre economico final frente al objetivo.
+2. Cada material debe tener al menos 0.1 unidades.
+3. Se priorizan materiales baratos mediante pesos inversos al precio.
+4. El proceso de ajuste es iterativo y puede ejecutarse en varios pasos hasta estabilizar.
+5. Hay aleatoriedad controlada en el reparto inicial (factor entre 0.8 y 1.2).
+6. Las unidades se manejan con un decimal en las fases de reparto y ajuste iterativo.
+
+La funcionalidad esta implementada en frontend, sin persistencia en base de datos, y protegida por permiso de acceso.

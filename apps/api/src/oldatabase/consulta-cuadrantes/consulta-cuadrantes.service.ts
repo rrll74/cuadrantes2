@@ -159,7 +159,15 @@ export class ConsultaCuadrantesService {
 
     const estadosMap = new Map(estados.map((e) => [e.id, e]));
 
-    // 6. Construir meses usando el helper
+    // 6. Obtener fechas con puesto vigente en el departamento del cuadrante
+    const fechasConPuestoVigente = await this.obtenerFechasConPuestoVigente(
+      empleadoId,
+      cuadrante.departamento_id,
+      fechaInicio,
+      fechaFin,
+    );
+
+    // 7. Construir meses usando el helper
     const meses = AsignacionesHelper.construirMeses(
       mesInicio,
       anioInicio,
@@ -167,9 +175,10 @@ export class ConsultaCuadrantesService {
       anioFin,
       asignaciones,
       estadosMap,
+      fechasConPuestoVigente,
     );
 
-    // 7. Construir DTOs de estados
+    // 8. Construir DTOs de estados
     const estadosUsados = estados.map((estado) => this.mapEstadoToDto(estado));
 
     return {
@@ -190,6 +199,66 @@ export class ConsultaCuadrantesService {
       estadosUsados,
       tipoInicial,
     };
+  }
+
+  private async obtenerFechasConPuestoVigente(
+    empleadoId: number,
+    departamentoId: number | null,
+    fechaInicio: Date,
+    fechaFin: Date,
+  ): Promise<Set<string>> {
+    const contratos = await this.contratoRepository.find({
+      where: { empleado_id: empleadoId },
+    });
+
+    const contratosEnPeriodo = contratos.filter((contrato) => {
+      const inicioCon = contrato.comienzo ? new Date(contrato.comienzo) : null;
+      const finCon = contrato.fin ? new Date(contrato.fin) : null;
+
+      if (!inicioCon) return false;
+      if (finCon) {
+        return inicioCon <= fechaFin && finCon >= fechaInicio;
+      }
+      return inicioCon <= fechaFin;
+    });
+
+    if (contratosEnPeriodo.length === 0) {
+      return new Set<string>();
+    }
+
+    const puestos = await this.puestoRepository.find({
+      where: {
+        contrato_id: In(contratosEnPeriodo.map((c) => c.id)),
+      },
+    });
+
+    const fechasConPuestoVigente = new Set<string>();
+
+    puestos.forEach((puesto) => {
+      if (departamentoId && puesto.departamento_id !== departamentoId) {
+        return;
+      }
+
+      const inicioPuesto = new Date(puesto.comienzo_c);
+      const finPuesto = puesto.fin_c ? new Date(puesto.fin_c) : fechaFin;
+
+      if (inicioPuesto > fechaFin || finPuesto < fechaInicio) {
+        return;
+      }
+
+      const inicioSolape =
+        inicioPuesto > fechaInicio ? inicioPuesto : new Date(fechaInicio);
+      const finSolape = finPuesto < fechaFin ? finPuesto : new Date(fechaFin);
+
+      const diaActual = new Date(inicioSolape);
+      while (diaActual <= finSolape) {
+        const key = `${diaActual.getFullYear()}-${diaActual.getMonth() + 1}-${diaActual.getDate()}`;
+        fechasConPuestoVigente.add(key);
+        diaActual.setDate(diaActual.getDate() + 1);
+      }
+    });
+
+    return fechasConPuestoVigente;
   }
 
   /**
