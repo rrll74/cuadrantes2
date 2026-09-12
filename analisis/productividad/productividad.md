@@ -110,3 +110,31 @@ Existen unos objetivos obligatorios que deben tener los supervisores, otros los 
 El resto de objetivos deben ser marcados para cada trabajador, aunque puede inidicarse que se sigan unos objetivos comunes para todos los integrantes del grupo de colaboradores de un supervisor o se pueden hacer objetivos individualizados por trabajador, según se acuerde entre el trabajador y el supervisor, acordando también el peso que se le dará a cada objetivo.
 
 ## Calendario del seguimiento y realización de objetivos
+
+El calendario que se sigue lleva dos vertientes:
+
+1. La que realiza el supervisor con los supervisores intermedios y el de los supervisores intermedios con los colaboradores. También se puede dar el caso que un supervisor tenga directamente colaboradores, sin supervisores intermedios. Además de que un supervisor puede tener varios programas o servicios a su cargo.
+2. La que realiza el supervisor o supervisor intermedio con el órgano de Recursos Humanos que gestiona todo este tema que se llama Comisión de Garantías.
+
+La duración temporal de la evaluación al desempeño o productividad es del 1 de julio de un año hasta el 30 de junio del año siguiente. Durante ese periodo los pasos que se deben realizar son los siguientes:
+
+- El 1 de julio, todos los trabajadores estarán encuadrados en su programa con unos objetivos específicos. Si un trabajador se incorpora posteriormente a esta fecha, se deberá pasar un listado mensual con los trabajadores en estas circunstancias de ese mes y la ficha rellena correspondente a la Comisión de Garantías.
+- Como norma general, del 15 de octubre al 15 de noviembre se realizará la primera conversación o entrevista de evaluación o feedback del supervisor o supevisor intermedio con el colaborador. Cuando estén realizadas todas las entrevistas de cada programa, y antes del 30 de noviembre, se enviarán a la Comisión de Garantías como un listado independiente por cada uno de los programas a la Comisión de Garantías. Es importante que se pueda recabar mediante la subida de documentos PDF, cada una de las entrevistas realizadas a cada colaborador.
+- Del 15 de abril al 15 de mayo se acuerdan los nuevos objetivos de siguiente año y se comunican mediante un listado y la generación de fichas a la Comisión de Garantías antes del 31 de mayo.
+- En el segundo semestre, es decir enter el 1 de enero y 30 de junio, se realiza la segunda entrevista y se recoge la propuesta dada por los colaboradores, que puede ser individual o colectiva.
+- Durante todo el periodo que dura la productividad, es decir entre el 1 de julio y el 30 de junio del año siguiente, el supervisor o supervisor intermedio deberá llevar el control de los objetivos cumplidos por sus colaboradores a cargo, especialmente los que se salen de los objetivos obligatorios llevando algún tipo de anotación externa que posteriormente se pueda subir a la aplicación como justificación de esos objetivos.
+- Del 1 de julio al 31 de agosto, ya pasado el periodo del año de la productividad el supervisor o supervisor intermedio deberá recopilar el resto de información que le falte sobre los objetivos, se generará un listado del personal de cada programa y se le incluirán las fichas ya rellenas con los objetivos cumplidos o sin cumplir. Esa información será remitida a la Comisión de Garantías.
+
+De todo este proceso pueden darse casos especiales en los colaboradores de los programas que pueden repercutir en que se realice un informe anual de variación de objetivos. Los casos son:
+
+1. Bajas:
+   1. Todo el año: Los objetivos se reducen a 0 para indicar que no ha podido realizarlos. Se debe marcar e rojo en la ficha, en la columna Umbral, y se debe incluir en el informe final mensual de Variación de Objetivos junto con la ficha sin rellenar.
+   2. Parte del año: Los objetivos NO se reducen y se indican exclusivamente los que se hayan cumplido. No se incluyen en el informe mensual de Variación de Objetivos.
+2. Cambios de programa:
+   1. Programa inicial: Se ajustan los objetivos al tiempo trabajado, si el programa corresponde a alguno de los existentes.
+   2. Programa destino: Se ajustan los objetivos al tiempo trabajado, si el programa corresponde a alguno de los existentes.
+   3. Informar: Tanto el programa de inicio como el de destino, deben incluir al trabajador en el informe de "Variación de Objetivos", indicando las razones d elos nuevos valores y las fechas en las que ha estado en cada programa.
+
+## Detalles técnicos
+
+### Formularios a crear
