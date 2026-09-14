@@ -1,4 +1,0 @@
-{
-  "prettier.endOfLine": "auto",
-  "todo-tree.ripgrep.ripgrep": "/bin/rg"
-}
