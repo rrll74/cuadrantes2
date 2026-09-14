@@ -137,4 +137,47 @@ De todo este proceso pueden darse casos especiales en los colaboradores de los p
 
 ## Detalles técnicos
 
+Para la implementación de la productividad será necesario crear nuevas tablas en la base de datos, formularios de interacción para incluir, modificar o eliminar datos y para la obtención de listados y fichas en formato PDF o Excel que se entregarán a la Comisión de Garantías.
+
+### Base de datos
+
+Las nuevas tablas que se crearán se realizán en la base de datos que se considera nueva. La antigua se utilizará para la obtención de muchos de los datos necesarios para saber información sobre los colaboradores y cambio que se han realizado de cuadrantes o contratos para el rellenado de listas o fichas.
+
+#### Base de datos antigua (Consulta)
+
+La información necesaria en la base de datos antigua que se puede necesitar es la siguiente:
+
+1. **Ficha del trabajador**: Para saber su nombre, DNI o cualquier otro dato personal o profesional que fuese necesario.
+2. **Contratos/Puestos**: Para saber en qué periodos ha trabajado el año que corresponda a la productividad.
+3. **Vinculación a tipo de cuadrante**: Para saber en qué cuadrante está asignado durante un periodo de tiempo ya que, aunque el puesto indica en qué departamento ha realizado el trabajo, por cada departamento pueden existir varios cuadrantes diferentes y, por lo tanto, no determinarse en qué programa está ubicado el trabajador.
+4. **Asignaciones en cuadrantes**: Una vez extraidas las distintas vinculaciones que tiene un trabajador con los distintos cuadrantes en los que ha estado incluido, la forma más correcta de saber las fechas entre las que ha estado exactamente es mirar las asignaciones de estados de trabajo que ha tenido para, de esta forma, determinar con más exactitud que porcentajes de tiempo correspondería a cada programa en la productividad del trabajador.
+
+**Nota**:
+Un cuadrante podría contener varios programas con sus supervisores o supervisores intermedios debido a la gran cantidad de trabajadores que contendría, por lo que cierta parte de asignación de colaboradores a programas tendría que poder hacerse manualmente ya que no hay forma de discriminar si un trabajador hace un cambio de programa entre los de un mismo cuadrante.
+Con esta información se determina exactamente en qué cuadrantes/programas ha estado cada trabajador en cada periodo de tiempo, a excepción de los cuadrantes con varios programas y cuyos trabajadores no varían de cuadrante. Para estos casos exclusivos, se tendría que poder crear/editar la información de colaboradores en cambios de programa.
+
+#### Base de datos nueva (nuevas tablas)
+
+Las tablas para el almacenamiento de toda la información relativa a la productividad se realizará en la base de datos nueva. Estas tablas deberán contar una serie de campos mínimos que pueden ser los siguientes:
+
+1. **Programas**: Debe contener el año del programa (Por ejemplo 2025, significaría la productividad de jul-2025 a jun-2026), nombre del programa, el cuadrante al que se vinculará, el supervisor intermedio y el supervisor, y los colaboradores (trabajadores).
+2. **Objetivos**: Debe contener, tanto el detalle de los objetivos, cuyo contenido está descrito en la ficha de objetivos, como la consecución de esos objetivos.
+3. **Registro de informes**: Se debe vincular cada informe o documento que se genere con el programa, trabajador y año al que pertenezca por si fuese necesario reimprimirlo y poder ser eliminable cuando ya no sea necesario.
+4. **Documentos importados**: Debe contener la información vinculante entre los documentos subidos a cada objetivo y trabajador al que se refiere.
+5. **Documentos exportados**: Debe contener la información vinculante sobre los distintos informes o fichas que se hayan ido generando, ya sea como listados que se han pasado para la Comisión de Garantías como fichas o informes de "Variación de Objetivos" o "Cambios de Programa".
+
 ### Formularios a crear
+
+// TODO: Falta la inclusión de todos los formularios.
+
+### Filtros y listados
+
+Se necesitarán, como mínimo, una serie de listados para realizar el seguimiento y comunicación de información a la Comisión de Garantías sobre los objetivos para el año siguiente (fichas sin rellenar la parte de objetivos cumplidos), la consecución parcial/total de objetivos (fichas con la parte de objetivos cumplidos rellena), informe mensual de nuevas incorporaciones a programas, informe mensual de cambios de programa de colaboradores con informe mensual de variación de objetivos, además de los listados de los estados actuales sobre la información de documentos subida para la consecución de objetivos.
+
+- **Objetivos para el siguiente año**: Son las fichas con los objetivos de los colaboradores con la salvedad de que no tienen rellena la información sobre el cumplimiento de objetivos, ya que esta sólo sirve para informar a la Comisión de Garantías sobre cuales van a ser los objetivos de cada trabajador de cada programa para el año siguiente.
+- **Consecución parcial/total de objetivos**: Son las fichas con los objetivos de los colaboradores con toda la información existente sobre la consecución de objetivos ya realizada. Todas estas fichas se acompañan de un informe que indica el listado con toda la información resumida que se está generando.
+- **Informe mensual de nuevas incorporaciones a programas**: Se trata de un informe que resume las nuevas incorporaciones a los distintos programas y donde se incluyen todas las sin los objetivos cumplidos.
+- **Informe mensual de cambios de programa de colaboradores con informe mensual de variación de objetivos**: Se trata de un informe doble; por un lado se genera un informe indicando qué colaboradores han cambiado de programa y las fechas en las que ha estado en el programa anterior y el comienzo de la nueva, y por otro un informe de la variación de objetivos que se ha sufrido debido a esa diferencia de periodo de tiempo en distintos programas.
+- **Listados de los estados de los colaboradores**:
+  - _Estado de consecución de objetivos_: Se trataría de un listado donde se indique el estado de consecución de cada objetivo de cada colaborador de un programa específico.
+  - _Documentación enviada a Comisión de Garantías_: Se trata de un informe sobre la información que ya se ha generada en PDF o Excel y que está almacenada en el registro de informes para no olvidar enviar nada a la Comisión de Garantías.
