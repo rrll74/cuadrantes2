@@ -165,10 +165,49 @@ Las tablas para el almacenamiento de toda la información relativa a la producti
 3. **Registro de informes**: Se debe vincular cada informe o documento que se genere con el programa, trabajador y año al que pertenezca por si fuese necesario reimprimirlo y poder ser eliminable cuando ya no sea necesario.
 4. **Documentos importados**: Debe contener la información vinculante entre los documentos subidos a cada objetivo y trabajador al que se refiere.
 5. **Documentos exportados**: Debe contener la información vinculante sobre los distintos informes o fichas que se hayan ido generando, ya sea como listados que se han pasado para la Comisión de Garantías como fichas o informes de "Variación de Objetivos" o "Cambios de Programa".
+6. **Objetivos por defecto**: Debe contener la información relativa a los objetivos obligatorios para los colaboradores, para los supervisores o supervisores intermedios y los objetivos por defecto en un programa específico.
 
 ### Formularios a crear
 
-// TODO: Falta la inclusión de todos los formularios.
+#### Formulario para agregar/editar un programa y colaboradores
+
+El formulario debe tener, al menos, la siguiente información:
+
+1. Año del programa: Indicará el año, el día 1 de julio, en el que comienza el programa y el año siguiente, el 30 de junio, es cuando terminaría el periodo de vigencia del programa.
+2. Nombre del programa: Como norma general hará referencia parecida a la del cuadrante donde se incluye, aunque si pueden existir más programas en ese mismo cuadrante deberá llevar algún distintivo que lo diferencie.
+3. Cuadrante: Se elegirá de entre los Cuadrantes existentes. Este campo no es obligatoria ya que puede existir un programa que obtenga los colaboradores de varios cuadrantes como puede ser el programa que controla a los supervisores intermedios.
+4. Supervisor intermedio: Se elegirá de entre cualquiera de los trabajadores, ya que el propio supervisor intermedio no tiene porqué estar incluido en el cuadrante elegido, puede estar en otro. Este campo no es obligatorio ya que puede no existir un supervisor intermedio.
+5. Supervisor: Al igual que el Supervisor intermedio, se puede elegir de entre cualquiera de los trabajadores. Un mismo supervisor puede serlo de varios programas al mismo tiempo, sin embargo un Supervisor intermedio solo puede serlo de uno.
+6. Colaboradores: Como norma general, los colaboradores pertenecerán al mismo cuadrante, aunque excepcionalmente pueden existir algunos colaboradores que se encuentren en otros cuadrantes. Es por esto que, deberá existir un botón que permita incluir a todos los trabajadores de un cuadrante como colaboradores del programa, excluir los que se estimen oportunos y, en el desplegable multiple poder elegir entre todos los trabajadores existentes para incluir esos trabajadores que excepcionalmente no pertenezcan al cuadrante.
+7. Programa supervisores: Una casilla de verificación que indique si el programa es el de control del supervisor a supervisores intermedios.
+8. Botón agregar/editar: Permite incluir esta información en la base de datos, agregándola si es nueva o modificándola si ye existía.
+9. Botón cancelar: Permite salir del formulario sin guardar ningún cambio
+
+#### Listado de programas
+
+El formulario contendrá:
+
+1. Una tabla con la lista de programas, su supervisor, el supervisor intermedio (si hay), un botón de editar que llevaría al formulario de edición de programa, un botón de eliminar que eliminaría toda la información del programa (hay que avisar muy claramente que se perdería toda la información que cuelga de ese programa) y un botón de colaboradores que llevaría al listado de colaboradores del programa.
+2. Un botón de agregar un nuevo programa.
+3. Un botón para exportar la información en formato PDF y Excel.
+4. Un buscador en el que al escribir se vayan filtrando las filas cuyos caracteres escritos coincidan con alguno de los campos de ella total o parcialmente.
+
+#### Listado de colaboradores
+
+El formulario contendrá:
+
+1. Una tabla con la lista de colaboradores, la fechas de inicio y fin en el programa (si es un trabajador que está todo el año en el mismo programa se pondría la fecha de inicio y fin del programa), la lista de los objetivos no cumplidos, un botón de editar la información que llevaría al formulario del colaborador y un botón de eliminar que eliminase toda la información relativa a ese colaborador en ese programa, avisando de la pérdida de esa información.
+2. Un proceso que permita agregar directamente todos los trabajadores del cuadrante del programa, quitar o insertar los que se necesiten, aunque sean de otros cuadrantes, y después aplicarles los objetivos obligatorios y por defecto para ese programa de forma general. Si los trabajadores (colaboradores) ya están incluidos en el programa se excluirán del listado de este proceso para no duplicarlos.
+
+#### Formulario de colaborador
+
+#### Formulario de supervisor/supervisor intermedio
+
+#### Formulario de detección automática de cambios de programa e inclusión en el nuevo programa
+
+#### Listado de objetivos obligatorios
+
+#### Listado de objetivos por defecto por programa
 
 ### Filtros y listados
 
