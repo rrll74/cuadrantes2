@@ -173,24 +173,25 @@ Las tablas para el almacenamiento de toda la información relativa a la producti
 
 El formulario debe tener, al menos, la siguiente información:
 
-1. Año del programa: Indicará el año, el día 1 de julio, en el que comienza el programa y el año siguiente, el 30 de junio, es cuando terminaría el periodo de vigencia del programa.
-2. Nombre del programa: Como norma general hará referencia parecida a la del cuadrante donde se incluye, aunque si pueden existir más programas en ese mismo cuadrante deberá llevar algún distintivo que lo diferencie.
+1. Año del programa (obligatorio): Indicará el año, el día 1 de julio, en el que comienza el programa y el año siguiente, el 30 de junio, es cuando terminaría el periodo de vigencia del programa.
+2. Nombre del programa (obligatorio): Como norma general hará referencia parecida a la del cuadrante donde se incluye, aunque si pueden existir más programas en ese mismo cuadrante deberá llevar algún distintivo que lo diferencie.
 3. Cuadrante: Se elegirá de entre los Cuadrantes existentes. Este campo no es obligatoria ya que puede existir un programa que obtenga los colaboradores de varios cuadrantes como puede ser el programa que controla a los supervisores intermedios.
 4. Supervisor intermedio: Se elegirá de entre cualquiera de los trabajadores, ya que el propio supervisor intermedio no tiene porqué estar incluido en el cuadrante elegido, puede estar en otro. Este campo no es obligatorio ya que puede no existir un supervisor intermedio.
-5. Supervisor: Al igual que el Supervisor intermedio, se puede elegir de entre cualquiera de los trabajadores. Un mismo supervisor puede serlo de varios programas al mismo tiempo, sin embargo un Supervisor intermedio solo puede serlo de uno.
-6. Colaboradores: Como norma general, los colaboradores pertenecerán al mismo cuadrante, aunque excepcionalmente pueden existir algunos colaboradores que se encuentren en otros cuadrantes. Es por esto que, deberá existir un botón que permita incluir a todos los trabajadores de un cuadrante como colaboradores del programa, excluir los que se estimen oportunos y, en el desplegable multiple poder elegir entre todos los trabajadores existentes para incluir esos trabajadores que excepcionalmente no pertenezcan al cuadrante.
-7. Programa supervisores: Una casilla de verificación que indique si el programa es el de control del supervisor a supervisores intermedios.
-8. Botón agregar/editar: Permite incluir esta información en la base de datos, agregándola si es nueva o modificándola si ye existía.
-9. Botón cancelar: Permite salir del formulario sin guardar ningún cambio
+5. Supervisor (obligatorio): Al igual que el Supervisor intermedio, se puede elegir de entre cualquiera de los trabajadores. Un mismo supervisor puede serlo de varios programas al mismo tiempo, sin embargo un Supervisor intermedio solo puede serlo de uno.
+6. Es Programa de supervisores (obligatorio): Una casilla de verificación que indique si el programa es el de control del supervisor a supervisores intermedios.
+7. Botón agregar/editar: Permite incluir esta información en la base de datos, agregándola si es nueva o modificándola si ye existía.
+8. Botón cancelar: Permite salir del formulario sin guardar ningún cambio
 
 #### Listado de programas
 
 El formulario contendrá:
 
-1. Una tabla con la lista de programas, su supervisor, el supervisor intermedio (si hay), un botón de editar que llevaría al formulario de edición de programa, un botón de eliminar que eliminaría toda la información del programa (hay que avisar muy claramente que se perdería toda la información que cuelga de ese programa) y un botón de colaboradores que llevaría al listado de colaboradores del programa.
+1. Una tabla con la lista de programas, su supervisor, el supervisor intermedio (si hay), un botón para editar los colaboradors, un botón de editar que llevaría al formulario de edición de programa, un botón de eliminar que eliminaría toda la información del programa (hay que avisar muy claramente que se perdería toda la información que cuelga de ese programa) y un botón de colaboradores que llevaría al listado de colaboradores del programa.
 2. Un botón de agregar un nuevo programa.
-3. Un botón para exportar la información en formato PDF y Excel.
-4. Un buscador en el que al escribir se vayan filtrando las filas cuyos caracteres escritos coincidan con alguno de los campos de ella total o parcialmente.
+3. Un botón de agregar un nuevo supervisor.
+4. Un botón de agregar un nuevo supervisor intermedio.
+5. Un botón para exportar la información en formato PDF y Excel.
+6. Un buscador en el que al escribir se vayan filtrando las filas cuyos caracteres escritos coincidan con alguno de los campos de ella total o parcialmente.
 
 #### Listado de colaboradores
 
@@ -199,24 +200,49 @@ El formulario contendrá:
 1. Una tabla con la lista de colaboradores, la fechas de inicio y fin en el programa (si es un trabajador que está todo el año en el mismo programa se pondría la fecha de inicio y fin del programa), la lista de los objetivos no cumplidos, un botón de editar la información que llevaría al formulario del colaborador y un botón de eliminar que eliminase toda la información relativa a ese colaborador en ese programa, avisando de la pérdida de esa información.
 2. Un proceso que permita agregar directamente todos los trabajadores del cuadrante del programa, quitar o insertar los que se necesiten, aunque sean de otros cuadrantes, y después aplicarles los objetivos obligatorios y por defecto para ese programa de forma general. Si los trabajadores (colaboradores) ya están incluidos en el programa se excluirán del listado de este proceso para no duplicarlos.
 
+// FIXME: NO ES EXACTAMENTE ASÍ, SEGÚN LA PLANIFICACIÓN DE LAS IMÁGENES REALIZADAS
+
 #### Formulario de colaborador
 
-#### Formulario de supervisor/supervisor intermedio
+// TODO: POR DETALLAR
+
+#### Formulario de lista de supervisores y supervisores intermedios
+
+El formulario contendrá:
+
+1. Un radio button con dos opciones: una para Supervisores y otra para Supervisores intermedios.
+2. Un botón de nuevo supervisor.
+3. Un botón de nuevo supervisor intermedio.
+4. Una tabla con la lista de Supervisores intermedios, supervisores y las opciones de editar y eliminar en sendos botones. Si el radio button que está elegido es el de supervisores la columna de supervisores intermedios no aparecerá en la lista.
+
+#### Formulario de agregar/editar supervisor
+
+El formulario contendrá, además del dato del supervisor que se esté editando (en su caso), un selector donde se podrá elegir a un trabajador de entre todos los existentes en la base de datos y dos botones, uno para agregarlo/editarlo y otro para cancelar el proceso.
+
+#### Formulario de agrgar/editar supervisor intermedio
+
+El formulario contendrá, además del dato del supervisor intermedio que se esté editando (en su caso), un selector donde se podrá elegir a un trabajador de entre todos los existentes en la base de datos, un selector donde se podrá elegir el supervisor entre los ya creados y dos botones, uno para agregarlo/editarlo y otro para cancelar el proceso.
 
 #### Formulario de detección automática de cambios de programa e inclusión en el nuevo programa
 
+// TODO: POR DETALLAR
+
 #### Listado de objetivos obligatorios
 
+// TODO: POR DETALLAR
+
 #### Listado de objetivos por defecto por programa
+
+// TODO: POR DETALLAR
 
 ### Filtros y listados
 
 Se necesitarán, como mínimo, una serie de listados para realizar el seguimiento y comunicación de información a la Comisión de Garantías sobre los objetivos para el año siguiente (fichas sin rellenar la parte de objetivos cumplidos), la consecución parcial/total de objetivos (fichas con la parte de objetivos cumplidos rellena), informe mensual de nuevas incorporaciones a programas, informe mensual de cambios de programa de colaboradores con informe mensual de variación de objetivos, además de los listados de los estados actuales sobre la información de documentos subida para la consecución de objetivos.
 
 - **Objetivos para el siguiente año**: Son las fichas con los objetivos de los colaboradores con la salvedad de que no tienen rellena la información sobre el cumplimiento de objetivos, ya que esta sólo sirve para informar a la Comisión de Garantías sobre cuales van a ser los objetivos de cada trabajador de cada programa para el año siguiente.
-- **Consecución parcial/total de objetivos**: Son las fichas con los objetivos de los colaboradores con toda la información existente sobre la consecución de objetivos ya realizada. Todas estas fichas se acompañan de un informe que indica el listado con toda la información resumida que se está generando.
+- **Consecución parcial/total de objetivos para Comisión de Garantías**: Son las fichas con los objetivos de los colaboradores con toda la información existente sobre la consecución de objetivos ya realizada. Todas estas fichas se acompañan de un informe que indica el listado con toda la información resumida que se está generando.
 - **Informe mensual de nuevas incorporaciones a programas**: Se trata de un informe que resume las nuevas incorporaciones a los distintos programas y donde se incluyen todas las sin los objetivos cumplidos.
 - **Informe mensual de cambios de programa de colaboradores con informe mensual de variación de objetivos**: Se trata de un informe doble; por un lado se genera un informe indicando qué colaboradores han cambiado de programa y las fechas en las que ha estado en el programa anterior y el comienzo de la nueva, y por otro un informe de la variación de objetivos que se ha sufrido debido a esa diferencia de periodo de tiempo en distintos programas.
 - **Listados de los estados de los colaboradores**:
   - _Estado de consecución de objetivos_: Se trataría de un listado donde se indique el estado de consecución de cada objetivo de cada colaborador de un programa específico.
-  - _Documentación enviada a Comisión de Garantías_: Se trata de un informe sobre la información que ya se ha generada en PDF o Excel y que está almacenada en el registro de informes para no olvidar enviar nada a la Comisión de Garantías.
+  - _Documentación enviada y faltante a Comisión de Garantías_: Se trata de un informe sobre la información que ya se ha generada en PDF o Excel y que está almacenada en el registro de informes para no olvidar enviar nada a la Comisión de Garantías.
