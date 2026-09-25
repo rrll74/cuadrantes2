@@ -142,6 +142,28 @@ describe("parte-trabajo-pdf", () => {
       expect.stringContaining("E-PT-456-2"),
     );
     expect(pdfInstances[0].addImage).toHaveBeenCalled();
+
+    expect(pdfInstances[0].text).toHaveBeenCalledWith(
+      "Otras órdenes generadas:",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(pdfInstances[0].text).toHaveBeenCalledWith(
+      "PT-456-2 Servicio B",
+      expect.any(Number),
+      expect.any(Number),
+    );
+
+    expect(pdfInstances[1].text).toHaveBeenCalledWith(
+      "Otras órdenes generadas:",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(pdfInstances[1].text).toHaveBeenCalledWith(
+      "PT-456-1 Servicio A",
+      expect.any(Number),
+      expect.any(Number),
+    );
   }, 10000);
 
   it("mantiene el aspecto de las imagenes sin deformarlas", async () => {

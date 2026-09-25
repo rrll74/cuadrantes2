@@ -22,6 +22,7 @@ export const renderParteTrabajoPdf = (
   servicio: string,
   numeroDocumentoConSufijo: string,
   logoBase64: string,
+  otrasOrdenesGeneradas: string = "",
 ) => {
   const layout = createDefaultLayout();
   const ctx = {
@@ -52,6 +53,10 @@ export const renderParteTrabajoPdf = (
 
   const servicioText = servicio.substring(0, 60);
   addFieldBox(ctx, "Servicio de destino:", servicioText);
+
+  if (otrasOrdenesGeneradas.trim()) {
+    addFieldBox(ctx, "Otras órdenes generadas:", otrasOrdenesGeneradas);
+  }
 
   addFieldBox(ctx, "Lugar de realización:", data.direccion);
 

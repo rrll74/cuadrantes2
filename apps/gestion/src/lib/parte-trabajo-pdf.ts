@@ -74,6 +74,23 @@ export const generateParteTrabajoPdfFromData = async (data: ParteTrabajo) => {
         servicios.length > 1
           ? `${data.numeroDocumento}-${i + 1}`
           : data.numeroDocumento;
+      const otrasOrdenesGeneradas =
+        servicios.length > 1
+          ? servicios
+              .map((otroServicio, index) => ({
+                numero:
+                  servicios.length > 1
+                    ? `${data.numeroDocumento}-${index + 1}`
+                    : data.numeroDocumento,
+                servicio: otroServicio,
+                index,
+              }))
+              .filter(({ index }) => index !== i)
+              .map(({ numero, servicio: servicioDestino }) =>
+                `${numero} ${servicioDestino}`.trim(),
+              )
+              .join(", ")
+          : "";
 
       const pdf = new jsPDF({
         orientation: "portrait",
@@ -87,6 +104,7 @@ export const generateParteTrabajoPdfFromData = async (data: ParteTrabajo) => {
         servicio,
         numeroDocumentoConSufijo,
         logoBase64,
+        otrasOrdenesGeneradas,
       );
 
       // Guardar cada PDF con nombre único

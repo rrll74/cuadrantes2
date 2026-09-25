@@ -197,14 +197,67 @@ El formulario contendrá:
 
 El formulario contendrá:
 
-1. Una tabla con la lista de colaboradores, la fechas de inicio y fin en el programa (si es un trabajador que está todo el año en el mismo programa se pondría la fecha de inicio y fin del programa), la lista de los objetivos no cumplidos, un botón de editar la información que llevaría al formulario del colaborador y un botón de eliminar que eliminase toda la información relativa a ese colaborador en ese programa, avisando de la pérdida de esa información.
-2. Un proceso que permita agregar directamente todos los trabajadores del cuadrante del programa, quitar o insertar los que se necesiten, aunque sean de otros cuadrantes, y después aplicarles los objetivos obligatorios y por defecto para ese programa de forma general. Si los trabajadores (colaboradores) ya están incluidos en el programa se excluirán del listado de este proceso para no duplicarlos.
-
-// FIXME: NO ES EXACTAMENTE ASÍ, SEGÚN LA PLANIFICACIÓN DE LAS IMÁGENES REALIZADAS
+1. La información del Supervisor, Supervisor intermedio (si existe) y el cuadrante por defecto del programa.
+2. Una lista seleccionable que contenga todos los trabajadores del cuadrante por defecto que aún no estén incluidos en la tabla de colaboradores (para evitar duplicarlos), en el que se sea multiselección.
+3. Un botón de Agregar trabajador/es que permita agregar los trabajadores seleccionados a la tabla con la lista de colaboradores.
+4. Un selector que incluya el listado de trabajadores activos durante el tiempo de vigencia del programa para prevenir que se incluya algún trabajador que pudiese estar inmerso en un cuadrante que fuese distinto del incluido en programa por defecto.
+5. Una tabla con la lista de colaboradores, la fechas de inicio y fin en el programa (si es un trabajador que está todo el año en el mismo programa se pondría la fecha de inicio y fin del programa, aunque puede ser un trabajador que haya tenido varios periodos por cortes de contrato, por lo que puee tener varios periodos), la lista de los objetivos no cumplidos (esta columnao deberá quitarse si el cálculo para ponerla es demasiado complejo y retrasa mucho la exposición del listado), un botón de modificar la información que llevaría al formulario del colaborador y un botón de eliminar que eliminase toda la información relativa a ese colaborador en ese programa, avisando de la pérdida de esa información.
 
 #### Formulario de colaborador
 
-// TODO: POR DETALLAR
+El Formulario del colaborador mostrará inicialmente una tabla con todos los periodos de inicio y fin del trabajador como contratos, de manera que se pueden dar 3 casos para cada línea de los periodos de contrato de un trabajador:
+
+1. Que el inicio sea igual o anterior al 1 de julio del periodo de productividad, por lo que se marcará como inicio el 1 de julio.
+2. Que el fin sea igual o posterior al 30 de junio del periodo de productividad, por lo que se marcará como fin el 30 de junio.
+3. Que las fechas de inicio o fin, o ambas, estén incluidas en el periodo de productividad, por lo que se pondrán esas fechas de inicio y fin.
+
+Por cada una de esas líneas de periodos se incluirá un botón de "Agregar periodo" que agregará el periodo a una segunda tabla dentro de este mismo formulario que mostrará lo siguiente por cada columna:
+
+1. Columna Periodo: indicará el inicio y fin de un periodo para objetivos del colaborador en ese programa.
+2. Columna días: indicará el número de días entre la fecha de inicio y la de fin y el porcentaje que supone del periodo de productividad. Por ejemplo, 31 días (8,4931%)
+3. Columna Objetivos: indicará los objetivos que tiene marcados el trabajador para ese periodo y si los tiene cumplidos o no inidcando un check ✅ de conseguido o un aspa ❎ en caso de no conseguido.
+4. Columna de opciones: incluirá tres botones:
+   1. Editar periodo: lanzará un popup que permitirá editar las fechas de inicio y fin y tendrá dos botones, uno para guardar el periodo y otro para cancelar la operación. Los seleccionables de las fechas serán desplegables de tipo fecha y antes de almacenar la información se deberá verificar que el trabajador no tiene otros periodos creados que solapen al que se desea guardar.
+   2. Editar objetivos: que llevará al formulario de inserción/edición de objetivos del trabajador para un periodo.
+   3. Eliminar: eliminará la información relativa al periodo y objetivos de ese trabajador. Se tiene que indicar claramente que esa información no podrá ser recuperada, ya que con esa eliminación, si se han subido documentos de consecución de objetivos para ese periodo pueden perderse definitivamente.
+
+#### Formulario de inserción/edición objetivos de un trabajador para un periodo
+
+El formularico contendrá:
+
+1. Un botón de "Insertar objetivos Obligatorios" que insertará los objetivos obligatorios para los colaboradores en la tabla de más abajo.
+2. Un botón de "Insertar objetivos por defecto para el Programa" que insertará los objetivos marcados para ese programa específico por defecto.
+3. Un botón de "Agregar objetivo" que lanzará el formulario de inserción/edición de objetivo de trabajador.
+4. Tabla de objetivos. Tendrá las siguientes columnas de información (las columnas Resultado, Superado y Puntuación serán sólo informativas para que, si se va a borrar el objetivo se sepa que ya tiene información o documentos vinculados con él y que serán borrados igualmente):
+   1. Columna Obligatorio: indicará si es un objetivo obligatorio, por defecto para el programa o creado para este trabajador. Si es obligatorio, en la edición sólo se podrá modificar el umbral debido a que por el periodo que tenga asignado este trabajador, este objetivo pueda ser inferior la marcado inicialmente.
+   2. Columna Descripción: indicará el detalle del objetivo.
+   3. Columna Tipo: indicará si es un objetivo individual o colectivo.
+   4. Columna Ponderación: indicará qué peso se le asigna a este objetivo. Se ha de tener en cuenta que la suma de todas las ponderaciones debe dar el 100%.
+   5. Columna Categoría: indicará si es del tipo número o porcentaje para el objetivo.
+   6. Columna Umbral: indicará el número mínimo o máximo para superar el objetivo. Si es mínimo o máximo vendrá marcado por el campo de Superación que sería al alza o baja, respectivamente.
+   7. Columna Resultado: indicará el número alcanzado respecto del objetivo marcado en el umbral.
+   8. Columna Superado: indicará si ha sido superado o no, según la columna resultado comparada con la de umbral, teniendo en cuenta la de superación (alza o baja).
+   9. Columna Puntuación: indicará como número el valor que tenga asignado en la ponderación, dependiendo si lo ha superado o no.
+   10. Columna Opciones: contendrá dos botones, uno para eliminar el objetivo (se deberá avisar que el borrado es irrecuperable y que se puede perder información de documentos ya subidos) y otro para editar que llevará al formulario de inserción/edición de objetivos de un trabajador.
+
+#### Formulario de inserción/edición de objetivo de trabajador
+
+Si lo que se quiere hacer es editar el objetivo y este está marcado como obligatorio, sólo se podrá editar el campo de umbral, ya que los demás, por el valor de este campo no debería poderse cambiar.
+En el caso de inserción de un nuevo objetivo, los campos a poder editar son:
+
+- Obligatorio: será un radio button con las opciones de Sí y No.
+- Descripción: será un input o memo que permita un texto largo de unos 500 caracteres como máximo.
+- Tipo: será un radio button con las opciones de Individual y Colectivo.
+- Ponderación: será un input en el que se podrá poner un valor numérico y que indicará un valor porcentual de peso del objetivo respecto del total de objetivos.
+- Categoría: será un radio button con las opciones Número y Porcentaje.
+- Umbral: será un input en el que se podrá poner un valor numérico y que indicará el valor mínimo o máximo a alcanzar para cumplir el objetivo.
+- Superación: será un radio button con las opciones de Alza y Baja.
+
+Esta información irá directamente vinculada con la tabla que corresponda de la base de datos de trabajador, periodo, programa y objetivos.
+
+#### Formulario general de inserción/edición de objetivo
+
+Es totalmente similar al formulario de inserción/edición de objetivo para trabajador, con la salvedad de que hay que especificar un campo adicional: si es para un Supervisor, Un Supervisor intermedio o un Colaborador.
 
 #### Formulario de lista de supervisores y supervisores intermedios
 
@@ -229,11 +282,11 @@ El formulario contendrá, además del dato del supervisor intermedio que se est�
 
 #### Listado de objetivos obligatorios
 
-// TODO: POR DETALLAR
+// TODO: POR DETALLAR, AUNQUE REFERENCIARÁ AL FORMULARIO GENERAL DE INSERCION/EDICIÓN DE OBJETIVO
 
 #### Listado de objetivos por defecto por programa
 
-// TODO: POR DETALLAR
+// TODO: POR DETALLAR, AUNQUE REFERENCIARÁ AL FORMULARIO GENERAL DE INSERCION/EDICIÓN DE OBJETIVO
 
 ### Filtros y listados
 
