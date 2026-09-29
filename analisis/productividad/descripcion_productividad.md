@@ -5,11 +5,11 @@
 Se pretende generar una nueva funcionalidad o módulo para la productividad (también llamada Evaluación al Desempeño) dentro del apartado general de Servicios Operativos que agrupe los trabajadores (que pasarán a llamarse colaboradores cuando se refieran en este apartado) con un supervisor. A su vez puede existir un supervisor que gestione a una serie de supervisores con lo que estos supervisores pasarían a llamarse supervisores intermedios.
 El periodo de duración de cada productividad se agrupará anualmente y se extenderá desde el 1 de julio de un año hasta el 30 de junio del año siguiente.
 La productividad será marcada para supervisores, supervisores intermedios y colaboradores, y son diferentes para cada categoría de las señaladas. Incluso dentro de los grupos de colaboradores puede existir diferencias entre los objetivos de un trabajador y otro, aunque existirán unos objetivos obligatorios comunes a todos los colaboradores, otros comunes a todos los supervisores intermedios, otros comunes a los supervisores y otros genéricos dentro del grupo al que pertenezcan, de manera que estos últimos objetivos pueden asignarse al grupo completo y después modificarse individualmente, siempre que no sea uno de los objetivos obligatorios.
-Esta distribución viene totalmente explicada en el documento del reglamento redactado por la Sección de Personal en el fichero "reglamento-manual_evaluacion-desempeno-2025.pdf".
+Esta distribución viene totalmente explicada en el documento del reglamento redactado por la Sección de Personal en el fichero "reglamento-manual_evaluacion-desempeno-2025.pdf" (también en formato Markdown para mejor compresión del agente de IA .md) en la carpeta `analisis/productividad`.
 
 ## Ficha de Objetivos
 
-Los objetivos se plasmarán en una hoja resumen. Ejemplos de estas fichas se pueden encontrar en los documentos "ed_capataces_encargados.pdf", "ed_administracion.pdf" y "ed_edificaciones.pdf". Contendrá la siguiente información:
+Los objetivos se plasmarán en una hoja resumen; ejemplos de la hora resumen para supervisores (y supervisores intermedios) es "FICHA_RESULTADO_SUPERVISORES-INTERMEDIOS.pdf" y para colaboradores "FICHA_RESULTADO_COLABORADORES.pdf". Ejemplos de estas fichas se pueden encontrar en los documentos "FICHA_EJEMPLO_COLABORADOR.pdf", "FICHA_EJEMPLO_SUPERVISOR-INTERMEDIO.pdf" y "FICHA_EJEMPLO_SUPERVISOR.pdf". También existen herramientas en formato EXCEL para generar esta información de los ficheros anteriores pdf; las herramientas son "HERRAMIENTA_ED_OBJETIVOS COLABORADORES.xlsx" y "HERRAMIENTA_ED_OBJETIVOS SSOO-SUPERVISORES.xlsx". Todos estos documentos se encuentran en la carpeta `analisis/productividad` y contienen también los mismos ficheros con el mismo nombre, pero en formato Markdown (.md), para mejor compresión del agente de IA. Contendrá la siguiente información:
 
 ### Cabecera 1
 
@@ -165,9 +165,11 @@ Las tablas para el almacenamiento de toda la información relativa a la producti
 3. **Registro de informes**: Se debe vincular cada informe o documento que se genere con el programa, trabajador y año al que pertenezca por si fuese necesario reimprimirlo y poder ser eliminable cuando ya no sea necesario.
 4. **Documentos importados**: Debe contener la información vinculante entre los documentos subidos a cada objetivo y trabajador al que se refiere.
 5. **Documentos exportados**: Debe contener la información vinculante sobre los distintos informes o fichas que se hayan ido generando, ya sea como listados que se han pasado para la Comisión de Garantías como fichas o informes de "Variación de Objetivos" o "Cambios de Programa".
-6. **Objetivos por defecto**: Debe contener la información relativa a los objetivos obligatorios para los colaboradores, para los supervisores o supervisores intermedios y los objetivos por defecto en un programa específico.
+6. **Objetivos por defecto**: Debe contener la información relativa a los objetivos obligatorios para los colaboradores, para los supervisores o supervisores intermedios y los objetivos por defecto en un programa específico. Esta información deberá ser copiada a los objetivos de un trabajador para un periodo de tiempo específico y en un programa en particular, por lo que la edición o borrado de uno de estos objetivos no alterará los datos existentes en los objetivos creados y/o conseguidos por los trabajadores, ya que sólo sirven de plantilla para el rellenado de información.
 
 ### Formularios a crear
+
+El diseño básico de la colocación de formularios está detallado en el documento "Formularios ED.pdf.
 
 #### Formulario para agregar/editar un programa y colaboradores
 
@@ -272,23 +274,79 @@ El formulario contendrá:
 
 El formulario contendrá, además del dato del supervisor que se esté editando (en su caso), un selector donde se podrá elegir a un trabajador de entre todos los existentes en la base de datos y dos botones, uno para agregarlo/editarlo y otro para cancelar el proceso.
 
-#### Formulario de agrgar/editar supervisor intermedio
+#### Formulario de agregar/editar supervisor intermedio
 
 El formulario contendrá, además del dato del supervisor intermedio que se esté editando (en su caso), un selector donde se podrá elegir a un trabajador de entre todos los existentes en la base de datos, un selector donde se podrá elegir el supervisor entre los ya creados y dos botones, uno para agregarlo/editarlo y otro para cancelar el proceso.
 
 #### Formulario de detección automática de cambios de programa e inclusión en el nuevo programa
 
+Para detectar los cambios automáticos den Programas se parte de que cada trabajador está incluido en el programa del cuadrante al que pertenezca, de esta forma, se puede saber rápidamente:
+
+1. Los nuevos colaboradores de un programa debido a que un trabajador tenga asignaciones en los estados de trabajo durante el periodo de la productividad.
+2. Los cambios de Programa de un trabajador debido a la detección de asignaciones en los estados de trabajo en un cuadrante diferente al del Programa en el que ya está incluido.
+
+Se interpretarán como nuevas incorporaciones, si no existen inclusiones del trabajador en ningún Programa ese año, y cambios de Programa, si ya existen en algún otro.
+
+El formulario de detección de cambios contendrá dos tablas con la siguiente información:
+
+Un selector de año que indicará el año de la productividad. Seguidamente, tras su selección, se indicará el periodo que conlleva esa productividad o evaluación al desempeño que lleva desde el 1 de julio del año marcado hasta el 30 de junio del año siguiente.
+
+_Tabla de nuevas incorporaciones_ contiene los siguientes campos:
+
+1. Trabajador: nombre del trabajador detectado.
+2. Periodo: fechas de inicio y fin detectadas en el cuadrante, según las asignaciones de estados de trabajo.
+3. Cuadrante: cuadrante donde se han detectado las asignaciones en las fechas marcadas.
+4. Programa propuesto: Según los programas que tenga asignado ese cuadrante se incluirá su nombre y un botón de "Incluir". Un cuadrante puede tener varios programas asignados, por lo que puede ocurrir que en esta celda se tengan que incluir varios Programas con sus respectivos botones de inclusión.
+
+_Tabla de cambios de Programa_ contiene los siguientes campos o columnas:
+
+1. Trabajador: nombre del trabajador detectado.
+2. Periodo programa: último periodo del programa en el que estuvo incluido.
+3. Programa: último programa en el que estuvo incluido.
+4. Periodo: fechas de inicio y fin detectadas en el cuadrante, según las asignaciones de estados de trabajo.
+5. Cuadrante: cuadrante donde se han detectado las asignaciones en las fechas marcadas.
+6. Programa propuesto: Según los programas que tenga asignado ese cuadrante se incluirá su nombre y un botón de "Incluir". Un cuadrante puede tener varios programas asignados, por lo que puede ocurrir que en esta celda se tengan que incluir varios Programas con sus respectivos botones de inclusión.
+
+#### Listado de objetivos obligatorios por tipo de trabajador y por defecto por Programa
+
+Este listado contendrá la información de los distintos objetivos que se podrán utilizar por defecto en los siguientes casos:
+
+1. Cuando se deseen asignar los objetivos obligatorios por defecto para un tipo de trabajador (Supervisor, Supervisor intermedio o colaborador).
+2. Cuando se deseen asignar los objetivos por defecto de un programa en particular a un trabajador específico.
+
+Este formulario contendrá:
+
+1. Un botón de Agregar objetivo que llevará al formulario de insertar/eliminar objetivo por defecto.
+2. Una tabla con las siguientes columnas:
+   1. Tipo trabajador: indicará si el objetivo creado es para un tipo específico de trabajador (Supervisor, Supervisor Intermedio o Colaborador).
+   2. Obligatorio: indicará si el objetivo creado es de los obligatorios para ese tipo de trabajador o no lo es. En caso de no serlo, tendrá que tener un programa por defecto asignado.
+   3. Descripción: indicará el texto específico que describe el objetivo a cumplir por el trabajador.
+   4. Programa: indicará el Programa por defecto al que se asignará este objetivo, que deberá ser No obligatorio.
+   5. Opciones: Un botón de editar que llevará al formulario de insertar/editar objetivo por defecto y un botón de eliminar, que borrará este objetivo de la base de datos. El borrado de este tipo de objetivos debe estar muy claramente indicado ya que conllevará toda la información que dependa de ellos, que puede ser mucha ya que los trabajadores pueden tener este objetivo asignado, así como documentación y cumplimiento de objetivos relacionados con ello. En este sentido, se tiene que estudiar bien la base de datos para saber si cuando se crea un objetivo para un trabajador para un periodo específico en un Programa, se hace la copia de información que exista en os objetivos por defecto o se referencia a la tabla correspondiente.
+
+#### Formulario de insertar/editar objetivo por defecto
+
+Este tipo de formulario contendrá:
+
+1. Tipo de trabajador: será un selector donde se podrá seleccionar si es supervisor, supervisor intermedio o colaborador.
+2. Programa por defecto: será un selector que contendrá los distintos programas existentes y que puede quedar vacío. En tal caso, este tipo de objetivo será generico para el tipo de trabajador elegido.
+3. Un cuadro con la información del objetivo, aunque no editable este mismo formulario. Si aún no se ha dado ninguna, se incluirán unos valores por defecto para mostrar y se indicará que todavía no están cumplimentados los datos. Se podrá editar a través de un botón que se incluya en el propio cuadro. La información contenida en el cuadro será toda la que se puede modificar en un formulario de inserción/edición de objetivos de un trabajador. Al clicar sobre el botón de editar se lanzará el formulario de edición de objetivos de un trabajador.
+4. Un botón de Guardar que almacenará la información en la base de datos.
+5. Un botón de Cancelar que volverá al listado de objetivos obligatorios por tipo de trabajador por defecto por Programma.
+
+#### Formulario de consecución de objetivos de un trabajador para un programa
+
 // TODO: POR DETALLAR
 
-#### Listado de objetivos obligatorios
+#### Formulario de gestión de documentación de un trabajador
 
-// TODO: POR DETALLAR, AUNQUE REFERENCIARÁ AL FORMULARIO GENERAL DE INSERCION/EDICIÓN DE OBJETIVO
+Este formulario puede ser referenciado por el formulario de consecución de objetivos de un trabajador para un programa.
 
-#### Listado de objetivos por defecto por programa
-
-// TODO: POR DETALLAR, AUNQUE REFERENCIARÁ AL FORMULARIO GENERAL DE INSERCION/EDICIÓN DE OBJETIVO
+// TODO: POR DETALLAR
 
 ### Filtros y listados
+
+// TODO: POR DETALLAR TODOS LOS FILTROS Y LISTADOS DE ESTA SECCIÓN
 
 Se necesitarán, como mínimo, una serie de listados para realizar el seguimiento y comunicación de información a la Comisión de Garantías sobre los objetivos para el año siguiente (fichas sin rellenar la parte de objetivos cumplidos), la consecución parcial/total de objetivos (fichas con la parte de objetivos cumplidos rellena), informe mensual de nuevas incorporaciones a programas, informe mensual de cambios de programa de colaboradores con informe mensual de variación de objetivos, además de los listados de los estados actuales sobre la información de documentos subida para la consecución de objetivos.
 
