@@ -3,6 +3,23 @@
 # Detiene la ejecución si cualquier comando falla
 set -e
 
+# Detecta el comando de docker-compose correcto según la versión de Ubuntu
+detect_docker_compose() {
+    if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+        if [[ "$VERSION_ID" == "26.04" && "$ID" == "ubuntu" ]]; then
+            echo "docker compose"
+        else
+            echo "docker-compose"
+        fi
+    else
+        # Fallback a docker-compose si no se puede determinar la versión
+        echo "docker-compose"
+    fi
+}
+
+DOCKER_COMPOSE_CMD=$(detect_docker_compose)
+
 # El primer argumento pasado al script ($1) determina la acción
 ACTION=$1
 
@@ -40,14 +57,14 @@ fi
 case "$ACTION" in
   up)
     echo "--- Levantando contenedores base (Estructura antigua y MariaDB para app nueva)... ---"
-    docker-compose -f "$PHP_COMPOSE_FILE" up -d
-    docker-compose -f "$MARIADB_COMPOSE_FILE" up -d
+    $DOCKER_COMPOSE_CMD -f "$PHP_COMPOSE_FILE" up -d
+    $DOCKER_COMPOSE_CMD -f "$MARIADB_COMPOSE_FILE" up -d
     echo "--- Contenedores levantados. ---"
     ;;
   down)
     echo "--- Deteniendo contenedores base (Estructura antigua y MariaDB para app nueva)... ---"
-    docker-compose -f "$PHP_COMPOSE_FILE" down
-    docker-compose -f "$MARIADB_COMPOSE_FILE" down
+    $DOCKER_COMPOSE_CMD -f "$PHP_COMPOSE_FILE" down
+    $DOCKER_COMPOSE_CMD -f "$MARIADB_COMPOSE_FILE" down
     echo "--- Contenedores detenidos. ---"
     ;;
   *)
